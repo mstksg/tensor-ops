@@ -20,6 +20,7 @@ library
                        Data.Type.Uniform
                        TensorOps.Run
                        TensorOps.Tensor
+                       TensorOps.TOp
   build-depends:       base >= 4.7 && < 5
                      , foldl
                      , singletons
