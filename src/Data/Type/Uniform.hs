@@ -11,8 +11,8 @@
 module Data.Type.Uniform where
 
 import           Data.Kind
+import           Data.Type.Length
 import           Data.Type.Nat
-import           Data.Type.Vector
 import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.Constraint
@@ -22,12 +22,18 @@ data Uniform :: a -> [a] -> Type where
     UØ :: Uniform a '[]
     US :: Uniform a as -> Uniform a (a ': as)
 
-uniformLength :: Uniform n ns -> Nat (Len ns)
+uniformLength :: Uniform n ns -> Length ns
 uniformLength = \case
-    UØ   -> Z_
-    US u -> S_ (uniformLength u)
+    UØ   -> LZ
+    US u -> LS (uniformLength u)
 
--- TODO: Witness instance w/ Nat, for replicate in TensorOps.TOp
+
+instance Known (Uniform n) '[] where
+    known = UØ
+
+instance Known (Uniform n) ns => Known (Uniform n) (n ': ns) where
+    known = US known
+
 instance (m ~ Len ns) => Witness ØC (Known Nat m) (Uniform n ns) where
   (\\) r = \case
     UØ   -> r

@@ -14,8 +14,9 @@ module TensorOps.Types where
 
 import           Data.Kind
 import           Data.Singletons
-import           Data.Singletons.Prelude.List
+import           Data.Singletons.Prelude.List hiding (Length)
 import           Data.Type.Equality
+import           Data.Type.Length
 import           Data.Type.Product
 import           Data.Type.Subset
 import           Data.Type.Uniform
@@ -67,26 +68,27 @@ data TOp :: [Dim] -> [Dim] -> Type where
     -- producing a m-tensor list.
     Lift    :: Uniform n ns
             -> Uniform m ms
+            -> Length os
             -> (forall a. Floating a => Vec (Len ns) a -> Vec (Len ms) a)
-            -> TOp ns ms
+            -> TOp (ns :++ os) (ms :++ os)
     -- | Multiply a chain of matrices
     MatMat  :: MatMatChain n ns m
-            -> TOp ns '[ '[n, m] ]
+            -> TOp (ns :++ ms) ( '[n,m] ': ms )
     -- | Matrix-vector multiplication
-    MatVec  :: TOp '[ (m ': ms), ms ] '[ '[m] ]
+    MatVec  :: TOp ((m ': ms) ': ms ': mss) (ms ': mss)
     -- -- | Tensor/outer product on a chain of vectors
     -- Outer   :: Sing ns
     --         -> Sing (Concat ns)
     --         -> TOp ns '[Concat ns]
     -- | Outer (tensor) product
-    Outer   :: TOp '[ns,ms] '[ns :++ ms]
+    Outer   :: TOp (n ': m ': ms) ((n :++ m) ': ms)
     -- | Transpose based on indices
-    Transp  :: Len ns :~: Len ms
-            -> Subset ns ms
-            -> TOp '[ns] '[ms]
+    Transp  :: Len n :~: Len m
+            -> Subset n m
+            -> TOp (n ': ns) (m ': ms)
     -- | Fold along the principle direction
     Fold    :: (forall a. Floating a => F.Fold a a)
-            -> TOp '[n ': ns] '[ns]
+            -> TOp ((n ': ns) ': nss) (ns ': nss)
 
 data OpPipe :: ([k] -> [k] -> Type) -> [k] -> [k] -> Type where
     OPØ  :: OpPipe f a a
