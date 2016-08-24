@@ -1,6 +1,7 @@
 name:                tensor-ops
 version:             0.1.0.0
-synopsis:            Initial project template from stack
+synopsis:            Tensor manipulation operations with tensorflow-style
+                     automatic differentiation
 description:         Please see README.md
 homepage:            https://github.com/mstksg/tensor-ops#readme
 license:             BSD3
@@ -17,10 +18,13 @@ library
   hs-source-dirs:      src
   exposed-modules:     TensorOps.Types
                        Data.Type.Uniform
+                       TensorOps.Run
+                       TensorOps.Tensor
   build-depends:       base >= 4.7 && < 5
                      , foldl
                      , singletons
                      , type-combinators
+  ghc-options:         -Wall
   default-language:    Haskell2010
 
 -- executable tensor-ops-exe
