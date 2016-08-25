@@ -18,6 +18,7 @@ import           Data.Type.Product hiding            (append')
 import           Data.Type.Uniform
 import           TensorOps.Tensor
 import           TensorOps.Types
+import           Type.Class.Known
 
 runTOp
     :: (Tensor t, Floating (ElemT t))
@@ -25,32 +26,26 @@ runTOp
     -> Prod t ns
     -> Prod t ms
 runTOp = \case
-    Lift uNs uMs lO f -> overProdInit (uniformLength uNs) lO (liftT uNs uMs f)
-    MatMat c ->
-    MatMat  :: MatMatChain n ns m
-            -> TOp (ns :++ ms) ( '[n,m] ': ms )
-    -- MatMat c          -> only . mulChain c
-    -- MatVec            -> \case
-    --   x :< y :< Ø     -> only (x `mulMV` y)
-    -- Outer             -> \case
-    --   x :< y :< Ø     -> only (x `outer` y)
-    -- Transp r is       -> only . transp r is . head'
-    -- Fold f            -> only . foldT f     . head'
+    Lift uNs uMs f -> liftT uNs uMs f
+    MatMat c       -> only . mulChain c
+    MatVec         -> \case
+      x :< y :< Ø  -> only (x `mulMV` y)
+    Outer          -> \case
+      x :< y :< Ø  -> only (x `outer` y)
+    Transp r is    -> only . transp r is . head'
+    Fold f         -> only . foldT f     . head'
 
--- runTensorOp
---     :: forall t ns ms. (Tensor t, Floating (ElemT t))
---     => TensorOp ns ms
---     -> Prod t ns
---     -> Prod t ms
--- runTensorOp = \case
---     OPØ      -> id
---     OP1 o    -> runTOp o
---     oL :. oR -> runTensorOp oR . runTensorOp oL
---     oL :* oR -> uncurry append'
---               . bimap (runTensorOp oL) (runTensorOp oR)
---               . splitProd sing
---     oL :& oR -> uncurry append'
---               . (runTensorOp oL &&& runTensorOp oR)
+runTensorOp
+    :: forall t ns ms. (Tensor t, Floating (ElemT t))
+    => TensorOp ns ms
+    -> Prod t ns
+    -> Prod t ms
+runTensorOp = \case
+    OPØ      -> id
+    OP1 o    -> runTOp o
+    oL :. oR -> runTensorOp oR . runTensorOp oL
+    oL :* oR -> overProdSplit known (runTensorOp oL) (runTensorOp oR)
+    oL :& oR -> uncurry append' . (runTensorOp oL &&& runTensorOp oR)
 
 splitProd
     :: Sing ns
@@ -79,7 +74,7 @@ overProdInit
 overProdInit lN lO f = runIdentity . prodInit lN lO (Identity . f)
 
 prodInit
-    :: Applicative f
+    :: Functor f
     => Length ns
     -> Length os
     -> (Prod g ns -> f (Prod g ms))
@@ -90,19 +85,23 @@ prodInit lN lO f = case lN of
     LS lN' -> \case
       x :< xs -> prodInit lN' lO (\xs' -> f (x :< xs')) xs
 
-    -- Ø -> case lM of
-    --   LZ -> case lO of
-    --     LZ -> pure Ø
-    -- x :< xs -> prodInit lM lO (\ys -> _) xs
+overProdSplit
+    :: Length ns
+    -> (Prod g ns -> Prod g ms)
+    -> (Prod g os -> Prod g ps)
+    -> Prod g (ns :++ os)
+    -> Prod g (ms :++ ps)
+overProdSplit lN f g = runIdentity . prodSplit lN (Identity . f) (Identity . g)
 
+prodSplit
+    :: Applicative f
+    => Length ns
+    -> (Prod g ns -> f (Prod g ms))
+    -> (Prod g os -> f (Prod g ps))
+    -> Prod g (ns :++ os)
+    -> f (Prod g (ms :++ ps))
+prodSplit lN f g = case lN of
+    LZ     -> \xs -> append' <$> f Ø <*> g xs
+    LS lN' -> \case
+      x :< xs -> prodSplit lN' (\xs' -> f (x :< xs')) g xs
 
--- prodSplit
---     :: forall f g ns ms. (Applicative f, SingI ns)
---     => (Prod g ns -> f (Prod g ns))
---     -> (Prod g ms -> f (Prod g ms))
---     -> Prod g (ns :++ ms)
---     -> f (Prod g (ns :++ ms))
--- prodSplit fL fR = case sing :: Sing ns of
---     SNil -> fR
---     _ `SCons` sNs -> \case
---       x :< xs -> prodSplit fL fR

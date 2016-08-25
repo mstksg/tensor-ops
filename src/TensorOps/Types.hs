@@ -22,9 +22,10 @@ import           Data.Type.Subset
 import           Data.Type.Uniform
 import           Data.Type.Vector
 import           GHC.TypeLits
-import           Prelude hiding               ((.), id)
+import           Prelude hiding                      ((.), id)
+import           Type.Class.Known
 import           Type.Family.Nat
-import qualified Control.Foldl                as F
+import qualified Control.Foldl                       as F
 
 type Dim = [Nat]
 
@@ -68,37 +69,41 @@ data TOp :: [Dim] -> [Dim] -> Type where
     -- producing a m-tensor list.
     Lift    :: Uniform n ns
             -> Uniform m ms
-            -> Length os
             -> (forall a. Floating a => Vec (Len ns) a -> Vec (Len ms) a)
-            -> TOp (ns :++ os) (ms :++ os)
+            -> TOp ns ms
     -- | Multiply a chain of matrices
     MatMat  :: MatMatChain n ns m
-            -> TOp (ns :++ ms) ( '[n,m] ': ms )
+            -> TOp ns '[ '[n, m] ]
     -- | Matrix-vector multiplication
-    MatVec  :: TOp ((m ': ms) ': ms ': mss) (ms ': mss)
+    MatVec  :: TOp '[ (m ': ms), ms ] '[ '[m] ]
     -- -- | Tensor/outer product on a chain of vectors
     -- Outer   :: Sing ns
     --         -> Sing (Concat ns)
     --         -> TOp ns '[Concat ns]
     -- | Outer (tensor) product
-    Outer   :: TOp (n ': m ': ms) ((n :++ m) ': ms)
+    Outer   :: TOp '[ns,ms] '[ns :++ ms]
     -- | Transpose based on indices
-    Transp  :: Len n :~: Len m
-            -> Subset n m
-            -> TOp (n ': ns) (m ': ms)
+    Transp  :: Len ns :~: Len ms
+            -> Subset ns ms
+            -> TOp '[ns] '[ms]
     -- | Fold along the principle direction
     Fold    :: (forall a. Floating a => F.Fold a a)
-            -> TOp ((n ': ns) ': nss) (ns ': nss)
+            -> TOp '[n ': ns] '[ns]
 
 data OpPipe :: ([k] -> [k] -> Type) -> [k] -> [k] -> Type where
-    OPØ  :: OpPipe f a a
-    OP1  :: f a b -> OpPipe f a b
-    (:.) :: SingI b
-         => OpPipe f a b -> OpPipe f b c -> OpPipe f a c
-    (:*) :: (SingI a, SingI b, SingI c, SingI d)
-         => OpPipe f a b -> OpPipe f c d -> OpPipe f (a :++ c) (b :++ d)
-    (:&) :: (SingI a, SingI b, SingI c)
-         => OpPipe f a b -> OpPipe f a c -> OpPipe f a (b :++ c)
+    OPØ   :: OpPipe f a a
+    OP1   :: f a b
+          -> OpPipe f a b
+    (:.)  :: SingI b
+          => OpPipe f a b -> OpPipe f b c -> OpPipe f a c
+    (:*)  :: Known Length a
+          => OpPipe f a b -> OpPipe f c d -> OpPipe f (a :++ c) (b :++ d)
+    (:&)  :: (SingI a, SingI b, SingI c)
+          => OpPipe f a b -> OpPipe f a c -> OpPipe f a (b :++ c)
+    -- First :: Length as
+    --       => Length cs
+    --       -> OpPipe f as bs
+    --       -> OpPipe f (as :++ cs) (bs :++ cs)
 
 infixr 9 :.
 infixr 5 :*
