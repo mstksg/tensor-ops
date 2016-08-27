@@ -31,7 +31,7 @@ runTOp = \case
     GMul lM lO lN  -> \case
       x :< y :< Ø  -> only (gmul lM lO lN x y)
     Transp _       -> only . transp . head'
-    Fold f         -> only . foldT f     . head'
+    Fold _ f       -> only . foldT f     . head'
 
 runTensorOp
     :: forall t ns ms. (Tensor t, Floating (ElemT t))

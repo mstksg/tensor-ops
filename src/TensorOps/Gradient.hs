@@ -15,7 +15,6 @@ module TensorOps.Gradient where
 -- import           Data.Singletons.Prelude.List ((:++), Reverse, sReverse)
 -- import           Data.Type.Combinator
 -- import           Data.Type.Equality hiding    (outer)
--- import           Data.Type.Length
 -- import           Data.Type.Product.Util
 -- import           Data.Type.Uniform
 -- import           Data.Type.Vector             as TCV
@@ -27,6 +26,7 @@ module TensorOps.Gradient where
 -- import           Type.Family.List
 -- import           Type.Family.Nat
 -- import           Unsafe.Coerce
+import           Data.Type.Length
 import           Data.Type.Length.Util           as TCL
 import           Data.Type.Product
 import           TensorOps.Types
@@ -89,4 +89,18 @@ gradTOp = \case
     Transp lN     -> \case
         _ :< Ø -> \case
           dtdz :< Ø -> only $ transp dtdz \\ reverseReverse lN
+    Fold lNs f    -> \case
+        x :< Ø -> \case
+          -- lNs   :: Length ns
+          -- x    :: t (n ': ns)
+          -- dtdz :: t ns
+          -- goal :: t (n ': ns)
+          -- nope!
+          -- gmul :: Length '[n]
+          --      -> Length '[]
+          --      -> Length ns
+          --      -> t '[n]         -- ??
+          --      -> t ns
+          --      -> t (n ': ns)
+          dtdz :< Ø -> only $ gmul (LS LZ) LZ lNs (undefined x) dtdz
 

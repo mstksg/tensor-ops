@@ -1,22 +1,23 @@
-{-# LANGUAGE DataKinds     #-}
-{-# LANGUAGE GADTs         #-}
-{-# LANGUAGE LambdaCase    #-}
-{-# LANGUAGE PolyKinds     #-}
-{-# LANGUAGE RankNTypes    #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DataKinds        #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs            #-}
+{-# LANGUAGE LambdaCase       #-}
+{-# LANGUAGE PolyKinds        #-}
+{-# LANGUAGE RankNTypes       #-}
+{-# LANGUAGE TypeOperators    #-}
 
 module TensorOps.TOp where
 
 -- import           Data.Type.Equality
 -- import           Data.Type.Index
--- import           Data.Type.Length
 -- import           Data.Type.Product
--- import           Type.Class.Known
 import           Data.Type.Combinator
+import           Data.Type.Length
 import           Data.Type.Uniform
 import           Data.Type.Vector
 import           Prelude hiding         (map, replicate)
 import           TensorOps.Types hiding (OpPipe(..))
+import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.Nat
 import qualified Control.Foldl          as F
@@ -61,5 +62,5 @@ replicate u = Lift (US UØ)
 -- transpose :: TOp '[ '[m,n] ] '[ '[n,m] ]
 -- transpose = Transp Refl (IS IZ :< IZ :< Ø)
 
-sum :: TOp '[n ': ns] '[ns]
-sum = Fold F.sum
+sum :: Known Length ns => TOp '[n ': ns] '[ns]
+sum = Fold known F.sum

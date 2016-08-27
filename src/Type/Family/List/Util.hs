@@ -36,3 +36,27 @@ reverseConcat
     -> Length bs
     -> (Reverse (as ++ bs) :~: (Reverse bs ++ Reverse as))
 reverseConcat _ _ = unsafeCoerce Refl
+
+appendNil
+    :: Length ms
+    -> ((ms ++ '[]) :~: ms)
+appendNil = \case
+    LZ   -> Refl
+    LS l -> Refl \\ appendNil l
+
+appendAssoc
+    :: Length ms
+    -> Length ns
+    -> Length os
+    -> (((ms ++ ns) ++ os) :~: (ms ++ (ns ++ os)))
+appendAssoc = \case
+    LZ    -> \_ _ -> Refl
+    LS lM -> \lN lO -> Refl \\ appendAssoc lM lN lO
+
+appendSnoc
+    :: Length ms
+    -> Proxy n
+    -> ((ms >: n) :~: (ms ++ '[n]))
+appendSnoc = \case
+    LZ   -> \_ -> Refl
+    LS s -> \p -> Refl \\ appendSnoc s p

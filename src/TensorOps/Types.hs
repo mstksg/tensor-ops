@@ -58,13 +58,16 @@ class Tensor (t :: Dim -> Type) where
     -- mulMV   :: t (m ': ms)
     --         -> t ms
     --         -> t '[m]
-    foldT   :: (forall a. Floating a => F.Fold a a)
-            -> t (n ': ns)
-            -> t ns
-    eye     :: Uniform n ns
-            -> t ns
     transp  :: t ns
             -> t (Reverse ns)
+    foldT   :: F.Fold (ElemT t) (ElemT t)
+            -> t (n ': ns)
+            -> t ns
+    foldTGrad :: (forall a. Floating a => F.Fold a a)
+              -> t (n ': ns)
+              -> t (n ': ns)
+    eye     :: Uniform n ns
+            -> t ns
     -- uncons  :: t (n ': ns)
     --         -> VecT (Len ns) t '[n]
     -- outer   :: t ns
@@ -99,7 +102,8 @@ data TOp :: [Dim] -> [Dim] -> Type where
     Transp  :: Length ns
             -> TOp '[ns] '[Reverse ns]
     -- | Fold along the principle direction
-    Fold    :: (forall a. Floating a => F.Fold a a)
+    Fold    :: Length ns
+            -> (forall a. Floating a => F.Fold a a)
             -> TOp '[n ': ns] '[ns]
 
 data OpPipe :: ([k] -> [k] -> Type) -> [k] -> [k] -> Type where

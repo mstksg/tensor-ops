@@ -5,16 +5,18 @@
 {-# LANGUAGE PolyKinds           #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE TypeOperators       #-}
 
 module TensorOps.Tensor where
 
 -- import           Data.Singletons.Prelude.List hiding (Length)
 -- import           Data.Type.Index
--- import           Data.Type.Length
 -- import           Data.Type.Product.Util
 import           Control.Applicative
+import           Data.Proxy
 import           Data.Type.Combinator
+import           Data.Type.Length
 import           Data.Type.Product                      as TCP
 import           Data.Type.Uniform
 import           Data.Type.Vector
@@ -22,20 +24,11 @@ import           Data.Type.Vector.Util
 import           Numeric.AD
 import           TensorOps.Types
 import           Type.Class.Known
-import           Type.Class.Witness
+import           Type.Class.Witness hiding              (inner, outer)
+import           Type.Family.List
+import           Type.Family.List.Util
 import           Type.Family.Nat
 import           Type.Family.Nat.Util
-
--- mulChain
---     :: Tensor t
---     => MatMatChain n ns m
---     -> Prod t ns
---     -> t '[n,m]
--- mulChain = \case
---     MMØ -> \case
---       Ø -> eye (US (US UØ))
---     MMS mm -> \case
---       x :< xs -> x `mulMM` mulChain mm xs
 
 konst
     :: (Tensor t, Floating (ElemT t))
@@ -49,12 +42,6 @@ konstN
     -> ElemT t
     -> Prod t ns
 konstN u x = liftT UØ u (\ØV -> vrep (I x) \\ uniformLength u) Ø
-
--- transpose
---     :: Tensor t
---     => t '[m,n]
---     -> t '[n,m]
--- transpose = transp Refl (IS IZ :< IZ :< Ø)
 
 gradLift
     :: forall o ms ns t. (Tensor t, Floating (ElemT t))
@@ -77,55 +64,58 @@ gradLift uN uM f xs dtdys =
         -> Vec (Len ns) (ElemT t)
     go x dtdy = sum ((vap . liftA2) (\e -> fmap (e*)) dtdy (jacobian f x)) \\ lN
 
+inner
+    :: forall t ms ns o. Tensor t
+    => Length ms
+    -> Length ns
+    -> t (ms >: o)
+    -> t (o ': ns)
+    -> t (ms ++ ns)
+inner lM lN x = gmul lM (LS LZ) lN x
+                    \\ appendSnoc lM (Proxy @o)
 
--- outerChain
---     :: forall t ns. Tensor t
---     => Sing ns
---     -> Prod t ns
---     -> t (Concat ns)
--- outerChain = \case
---     SNil -> \case
---       Ø -> eye UØ
---     sN `SCons` sNs -> \case
---       -- x :< xs -> _ (outer sN x (outerChain sNs xs))
---       x :< xs -> _ x (outerChain sNs xs)
---       -- x :< xs -> outer sN x (outerChain sNs xs)
---       -- x :< xs -> case sConcat sNs of
---       --              (sMs :: Sing ms) -> case outerChain sNs xs of
---       --                (y :: t ms) -> undefined
---       -- case outerChain sNs xs of
---       --              (y :: t ms) -> outer sN
+outer
+    :: Tensor t
+    => Length ms
+    -> Length ns
+    -> t ms
+    -> t ns
+    -> t (ms ++ ns)
+outer lM lN x = gmul lM LZ lN x
+                    \\ appendNil lM
 
--- outer sN (sConcat sNs) (sN %:++ sConcat sNs) x (outerChain sNs xs)
-      -- case outerChain sNs xs of
-      --              (y :: t ms) -> outer sN
-        -- sM `SCons` sMs -> outer sN _ _ x (outerChain sNs xs)
-    -- case sConcat sNs of
-      -- SNil -> \case
-      --   x :< xs -> outer sN x (outerChain SNil xs)
-      -- x :< xs -> case sConcat sNs of
-      --   SNil -> undefined
+outerV
+    :: Tensor t
+    => t '[m]
+    -> t '[n]
+    -> t '[m,n]
+outerV = outer (LS LZ) (LS LZ)
 
-    -- sN `SCons` sNs -> \case
-    --   x :< xs -> outer sN x (outerChain sNs xs)
+dot
+    :: Tensor t
+    => t '[m]
+    -> t '[m]
+    -> t '[]
+dot = inner LZ LZ
 
-      -- x :< xs -> x `outer` (outerChain sNs xs)
+matVec
+    :: Tensor t
+    => t '[m, n]
+    -> t '[n]
+    -> t '[m]
+matVec = inner (LS LZ) LZ
 
-    -- (sN :: Sing n) `SCons` (sNs :: Sing ns') -> \case
-    --   (x :: t n) :< (xs :: Prod t ns') ->
-    --     let sNsc :: Sing (Concat ns')
-    --         sNsc = sConcat sNs
-    --         y    :: t (Concat ns')
-    --         y    = outerChain sNs xs
-    --     in  (undefined :: t n -> t (Concat ns') -> t (n :++ Concat ns')) x y
-      -- outer sN (sConcat sNs) x (outerChain sNs xs)
-      -- x :< xs -> outer sN (sConcat sNs) x (outerChain sNs xs)
+vecMat
+    :: Tensor t
+    => t '[m]
+    -> t '[m,n]
+    -> t '[n]
+vecMat = inner LZ (LS LZ)
 
-    -- • Could not deduce: (a1 :++ Data.Singletons.Prelude.Base.Let1628040677Go (:++$) '[] as as)
-    --                     ~
-    --                     (a1 :++ Data.Singletons.Prelude.Base.Let1628040677Go (:++$) '[] (a1 : as) as)
-
-    -- • Found hole:
-    --     _ :: t (a1 :++ Data.Singletons.Prelude.Base.Let1628040677Go (:++$) '[] as as)
-    --       -> t (a1 :++ Data.Singletons.Prelude.Base.Let1628040677Go (:++$) '[] (a1 : as) as)
+matMat
+    :: Tensor t
+    => t '[m,n]
+    -> t '[n,o]
+    -> t '[m,o]
+matMat = inner (LS LZ) (LS LZ)
 
