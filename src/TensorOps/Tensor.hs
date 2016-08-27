@@ -2,26 +2,81 @@
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE PolyKinds           #-}
+{-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators       #-}
 
 module TensorOps.Tensor where
 
-import           Data.Singletons.Prelude.List
-import           Data.Type.Product
+-- import           Data.Singletons.Prelude.List hiding (Length)
+-- import           Data.Type.Length
+import           Control.Applicative
+import           Data.Type.Combinator
+import           Data.Type.Index
+import           Data.Type.Product                      as TCP
+import           Data.Type.Product.Util
 import           Data.Type.Uniform
+import           Data.Type.Vector
+import           Data.Type.Vector.Util
+import           Numeric.AD
 import           TensorOps.Types
+import           Type.Class.Known
+import           Type.Class.Witness
+import           Type.Family.Nat
+import           Type.Family.Nat.Util
 
-mulChain
-    :: Tensor t
-    => MatMatChain n ns m
+-- mulChain
+--     :: Tensor t
+--     => MatMatChain n ns m
+--     -> Prod t ns
+--     -> t '[n,m]
+-- mulChain = \case
+--     MMØ -> \case
+--       Ø -> eye (US (US UØ))
+--     MMS mm -> \case
+--       x :< xs -> x `mulMM` mulChain mm xs
+
+konst
+    :: (Tensor t, Floating (ElemT t))
+    => ElemT t
+    -> t n
+konst = TCP.head' . konstN (US UØ)
+
+konstN
+    :: forall n ns t. (Tensor t, Floating (ElemT t))
+    => Uniform n ns
+    -> ElemT t
     -> Prod t ns
-    -> t '[n,m]
-mulChain = \case
-    MMØ -> \case
-      Ø -> eye (US (US UØ))
-    MMS mm -> \case
-      x :< xs -> x `mulMM` mulChain mm xs
+konstN u x = liftT UØ u (\ØV -> vrep (I x) \\ uniformLength u) Ø
+
+-- transpose
+--     :: Tensor t
+--     => t '[m,n]
+--     -> t '[n,m]
+-- transpose = transp Refl (IS IZ :< IZ :< Ø)
+
+gradLift
+    :: forall o ms ns t. (Tensor t, Floating (ElemT t))
+    => Uniform o ns
+    -> Uniform o ms
+    -- TODO: make less polymorphic, maybe only require Reverse?
+    -> (forall a. Floating a => Vec (Len ns) a -> Vec (Len ms) a)
+    -> Prod t ns    -- ^ inputs
+    -> Prod t ms    -- ^ d target / d outputs
+    -> Prod t ns    -- ^ d target / d inputs
+gradLift uN uM f xs dtdys =
+    gcastWith (lN `appendLengths` uniformLength uM) $
+      liftT (uN `appendUniform` uM) uN
+            (uncurry go . splitVec (known \\ lN))
+            (xs `append'` dtdys)
+  where
+    lN = uniformLength uN
+    go  :: Vec (Len ns) (ElemT t)
+        -> Vec (Len ms) (ElemT t)
+        -> Vec (Len ns) (ElemT t)
+    go x dtdy = sum ((vap . liftA2) (\e -> fmap (e*)) dtdy (jacobian f x)) \\ lN
+
 
 -- outerChain
 --     :: forall t ns. Tensor t

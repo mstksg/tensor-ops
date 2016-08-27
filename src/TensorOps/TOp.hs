@@ -1,11 +1,13 @@
 {-# LANGUAGE DataKinds     #-}
 {-# LANGUAGE GADTs         #-}
 {-# LANGUAGE LambdaCase    #-}
+{-# LANGUAGE PolyKinds     #-}
 {-# LANGUAGE RankNTypes    #-}
 {-# LANGUAGE TypeOperators #-}
 
 module TensorOps.TOp where
 
+-- import           Data.Type.Length
 -- import           Type.Class.Known
 import           Data.Type.Combinator
 import           Data.Type.Equality
@@ -18,6 +20,13 @@ import           TensorOps.Types hiding (OpPipe(..))
 import           Type.Class.Witness
 import           Type.Family.Nat
 import qualified Control.Foldl          as F
+
+konst
+    :: forall n ns. ()
+    => Uniform n ns
+    -> (forall a. Floating a => a)
+    -> TOp '[] ns
+konst u x = Lift UØ u (\ØV -> vrep (I x) \\ uniformLength u)
 
 map :: Uniform n ns
     -> (forall a. Floating a => a -> a)
@@ -47,10 +56,10 @@ replicate
     -> TOp '[ n ] ns
 replicate u = Lift (US UØ)
                    u
-                   (\case x :* ØV -> vrep x \\ u)
+                   (\case x :* ØV -> vrep x \\ uniformLength u)
 
-transpose :: TOp '[ '[m,n] ] '[ '[n,m] ]
-transpose = Transp Refl (IS IZ :< IZ :< Ø)
+-- transpose :: TOp '[ '[m,n] ] '[ '[n,m] ]
+-- transpose = Transp Refl (IS IZ :< IZ :< Ø)
 
 sum :: TOp '[n ': ns] '[ns]
 sum = Fold F.sum
