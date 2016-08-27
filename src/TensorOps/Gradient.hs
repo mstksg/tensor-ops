@@ -11,25 +11,27 @@
 module TensorOps.Gradient where
 
 -- import           Control.Applicative
+-- import           Data.Proxy
 -- import           Data.Singletons.Prelude.List ((:++), Reverse, sReverse)
 -- import           Data.Type.Combinator
+-- import           Data.Type.Equality hiding    (outer)
+-- import           Data.Type.Length
 -- import           Data.Type.Product.Util
 -- import           Data.Type.Uniform
 -- import           Data.Type.Vector             as TCV
 -- import           Data.Type.Vector.Util
 -- import           Numeric.AD
 -- import           TensorOps.Run
+-- import           Type.Class.Higher
 -- import           Type.Class.Known
--- import           Type.Class.Witness
+-- import           Type.Family.List
 -- import           Type.Family.Nat
-import           Data.Proxy
-import           Data.Type.Equality hiding       (outer)
-import           Data.Type.Length
-import           Data.Type.Product hiding        (append')
+-- import           Unsafe.Coerce
+import           Data.Type.Length.Util           as TCL
+import           Data.Type.Product
 import           TensorOps.Types
-import           Type.Class.Higher
-import           Type.Family.List
-import           Unsafe.Coerce
+import           Type.Class.Witness
+import           Type.Family.List.Util
 import qualified TensorOps.Tensor                as Tensor
 
 gradTOp
@@ -41,166 +43,50 @@ gradTOp
 gradTOp = \case
     Lift uN uM f -> Tensor.gradLift uN uM f
     GMul lM lO lN -> \case
+      -- lM   :: Length m
+      -- lO   :: Length o
+      -- lN   :: Length n
+      -- x    :: t (Head ns)
+      --      :: t (m :++ o)
+      -- y    :: t (Head (Tail ns))
+      --      :: t (Reverse o :++ n)
+      -- dtdz :: t (Head ms)
+      --      :: t (m :++ n)
       x :< y :< Ø -> \case
-                      -- lmao
-        dtdz :< Ø -> gmul lM lN lO dtdz (coerceT (unsafeCoerce Refl) (transp y))
-                  :< gmul (reverseLength lO) (reverseLength lM) lN
-                          (coerceT (unsafeCoerce Refl) (transp x))
-                          (coerceT (unsafeCoerce Refl) dtdz)
-                  :< Ø
-    Transp        -> \case
-        x :< Ø -> \case
-          dtdz :< Ø -> only $ coerceT (unsafeCoerce Refl) (transp dtdz)
-
-coerceT
-    :: Tensor t
-    => (ns :~: ms)
-    -> t ns
-    -> t ms
-coerceT Refl = id
-
-revRev
-    :: Length ns
-    -> (ns :~: Reverse (Reverse ns))
-revRev _ = unsafeCoerce Refl
-
-
-    -- MatMat       -> \case
-    --   x :< y :< Ø -> \case
-    --     dtdo :< Ø -> dtdo `mulMM` transp y
-    --               :< transp x `mulMM` dtdo
-    --               :< Ø
-    -- MatVec       -> \case
-    --   x :< y :< Ø -> \case
-    --     dtdo :< Ø -> dtdo `outer` y
-    --               :< undefined
-    --               -- :< _  -- oops i made this too generic
-    --               -- :< x `mulMV` dtdo
-    --               :< Ø
-
-transpAppend
-    :: Length ms
-    -> Length ns
-    -> t (Reverse (ms ++ ns))
-    -> t (Reverse ns ++ Reverse ms)
-transpAppend = unsafeCoerce
-
-reverseAppend
-    :: Length as
-    -> Length bs
-    -> (Reverse (as ++ bs) :~: (Reverse bs ++ Reverse as))
-reverseAppend _ = unsafeCoerce Refl
-
-
-reverseLength
-    :: forall ns. ()
-    => Length ns
-    -> Length (Reverse ns)
-reverseLength _ = unsafeCoerce Refl
-
-    -- LZ   -> LZ
-    -- l'@(LS l) -> case reverseSnoc l (mkP l') of
-    --                Refl -> appendLength (reverseLength l) (mkL l')
-  -- where
-    -- mkP :: forall a as. Length (a ': as) -> Proxy a
-    -- mkP _ = Proxy
-    -- mkL :: forall a as. Length (a ': as) -> Length '[a]
-    -- mkL _ = LS LZ
-
-appendLength
-    :: Length ns
-    -> Length ms
-    -> Length (ns ++ ms)
-appendLength = \case
-    LZ   -> id
-    LS l -> LS . appendLength l
-
-    -- LZ   -> LZ
-    -- LS l -> snocLength (reverseLength l) (mkProxy l0)
-  -- where
-    -- mkProxy :: forall a as. Length (a ': as) -> Proxy a
-    -- mkProxy _ = Proxy
-
-reverseReverse
-    :: Length ns
-    -> (Reverse (Reverse ns) :~: Reverse ns)
-reverseReverse _ = unsafeCoerce Refl
-
--- reverseConcat
---     :: Length as
---     -> Length bs
---     -> (Reverse (as ++ bs) :~: (Reverse bs ++ Reverse as))
--- reverseConcat = \case
---     LZ -> \case
---       LZ   -> Refl
---       LS b -> _
-
--- reverseSnoc
---     :: Length ns
---     -> Proxy n
---     -> (Reverse (n ': ns) :~: (ns >: n))
--- reverseSnoc l0 p = case l0 of
---     LZ   -> Refl
-    -- LS l -> case lengthLast l of
-    --           Left Refl -> Refl
-    --           Right (Some ll) ->
-    --             case reverseSnoc l (mkProxy ll) of
-    --               Refl -> Refl
-  -- where
-    -- mkProxy :: forall a as. LastList as a -> Proxy a
-    -- mkProxy _ = Proxy
-    -- mkProxy :: forall a as. LastList as a -> Proxy a
-    -- mkProxy _ = Proxy
--- (\case Refl -> Refl) . reverseSnoc l
-
-data LastList :: [k] -> k -> * where
-    LsZ :: LastList '[a] a
-    LsS :: LastList as b -> LastList (a ': as) b
-
-    -- LsS :: Last as a -> Last
-
-lengthLast
-    :: Length ns
-    -> Either (ns :~: '[]) (Some (LastList ns))
-lengthLast = \case
-    LZ   -> Left Refl
-    LS s -> case lengthLast s of
-              Left  Refl      -> Right (Some LsZ     )
-              Right (Some ll) -> Right (Some (LsS ll))
-
-
-snocLength
-    :: Length ns
-    -> Proxy n
-    -> Length (ns >: n)
-snocLength = \case
-    LZ   -> \_ -> LS LZ
-    LS l -> LS . snocLength l
-
-        -- only (x `mulMV` y)
-    -- Outer          -> \case
-    --   x :< y :< Ø  -> only (x `outer` y)
-    -- Transp r is    -> only . transp r is . head'
-    -- Fold f         -> only . foldT f     . head'
-      -- case liftT uNs uMs (jacobian f) xs of
-      -- case
-      --   let f' = partials f uNs uMs xs
-      --   in  xs
-
--- data LenRev :: [k] -> [k] -> * where
---     LRZ :: LenRev '[] '[]
---     LRS :: LenRev as (Reverse as) -> LenRev (a ': as) (Reverse as ++ '[a])
-
--- revLen
---     :: LenRev as bs
---     -> Length (Reverse as)
--- revLen = case
-
--- rev :: LenRev as bs
---     -> (as :~: Reverse bs)
--- rev = \case
---     LRZ   -> Refl
---     LRS l -> case rev l of
---                Refl -> Refl
-
+        dtdz :< Ø -> let rlO = TCL.reverse' lO
+      -- gmul :: Length m
+      --      -> Length n
+      --      -> Length o
+      --      -> t (m :++ n)
+      --      -> t (Reverse n :++ o)
+      --      -> t (m :++ o)
+      -- transp y :: t (Reverse (Reverse o :++ n))
+      --          :: t (Reverse n :++ Reverse (Reverse o))
+      --          :: t (Reverse n :++ o)
+      -- therefore we need:
+      --   Reverse (Reverse o :++ n) :~: Reverse n :++ Reverse (Reverse o)
+      --   Reverse (Reverse o)       :~: o
+                     in  gmul lM lN lO dtdz (transp y \\ reverseConcat rlO lN
+                                                      \\ reverseReverse lO
+                                            )
+      -- gmul :: Length (Reverse o)
+      --      -> Length (Reverse m)
+      --      -> Length n
+      --      -> t (Reverse o :++ Reverse m)
+      --      -> t (Reverse (Reverse m) :++ n)
+      --      -> t (Reverse o :++ n)
+      -- transp x :: t (Reverse (m :++ o))
+      --          :: t (Reverse o :++ Reverse m)
+      -- dtdz     :: t (m :++ o)
+      --          :: t (Reverse (Reverse m) :++ o)
+      -- therefore we need:
+      --   Reverse (m :++ o) :~: Reverse o :++ Reverse m
+      --   Reverse (Reverse m) :~: m
+                      :< gmul rlO (TCL.reverse' lM) lN
+                              (transp x \\ reverseConcat  lM lO)
+                              (dtdz     \\ reverseReverse lM   )
+                      :< Ø
+    Transp lN     -> \case
+        _ :< Ø -> \case
+          dtdz :< Ø -> only $ transp dtdz \\ reverseReverse lN
 

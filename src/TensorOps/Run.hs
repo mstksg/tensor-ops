@@ -8,17 +8,17 @@
 
 module TensorOps.Run where
 
+-- import           Control.Arrow                       ((&&&))
 -- import           Data.Bifunctor
 -- import           Data.Functor.Identity
 -- import           Data.Singletons
 -- import           Data.Singletons.Prelude.List hiding (Length)
 -- import           Data.Type.Length
 -- import           Data.Type.Uniform
+-- import           TensorOps.Tensor
 -- import           Type.Class.Known
-import           Control.Arrow                          ((&&&))
 import           Data.Type.Product hiding               (append')
 import           Data.Type.Product.Util
-import           TensorOps.Tensor
 import           TensorOps.Types
 
 runTOp
@@ -30,14 +30,7 @@ runTOp = \case
     Lift uNs uMs f -> liftT uNs uMs f
     GMul lM lO lN  -> \case
       x :< y :< Ø  -> only (gmul lM lO lN x y)
-    -- MatMat         -> \case
-    --   x :< y :< Ø  -> only (x `mulMM` y)
-    -- MatVec         -> \case
-    --   x :< y :< Ø  -> only (x `mulMV` y)
-    -- Outer          -> \case
-    --   x :< y :< Ø  -> only (x `outer` y)
-    Transp         -> only . transp . head'
-    -- Transp r is    -> only . transp r is . head'
+    Transp _       -> only . transp . head'
     Fold f         -> only . foldT f     . head'
 
 runTensorOp

@@ -15,22 +15,22 @@
 
 module TensorOps.Types where
 
-import           Data.Kind
-import           Data.Singletons
+-- import           Data.Singletons
 -- import           Data.Singletons.Prelude.List hiding (Length)
-import           Data.Type.Equality
+-- import           Data.Type.Equality
+-- import           Data.Type.Subset
+-- import           Unsafe.Coerce
+import           Data.Kind
 import           Data.Type.Length
 import           Data.Type.Product
-import           Data.Type.Subset
 import           Data.Type.Uniform
 import           Data.Type.Vector
 import           GHC.TypeLits
-import           Prelude hiding                      ((.), id)
+import           Prelude hiding                         ((.), id)
 import           Type.Class.Known
 import           Type.Family.List
 import           Type.Family.Nat
-import           Unsafe.Coerce
-import qualified Control.Foldl                       as F
+import qualified Control.Foldl                          as F
 
 type Dim = [Nat]
 
@@ -58,8 +58,7 @@ class Tensor (t :: Dim -> Type) where
     -- mulMV   :: t (m ': ms)
     --         -> t ms
     --         -> t '[m]
-    foldT   :: Floating (ElemT t)
-            => F.Fold (ElemT t) (ElemT t)
+    foldT   :: (forall a. Floating a => F.Fold a a)
             -> t (n ': ns)
             -> t ns
     eye     :: Uniform n ns
@@ -97,7 +96,8 @@ data TOp :: [Dim] -> [Dim] -> Type where
     -- -- | Outer (tensor) product
     -- Outer   :: TOp '[ns,ms] '[ns ++ ms]
     -- | Transpose (reverse indices)
-    Transp  :: TOp '[ns] '[Reverse ns]
+    Transp  :: Length ns
+            -> TOp '[ns] '[Reverse ns]
     -- | Fold along the principle direction
     Fold    :: (forall a. Floating a => F.Fold a a)
             -> TOp '[n ': ns] '[ns]

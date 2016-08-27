@@ -7,12 +7,12 @@
 
 module TensorOps.TOp where
 
+-- import           Data.Type.Equality
+-- import           Data.Type.Index
 -- import           Data.Type.Length
+-- import           Data.Type.Product
 -- import           Type.Class.Known
 import           Data.Type.Combinator
-import           Data.Type.Equality
-import           Data.Type.Index
-import           Data.Type.Product
 import           Data.Type.Uniform
 import           Data.Type.Vector
 import           Prelude hiding         (map, replicate)

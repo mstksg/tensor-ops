@@ -10,12 +10,12 @@
 module TensorOps.Tensor where
 
 -- import           Data.Singletons.Prelude.List hiding (Length)
+-- import           Data.Type.Index
 -- import           Data.Type.Length
+-- import           Data.Type.Product.Util
 import           Control.Applicative
 import           Data.Type.Combinator
-import           Data.Type.Index
 import           Data.Type.Product                      as TCP
-import           Data.Type.Product.Util
 import           Data.Type.Uniform
 import           Data.Type.Vector
 import           Data.Type.Vector.Util
@@ -66,10 +66,10 @@ gradLift
     -> Prod t ms    -- ^ d target / d outputs
     -> Prod t ns    -- ^ d target / d inputs
 gradLift uN uM f xs dtdys =
-    gcastWith (lN `appendLengths` uniformLength uM) $
-      liftT (uN `appendUniform` uM) uN
-            (uncurry go . splitVec (known \\ lN))
-            (xs `append'` dtdys)
+    liftT (uN `appendUniform` uM) uN
+          (uncurry go . splitVec (known \\ lN))
+          (xs `append'` dtdys)
+      \\ (lN `appendLengths` uniformLength uM)
   where
     lN = uniformLength uN
     go  :: Vec (Len ns) (ElemT t)
