@@ -9,13 +9,16 @@
 module Data.Type.Product.Util where
 
 -- import           Data.Singletons.Prelude.List hiding (Length)
+-- import           Type.Class.Known
 import           Data.Bifunctor
 import           Data.Functor.Identity
 import           Data.Type.Length
 import           Data.Type.Product
+import           Data.Type.Uniform
+import           Data.Type.Vector
 import           Prelude hiding                         (replicate)
-import           Type.Class.Known
 import           Type.Family.List
+import           Type.Family.Nat
 
 splitProd
     :: Length ns
@@ -25,14 +28,6 @@ splitProd = \case
     LZ   -> \p -> (Ø, p)
     LS l -> \case
       x :< xs -> first (x :<) (splitProd l xs)
-
--- append'
---     :: Prod f as
---     -> Prod f bs
---     -> Prod f (as ++ bs)
--- append' = \case
---     Ø       -> id
---     x :< xs -> (x :<) . append' xs
 
 overProdInit
     :: Length ns
@@ -85,12 +80,39 @@ prodSplit' lN f = case lN of
     LS lN' -> \case
       x :< xs -> prodSplit' lN' (\(xs', ys) -> f (x :< xs', ys)) xs
 
-replicate
-    :: forall f as. Known Length as
-    => (forall a. f a)
-    -> Prod f as
-replicate x = case known :: Length as of
-                LZ   -> Ø
-                LS l -> x :< replicate x
+vecToProd
+    :: forall a b f g as. ()
+    => (f b -> g a)
+    -> Uniform a as
+    -> VecT (Len as) f b
+    -> Prod g as
+vecToProd f = go
+  where
+    go  :: forall bs. ()
+        => Uniform a bs
+        -> VecT (Len bs) f b
+        -> Prod g bs
+    go = \case
+      UØ    -> \case
+        ØV      -> Ø
+      US uB -> \case
+        x :* xs -> f x :< go uB xs
 
+prodToVec
+    :: forall a b as f g. ()
+    => (f a -> g b)
+    -> Uniform a as
+    -> Prod f as
+    -> VecT (Len as) g b
+prodToVec f = go
+  where
+    go  :: forall bs. ()
+        => Uniform a bs
+        -> Prod f bs
+        -> VecT (Len bs) g b
+    go = \case
+      UØ   -> \case
+        Ø       -> ØV
+      US u -> \case
+        x :< xs -> f x :* prodToVec f u xs
 

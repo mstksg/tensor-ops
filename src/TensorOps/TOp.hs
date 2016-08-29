@@ -62,5 +62,5 @@ replicate u = Lift (US UØ)
 -- transpose :: TOp '[ '[m,n] ] '[ '[n,m] ]
 -- transpose = Transp Refl (IS IZ :< IZ :< Ø)
 
-sum :: Known Length ns => TOp '[n ': ns] '[ns]
-sum = Fold known F.sum
+-- sum :: Known Length ns => TOp '[n ': ns] '[ns]
+-- sum = Fold known F.sum

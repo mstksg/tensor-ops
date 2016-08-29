@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE LambdaCase          #-}
@@ -17,24 +18,31 @@ module TensorOps.Run where
 -- import           Data.Type.Uniform
 -- import           TensorOps.Tensor
 -- import           Type.Class.Known
+-- import           Type.Family.List.Util
+import           Data.Singletons
 import           Data.Type.Product hiding               (append')
 import           Data.Type.Product.Util
+import           Data.Type.Sing
 import           TensorOps.Types
+import           Type.Class.Witness
+import           Type.Family.List
 
 runTOp
-    :: (Tensor t, Floating (ElemT t))
+    :: forall (ns :: [[k]]) (ms :: [[k]]) (t :: [k] -> *). (Tensor t, Floating (ElemT t), SingI ns, SingI ms)
     => TOp ns ms
     -> Prod t ns
     -> Prod t ms
-runTOp = \case
+runTOp = (\case
     Lift uNs uMs f -> liftT uNs uMs f
     GMul lM lO lN  -> \case
       x :< y :< Ø  -> only (gmul lM lO lN x y)
     Transp _       -> only . transp . head'
-    Fold _ f       -> only . foldT f     . head'
+    ) \\ (singSings :: SingI ns :- ListC (SingI <$> ns))
+      \\ (singSings :: SingI ms :- ListC (SingI <$> ms))
+    -- Fold _ f       -> only . foldT f     . head'
 
 runTensorOp
-    :: forall t ns ms. (Tensor t, Floating (ElemT t))
+    :: forall t ns ms. (Tensor t, Floating (ElemT t), SingI ms)
     => TensorOp ns ms
     -> Prod t ns
     -> Prod t ms

@@ -15,9 +15,11 @@ module TensorOps.Tensor where
 -- import           Data.Type.Product.Util
 import           Control.Applicative
 import           Data.Proxy
+import           Data.Singletons
 import           Data.Type.Combinator
 import           Data.Type.Length
 import           Data.Type.Product                      as TCP
+import           Data.Type.Sing
 import           Data.Type.Uniform
 import           Data.Type.Vector
 import           Data.Type.Vector.Util
@@ -31,20 +33,20 @@ import           Type.Family.Nat
 import           Type.Family.Nat.Util
 
 konst
-    :: (Tensor t, Floating (ElemT t))
+    :: (Tensor t, Floating (ElemT t), SingI n)
     => ElemT t
     -> t n
 konst = TCP.head' . konstN (US UØ)
 
 konstN
-    :: forall n ns t. (Tensor t, Floating (ElemT t))
+    :: forall n ns t. (Tensor t, Floating (ElemT t), SingI ns)
     => Uniform n ns
     -> ElemT t
     -> Prod t ns
 konstN u x = liftT UØ u (\ØV -> vrep (I x) \\ uniformLength u) Ø
 
 gradLift
-    :: forall o ms ns t. (Tensor t, Floating (ElemT t))
+    :: forall o ms ns t. (Tensor t, Floating (ElemT t), SingI ns, SingI ms)
     => Uniform o ns
     -> Uniform o ms
     -- TODO: make less polymorphic, maybe only require Reverse?
@@ -57,6 +59,9 @@ gradLift uN uM f xs dtdys =
           (uncurry go . splitVec (known \\ lN))
           (xs `append'` dtdys)
       \\ (lN `appendLengths` uniformLength uM)
+      \\ (singSings :: SingI ns :- ListC (SingI <$> ns))
+      \\ (singSings :: SingI ms :- ListC (SingI <$> ms))
+      \\ (entailSing2 sAppend :: (SingI ns, SingI ms) :- SingI (ns ++ ms))
   where
     lN = uniformLength uN
     go  :: Vec (Len ns) (ElemT t)
@@ -65,7 +70,7 @@ gradLift uN uM f xs dtdys =
     go x dtdy = sum ((vap . liftA2) (\e -> fmap (e*)) dtdy (jacobian f x)) \\ lN
 
 inner
-    :: forall t ms ns o. Tensor t
+    :: forall t ms ns o. (Tensor t, SingI (ms >: o), SingI (o ': ns), SingI (ms ++ ns))
     => Length ms
     -> Length ns
     -> t (ms >: o)
@@ -75,7 +80,7 @@ inner lM lN x = gmul lM (LS LZ) lN x
                     \\ appendSnoc lM (Proxy @o)
 
 outer
-    :: Tensor t
+    :: (Tensor t, SingI ms, SingI ns, SingI (ms ++ ns))
     => Length ms
     -> Length ns
     -> t ms
@@ -85,35 +90,35 @@ outer lM lN x = gmul lM LZ lN x
                     \\ appendNil lM
 
 outerV
-    :: Tensor t
+    :: (Tensor t, SingI '[n], SingI '[m], SingI '[m,n])
     => t '[m]
     -> t '[n]
     -> t '[m,n]
 outerV = outer (LS LZ) (LS LZ)
 
 dot
-    :: Tensor t
+    :: forall (t :: [k] -> *) (m :: k). (Tensor t, SingI '[m], SingI ('[] :: [k]))
     => t '[m]
     -> t '[m]
     -> t '[]
 dot = inner LZ LZ
 
 matVec
-    :: Tensor t
+    :: (Tensor t, SingI '[m,n], SingI '[n], SingI '[m])
     => t '[m, n]
     -> t '[n]
     -> t '[m]
 matVec = inner (LS LZ) LZ
 
 vecMat
-    :: Tensor t
+    :: (Tensor t, SingI '[m], SingI '[m,n], SingI '[n])
     => t '[m]
     -> t '[m,n]
     -> t '[n]
 vecMat = inner LZ (LS LZ)
 
 matMat
-    :: Tensor t
+    :: (Tensor t, SingI '[m,n], SingI '[n,o], SingI '[m,o])
     => t '[m,n]
     -> t '[n,o]
     -> t '[m,o]

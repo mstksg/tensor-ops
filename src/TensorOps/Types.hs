@@ -1,9 +1,12 @@
 {-# LANGUAGE ConstrainedClassMethods #-}
+{-# LANGUAGE ConstraintKinds         #-}
 {-# LANGUAGE DataKinds               #-}
 {-# LANGUAGE FlexibleContexts        #-}
+{-# LANGUAGE FlexibleInstances       #-}
 {-# LANGUAGE GADTs                   #-}
 {-# LANGUAGE KindSignatures          #-}
 {-# LANGUAGE LambdaCase              #-}
+{-# LANGUAGE MultiParamTypeClasses   #-}
 {-# LANGUAGE PolyKinds               #-}
 {-# LANGUAGE RankNTypes              #-}
 {-# LANGUAGE ScopedTypeVariables     #-}
@@ -15,157 +18,98 @@
 
 module TensorOps.Types where
 
--- import           Data.Singletons
 -- import           Data.Singletons.Prelude.List hiding (Length)
 -- import           Data.Type.Equality
 -- import           Data.Type.Subset
+-- import           GHC.TypeLits
 -- import           Unsafe.Coerce
+-- import qualified Control.Foldl                       as F
 import           Data.Kind
+import           Data.Singletons
 import           Data.Type.Length
 import           Data.Type.Product
 import           Data.Type.Uniform
 import           Data.Type.Vector
-import           GHC.TypeLits
 import           Prelude hiding                         ((.), id)
 import           Type.Class.Known
 import           Type.Family.List
+import           Type.Family.List.Util
 import           Type.Family.Nat
-import qualified Control.Foldl                          as F
 
-type Dim = [Nat]
+class LenUnder (t :: N) (n :: [k])
+instance LenUnder n '[]
+instance LenUnder n as => LenUnder ('S n) (a ': as)
 
--- type family Rev (asbs :: ([k], [k])) = (cs :: [k]) | cs -> asbs where
---     Rev '( '[]    , bs) = bs
---     Rev '( a ': as, bs) = Rev '(as, a ': bs)
+-- type TensorRank t n = (LenUnder (MaxRank t) n, ListC (DimConstr t <$> n))
 
-class Tensor (t :: Dim -> Type) where
-    type ElemT t :: Type
-    liftT   :: Floating (ElemT t)
+class Tensor (t :: [k] -> Type) where
+    type ElemT t      :: Type
+    -- type RankConstr t :: [k] -> Constraint
+
+    liftT   :: (SingI ns, SingI ms, Floating (ElemT t))
             => Uniform o ns
             -> Uniform o ms
             -> (Vec (Len ns) (ElemT t) -> Vec (Len ms) (ElemT t))
             -> Prod t ns
             -> Prod t ms
-    gmul    :: Length ms
+    gmul    :: (SingI (ms ++ os), SingI (Reverse os ++ ns), SingI (ms ++ ns))
+            => Length ms
             -> Length os
             -> Length ns
             -> t (ms         ++ os)
             -> t (Reverse os ++ ns)
             -> t (ms         ++ ns)
-    -- mulMM   :: t '[m, n]
-    --         -> t '[n, o]
-    --         -> t '[m, o]
-    -- mulMV   :: t (m ': ms)
-    --         -> t ms
-    --         -> t '[m]
-    transp  :: t ns
+    transp  :: (SingI ns, SingI (Reverse ns))
+            => t ns
             -> t (Reverse ns)
-    foldT   :: F.Fold (ElemT t) (ElemT t)
-            -> t (n ': ns)
+    -- foldT   :: (RankConstr t (n ': ns), RankConstr t ns)
+    --         => F.Fold (ElemT t) (ElemT t)
+    --         -> t (n ': ns)
+    --         -> t ns
+    -- foldTGrad :: RankConstr t (n ': ns)
+    --           => (forall a. Floating a => F.Fold a a)
+    --           -> t (n ': ns)
+    --           -> t (n ': ns)
+    diag    :: (SingI n, SingI ns)
+            => Uniform n ns
+            -> t '[n]
             -> t ns
-    foldTGrad :: (forall a. Floating a => F.Fold a a)
-              -> t (n ': ns)
-              -> t (n ': ns)
-    eye     :: Uniform n ns
-            -> t ns
-    -- uncons  :: t (n ': ns)
-    --         -> VecT (Len ns) t '[n]
-    -- outer   :: t ns
-    --         -> t ms
-    --         -> t (ns ++ ms)
-
-data MatMatChain :: Nat -> [Dim] -> Nat -> Type where
-    MMØ :: MatMatChain n '[] n
-    MMS :: MatMatChain m ms o
-        -> MatMatChain n ('[n,m] ': ms) o
 
 type TensorOp = OpPipe TOp
 
-data TOp :: [Dim] -> [Dim] -> Type where
+data TOp :: [[k]] -> [[k]] -> Type where
     -- | Lift any `R^N -> R^M` function over every element in a n-tensor list,
     -- producing a m-tensor list.
     Lift    :: Uniform o ns
             -> Uniform o ms
             -> (forall a. Floating a => Vec (Len ns) a -> Vec (Len ms) a)
             -> TOp ns ms
+    -- | Generalized tensor product
     GMul    :: Length ms
             -> Length os
             -> Length ns
             -> TOp '[ (ms ++ os), (Reverse os ++ ns) ] '[ ms ++ ns ]
-    -- -- | Matrix product
-    -- MatMat  :: TOp [ '[m,n], '[n,o] ] '[ '[m,o] ]
-    -- -- | Matrix-vector multiplication
-    -- MatVec  :: TOp '[ (m ': ms), ms ] '[ '[m] ]
-    -- -- | Outer (tensor) product
-    -- Outer   :: TOp '[ns,ms] '[ns ++ ms]
     -- | Transpose (reverse indices)
     Transp  :: Length ns
             -> TOp '[ns] '[Reverse ns]
-    -- | Fold along the principle direction
-    Fold    :: Length ns
-            -> (forall a. Floating a => F.Fold a a)
-            -> TOp '[n ': ns] '[ns]
+    -- -- | Fold along the principle direction
+    -- Fold    :: Length ns
+    --         -> (forall a. Floating a => F.Fold a a)
+    --         -> TOp '[n ': ns] '[ns]
 
 data OpPipe :: ([k] -> [k] -> Type) -> [k] -> [k] -> Type where
     OPØ   :: OpPipe f a a
-    Pop   :: Length a
+    Pop   :: (SingI (b ++ d), SingI (a ++ d), SingI a, SingI b)
+          => Length a
           -> Length d
           -> f a b
           -> OpPipe f (b ++ d) c
           -> OpPipe f (a ++ d) c
-    -- (:~)  :: (Known Length d)
-    --       => OpPipe f a b -> OpPipe f (b ++ d) c -> OpPipe f (a ++ d) c
-    -- OP1   :: f a b
-    --       -> OpPipe f a b
-    -- (:.)  :: SingI b
-    --       => OpPipe f a b -> OpPipe f b c -> OpPipe f a c
-    -- (:*)  :: Known Length a
-    --       => OpPipe f a b -> OpPipe f c d -> OpPipe f (a ++ c) (b ++ d)
-    -- (:&)  :: (SingI a, SingI b, SingI c)
-    --       => OpPipe f a b -> OpPipe f a c -> OpPipe f a (b ++ c)
-    -- First :: Length as
-    --       => Length cs
-    --       -> OpPipe f as bs
-    --       -> OpPipe f (as ++ cs) (bs ++ cs)
 
-(~.)
-    :: Known Length a
-    => (Length d, f a b)
-    -> OpPipe f (b ++ d) c
-    -> OpPipe f (a ++ d) c
-(l,x) ~. y = Pop known l x y
+-- (~.)
+--     :: SingI a
+--     => (Sing d, f a b)
+--     -> OpPipe f (b ++ d) c
+--     -> OpPipe f (a ++ d) c
+-- (l,x) ~. y = Pop sing l x y
 
-
--- infixr 9 :.
--- infixr 5 :*
--- infixr 5 :&
--- infixr 5 :~
-
-data RevLength :: [Nat] -> [Nat] -> Type where
-    RLZ :: RevLength '[] '[]
-    RLS :: RevLength as  bs  -> RevLength (c ': as) (bs >: c)
-
--- mkRev
---     :: (c ': as) :~: Reverse (as >: c)
--- mkRev = unsafeCoerce Refl
-
--- unRev
---     :: RevLength ns ms
---     -> (ns :~: Reverse ms)
--- unRev = \case
---     RLZ    -> Refl
---     RLS rl -> case unRev rl of
---                 r@Refl -> case hey (rlSecond rl) r of
---                             Refl -> undefined
-
--- rlSecond
---     :: RevLength as bs
---     -> Length bs
--- rlSecond = \case
---     RLZ    -> LZ
---     RLS rl -> _ $ rlSecond rl
-
--- hey :: Length bs
---     -> (as :~: Reverse bs)
---     -> ((c ': as) :~: Reverse (bs >: c))
--- hey _ Refl = unsafeCoerce Refl

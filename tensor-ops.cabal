@@ -17,12 +17,15 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     TensorOps.Types
+                       Data.Type.Combinator.Util
                        Data.Type.Length.Util
                        Data.Type.Product.Util
+                       Data.Type.Sing
                        Data.Type.Uniform
                        Data.Type.Vector.Util
                        Orphans
                        TensorOps.Gradient
+                       TensorOps.LTensor
                        TensorOps.Run
                        TensorOps.TOp
                        TensorOps.Tensor
