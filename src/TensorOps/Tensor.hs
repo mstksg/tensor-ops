@@ -12,62 +12,56 @@ module TensorOps.Tensor where
 
 -- import           Data.Singletons.Prelude.List hiding (Length)
 -- import           Data.Type.Index
+-- import           Data.Type.Product                   as TCP
 -- import           Data.Type.Product.Util
+-- import           Data.Type.Sing
+-- import           Data.Type.Uniform
+-- import           Type.Family.Nat
 import           Control.Applicative
 import           Data.Proxy
 import           Data.Singletons
 import           Data.Type.Combinator
 import           Data.Type.Length
-import           Data.Type.Product                      as TCP
-import           Data.Type.Sing
-import           Data.Type.Uniform
-import           Data.Type.Vector
-import           Data.Type.Vector.Util
+import           Data.Type.Nat
+import           Data.Type.Vector                       as TCV
+import           Data.Type.Vector.Util                  as TCV
 import           Numeric.AD
 import           TensorOps.Types
 import           Type.Class.Known
 import           Type.Class.Witness hiding              (inner, outer)
 import           Type.Family.List
 import           Type.Family.List.Util
-import           Type.Family.Nat
 import           Type.Family.Nat.Util
 
 konst
     :: (Tensor t, Floating (ElemT t), SingI n)
     => ElemT t
     -> t n
-konst = TCP.head' . konstN (US UØ)
+konst = getI . TCV.head' . konstN (S_ Z_)
 
 konstN
-    :: forall n ns t. (Tensor t, Floating (ElemT t), SingI ns)
-    => Uniform n ns
+    :: forall n o t. (Tensor t, Floating (ElemT t), SingI o)
+    => Nat n
     -> ElemT t
-    -> Prod t ns
-konstN u x = liftT UØ u (\ØV -> vrep (I x) \\ uniformLength u) Ø
+    -> Vec n (t o)
+konstN n x = liftT (\ØV -> vrep (I x) \\ n) ØV
 
+-- problem: shouldn't need Sing o if n or m is zero
 gradLift
-    :: forall o ms ns t. (Tensor t, Floating (ElemT t), SingI ns, SingI ms)
-    => Uniform o ns
-    -> Uniform o ms
-    -- TODO: make less polymorphic, maybe only require Reverse?
-    -> (forall a. Floating a => Vec (Len ns) a -> Vec (Len ms) a)
-    -> Prod t ns    -- ^ inputs
-    -> Prod t ms    -- ^ d target / d outputs
-    -> Prod t ns    -- ^ d target / d inputs
-gradLift uN uM f xs dtdys =
-    liftT (uN `appendUniform` uM) uN
-          (uncurry go . splitVec (known \\ lN))
-          (xs `append'` dtdys)
-      \\ (lN `appendLengths` uniformLength uM)
-      \\ (singSings :: SingI ns :- ListC (SingI <$> ns))
-      \\ (singSings :: SingI ms :- ListC (SingI <$> ms))
-      \\ (entailSing2 sAppend :: (SingI ns, SingI ms) :- SingI (ns ++ ms))
+    :: forall o n m t. (Tensor t, Floating (ElemT t), SingI o)
+       -- TODO: make less polymorphic, maybe only require Reverse?
+    => (forall a. Floating a => Vec n a -> Vec m a)
+    -> Vec n (t o)    -- ^ inputs
+    -> Vec m (t o)    -- ^ d target / d outputs
+    -> Vec n (t o)    -- ^ d target / d inputs
+gradLift f xs dtdys =
+    liftT (uncurry go . splitVec (known \\ xs))
+          (xs `TCV.append'` dtdys)
   where
-    lN = uniformLength uN
-    go  :: Vec (Len ns) (ElemT t)
-        -> Vec (Len ms) (ElemT t)
-        -> Vec (Len ns) (ElemT t)
-    go x dtdy = sum ((vap . liftA2) (\e -> fmap (e*)) dtdy (jacobian f x)) \\ lN
+    go  :: Vec n (ElemT t)
+        -> Vec m (ElemT t)
+        -> Vec n (ElemT t)
+    go x dtdy = sum ((vap . liftA2) (\e -> fmap (e*)) dtdy (jacobian f x)) \\ x
 
 inner
     :: forall t ms ns o. (Tensor t, SingI (ms >: o), SingI (o ': ns), SingI (ms ++ ns))

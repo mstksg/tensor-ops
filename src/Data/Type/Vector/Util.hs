@@ -69,3 +69,12 @@ uncurryV
     -> b
 uncurryV f = \case
     x :* xs -> f x xs
+
+append'
+    :: VecT n f a
+    -> VecT m f a
+    -> VecT (n + m) f a
+append' = \case
+    ØV -> id
+    x :* xs -> (x :*) . append' xs
+    

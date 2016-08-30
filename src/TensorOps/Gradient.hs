@@ -13,10 +13,8 @@ module TensorOps.Gradient where
 -- import           Control.Applicative
 -- import           Data.Proxy
 -- import           Data.Singletons.Prelude.List ((:++), Reverse, sReverse)
--- import           Data.Type.Combinator
 -- import           Data.Type.Equality hiding    (outer)
 -- import           Data.Type.Product.Util
--- import           Data.Type.Uniform
 -- import           Data.Type.Vector             as TCV
 -- import           Data.Type.Vector.Util
 -- import           Numeric.AD
@@ -26,10 +24,13 @@ module TensorOps.Gradient where
 -- import           Type.Family.Nat
 -- import           Unsafe.Coerce
 import           Data.Singletons
+import           Data.Type.Combinator
 import           Data.Type.Length
 import           Data.Type.Length.Util           as TCL
 import           Data.Type.Product
+import           Data.Type.Product.Util
 import           Data.Type.Sing
+import           Data.Type.Uniform
 import           TensorOps.Types
 import           Type.Class.Witness
 import           Type.Family.List
@@ -43,7 +44,11 @@ gradTOp
     -> Prod t ms    -- ^ d target / d outputs
     -> Prod t ns    -- ^ d target / d inputs
 gradTOp = (\case
-    Lift uN uM f -> Tensor.gradLift uN uM f
+    Lift uN uM f -> case uN of
+      UØ   -> \_ _ -> Ø
+      US _ -> \x -> vecToProd getI uN
+                  . Tensor.gradLift f (prodToVec I uN x)
+                  . prodToVec I uM
     GMul lM lO lN -> \case
       -- lM   :: Length m
       -- lO   :: Length o

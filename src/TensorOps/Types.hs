@@ -46,12 +46,16 @@ class Tensor (t :: [k] -> Type) where
     type ElemT t      :: Type
     -- type RankConstr t :: [k] -> Constraint
 
-    liftT   :: (SingI ns, SingI ms, Floating (ElemT t))
-            => Uniform o ns
-            -> Uniform o ms
-            -> (Vec (Len ns) (ElemT t) -> Vec (Len ms) (ElemT t))
-            -> Prod t ns
-            -> Prod t ms
+    liftT   :: (SingI o, Floating (ElemT t))
+            => (Vec n (ElemT t) -> Vec m (ElemT t))
+            -> Vec n (t o)
+            -> Vec m (t o)
+    -- liftT   :: (SingI ns, SingI ms, Floating (ElemT t))
+    --         => Uniform o ns
+    --         -> Uniform o ms
+    --         -> (Vec (Len ns) (ElemT t) -> Vec (Len ms) (ElemT t))
+    --         -> Prod t ns
+    --         -> Prod t ms
     gmul    :: (SingI (ms ++ os), SingI (Reverse os ++ ns), SingI (ms ++ ns))
             => Length ms
             -> Length os

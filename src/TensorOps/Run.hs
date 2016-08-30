@@ -15,14 +15,15 @@ module TensorOps.Run where
 -- import           Data.Singletons
 -- import           Data.Singletons.Prelude.List hiding (Length)
 -- import           Data.Type.Length
--- import           Data.Type.Uniform
 -- import           TensorOps.Tensor
 -- import           Type.Class.Known
 -- import           Type.Family.List.Util
 import           Data.Singletons
+import           Data.Type.Combinator
 import           Data.Type.Product hiding               (append')
 import           Data.Type.Product.Util
 import           Data.Type.Sing
+import           Data.Type.Uniform
 import           TensorOps.Types
 import           Type.Class.Witness
 import           Type.Family.List
@@ -33,7 +34,9 @@ runTOp
     -> Prod t ns
     -> Prod t ms
 runTOp = (\case
-    Lift uNs uMs f -> liftT uNs uMs f
+    Lift uNs uMs f -> case uMs of
+                        UØ   -> \_ -> Ø
+                        US _ -> vecToProd getI uMs . liftT f . prodToVec I uNs
     GMul lM lO lN  -> \case
       x :< y :< Ø  -> only (gmul lM lO lN x y)
     Transp _       -> only . transp . head'

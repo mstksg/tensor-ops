@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE PolyKinds           #-}
@@ -32,6 +33,12 @@ singSings = Sub (go (sing :: Sing ns))
       SNil         -> Wit
       s `SCons` ss -> case go ss of
                         Wit -> withSingI s Wit
+
+singUniform
+    :: Uniform a (b ': bs)
+    -> (SingI b :- SingI a)
+singUniform = \case
+    US _ -> Sub Wit
 
 entailSing
     :: forall a b. ()
@@ -68,4 +75,3 @@ sSnoc
 sSnoc = \case
     SNil         -> (`SCons` SNil)
     x `SCons` xs -> (x `SCons`) . (xs `sSnoc`)
-
