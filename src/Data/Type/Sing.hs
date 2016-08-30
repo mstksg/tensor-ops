@@ -7,7 +7,7 @@
 module Data.Type.Sing where
 
 import           Data.Singletons
-import           Data.Singletons.Prelude.List hiding (Length, Reverse)
+import           Data.Singletons.Prelude.List hiding (Length, Reverse, sReverse)
 import           Data.Type.Length
 import           Data.Type.Uniform
 import           Type.Class.Witness
@@ -33,28 +33,6 @@ singSings = Sub (go (sing :: Sing ns))
       s `SCons` ss -> case go ss of
                         Wit -> withSingI s Wit
 
--- uniformSings
---     :: forall a as. ()
---     => Uniform a as
---     -> SingI as :- SingI a
--- uniformSings u = Sub (go u sing)
---   where
---     go :: forall bs. ()
---        => Uniform a bs
---        -> Sing bs
---        -> Wit (SingI a)
---     go = \case
---       UØ   -> \case
---         SNil        -> Wit
---       US _ -> \case
---         s `SCons` _ -> withSingI s Wit
-
-
-reverseReverseSing
-    :: Sing as
-    -> (as :~: Reverse (Reverse as))
-reverseReverseSing = undefined
-
 entailSing
     :: forall a b. ()
     => (Sing a -> Sing b)
@@ -75,4 +53,19 @@ sAppend = \case
     SNil         -> id
     x `SCons` xs -> \ys ->
       x `SCons` sAppend xs ys
+
+sReverse
+    :: Sing as
+    -> Sing (Reverse as)
+sReverse = \case
+    SNil         -> SNil
+    x `SCons` xs -> sReverse xs `sSnoc` x
+
+sSnoc
+    :: Sing as
+    -> Sing a
+    -> Sing (as >: a)
+sSnoc = \case
+    SNil         -> (`SCons` SNil)
+    x `SCons` xs -> (x `SCons`) . (xs `sSnoc`)
 

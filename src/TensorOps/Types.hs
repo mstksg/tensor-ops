@@ -89,6 +89,7 @@ data TOp :: [[k]] -> [[k]] -> Type where
             -> Length os
             -> Length ns
             -> TOp '[ (ms ++ os), (Reverse os ++ ns) ] '[ ms ++ ns ]
+    -- TODO: allow for arbitrary permutation
     -- | Transpose (reverse indices)
     Transp  :: Length ns
             -> TOp '[ns] '[Reverse ns]
