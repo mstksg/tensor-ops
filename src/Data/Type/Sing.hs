@@ -80,7 +80,6 @@ entailEvery e = Sub (go (sing :: Sing as))
       s `SCons` ss -> case go ss of
                         Wit -> withSingI s (Wit \\ (e :: SingI (Head bs) :- f (Head bs)))
 
-
 singUniform
     :: Uniform a (b ': bs)
     -> (SingI b :- SingI a)

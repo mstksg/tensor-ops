@@ -40,6 +40,7 @@ import           Type.Class.Higher
 import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
+import           Type.Family.List.Util
 import           Type.Family.Nat
 
 data NestedVec :: [N] -> Type -> Type where
@@ -54,7 +55,7 @@ deriving instance Functor (NestedVec ns)
 instance Known (Prod Nat) ns => Applicative (NestedVec ns) where
     pure x = case known :: Length ns of
                LZ   -> NVZ x
-               LS l -> NVS $ vgen_ (\_ -> pure x)
+               LS _ -> NVS $ vgen_ (\_ -> pure x)
     (<*>) = \case
       NVZ f -> \case
         NVZ x -> NVZ (f x)
@@ -127,6 +128,20 @@ instance Tensor LTensor where
     liftT f = fmap LTensor . liftLT f . fmap getNVec
                 \\ singLength (sing :: Sing o)
                 \\ (entailEvery entailNat :: SingI o :- Every (Known Nat) o)
+
+    transp
+        :: forall ns. (SingI ns, SingI (Reverse ns))
+        => LTensor ns
+        -> LTensor (Reverse ns)
+    transp t = genLTensor known ((flip indexLTensor t) . TCP.reverse')
+                 \\ lNs
+                 \\ singLength (sing :: Sing (Reverse ns))
+                 \\ (entailEvery entailNat :: SingI ns :- Every (Known Nat) ns)
+                 \\ (entailEvery entailNat :: SingI (Reverse ns) :- Every (Known Nat) (Reverse ns))
+                 \\ reverseReverse lNs
+      where
+        lNs :: Length ns
+        lNs = singLength sing
 
     diag
         :: forall n ns. SingI ns
