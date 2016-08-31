@@ -16,7 +16,7 @@ module TensorOps.Tensor where
 -- import           Data.Type.Product.Util
 -- import           Data.Type.Sing
 -- import           Data.Type.Uniform
--- import           Type.Family.Nat
+-- import           Type.Family.Nat.Util
 import           Control.Applicative
 import           Data.Proxy
 import           Data.Singletons
@@ -31,20 +31,59 @@ import           Type.Class.Known
 import           Type.Class.Witness hiding              (inner, outer)
 import           Type.Family.List
 import           Type.Family.List.Util
-import           Type.Family.Nat.Util
+import           Type.Family.Nat
 
 konst
     :: (Tensor t, Floating (ElemT t), SingI n)
     => ElemT t
     -> t n
-konst = getI . TCV.head' . konstN (S_ Z_)
+konst = getI . TCV.head' . konstN @('S 'Z)
 
 konstN
-    :: forall n o t. (Tensor t, Floating (ElemT t), SingI o)
-    => Nat n
-    -> ElemT t
+    :: forall n o t. (Tensor t, Floating (ElemT t), SingI o, Known Nat n)
+    => ElemT t
     -> Vec n (t o)
-konstN n x = liftT (\ØV -> vrep (I x) \\ n) ØV
+konstN x = liftT (\ØV -> vrep (I x)) ØV
+
+map
+    :: (Floating (ElemT t), SingI o, Tensor t)
+    => (ElemT t -> ElemT t)
+    -> t o
+    -> t o
+map f = getI . head' . liftT (fmap f) . (:+ ØV)
+
+zip
+    :: (Floating (ElemT t), SingI o, Tensor t)
+    => (Vec n (ElemT t) -> ElemT t)
+    -> Vec n (t o)
+    -> t o
+zip f = getI . head' . liftT ((:+ ØV) . f)
+
+zip2
+    :: (Floating (ElemT t), SingI o, Tensor t)
+    => (ElemT t -> ElemT t -> ElemT t)
+    -> t o
+    -> t o
+    -> t o
+zip2 f x y = getI . head' $ liftT (\(I x' :* I y' :* ØV) -> f x' y' :+ ØV)
+                                  (x :+ y :+ ØV)
+
+zip3
+    :: (Floating (ElemT t), SingI o, Tensor t)
+    => (ElemT t -> ElemT t -> ElemT t -> ElemT t)
+    -> t o
+    -> t o
+    -> t o
+    -> t o
+zip3 f x y z = getI . head' $ liftT (\(I x' :* I y' :* I z' :* ØV) -> f x' y' z' :+ ØV)
+                                    (x :+ y :+ z :+ ØV)
+
+replicate
+    :: (Tensor t, Floating (ElemT t), SingI o, Known Nat n)
+    => t o
+    -> Vec n (t o)
+replicate x = liftT (\(x' :* ØV) -> vrep x') (x :+ ØV)
+
 
 -- problem: shouldn't need Sing o if n or m is zero
 gradLift
@@ -57,6 +96,7 @@ gradLift
 gradLift f xs dtdys =
     liftT (uncurry go . splitVec (known \\ xs))
           (xs `TCV.append'` dtdys)
+      \\ xs
   where
     go  :: Vec n (ElemT t)
         -> Vec m (ElemT t)

@@ -8,9 +8,10 @@
 
 module Data.Type.Vector.Util where
 
+-- import           Data.Type.Combinator.Util ()
 import           Data.Bifunctor
 import           Data.Distributive
--- import           Data.Type.Combinator.Util ()
+import           Data.Type.Combinator
 import           Data.Type.Nat
 import           Data.Type.Vector
 import           Type.Class.Known
@@ -77,4 +78,15 @@ append'
 append' = \case
     ØV -> id
     x :* xs -> (x :*) . append' xs
-    
+
+vecFunc
+    :: Known Nat n
+    => (a -> Vec n b)
+    -> Vec n (a -> b)
+vecFunc f = vgen_ (\i -> I $ index' i . f)
+
+unVecFunc
+    :: Vec n (a -> b)
+    -> a
+    -> Vec n b
+unVecFunc xs x = fmap ($ x) xs

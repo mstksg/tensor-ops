@@ -27,6 +27,7 @@ module TensorOps.Types where
 import           Data.Kind
 import           Data.Singletons
 import           Data.Type.Length
+import           Data.Type.Nat
 import           Data.Type.Product
 import           Data.Type.Uniform
 import           Data.Type.Vector
@@ -46,16 +47,10 @@ class Tensor (t :: [k] -> Type) where
     type ElemT t      :: Type
     -- type RankConstr t :: [k] -> Constraint
 
-    liftT   :: (SingI o, Floating (ElemT t))
+    liftT   :: (SingI o, Floating (ElemT t), Known Nat m)
             => (Vec n (ElemT t) -> Vec m (ElemT t))
             -> Vec n (t o)
             -> Vec m (t o)
-    -- liftT   :: (SingI ns, SingI ms, Floating (ElemT t))
-    --         => Uniform o ns
-    --         -> Uniform o ms
-    --         -> (Vec (Len ns) (ElemT t) -> Vec (Len ms) (ElemT t))
-    --         -> Prod t ns
-    --         -> Prod t ms
     gmul    :: (SingI (ms ++ os), SingI (Reverse os ++ ns), SingI (ms ++ ns))
             => Length ms
             -> Length os
@@ -74,16 +69,23 @@ class Tensor (t :: [k] -> Type) where
     --           => (forall a. Floating a => F.Fold a a)
     --           -> t (n ': ns)
     --           -> t (n ': ns)
-    diag    :: (SingI n, SingI ns)
+    diag    :: (SingI '[n], SingI ns)
             => Uniform n ns
             -> t '[n]
             -> t ns
+    getDiag :: (SingI ns, SingI '[n])
+            => Uniform n ns
+            -> t ns
+            -> t '[n]
 
 type TensorOp = OpPipe TOp
 
 data TOp :: [[k]] -> [[k]] -> Type where
     -- | Lift any `R^N -> R^M` function over every element in a n-tensor list,
     -- producing a m-tensor list.
+    --
+    -- TODO: should be stated in Vec (Len ms) (Vec (Len ns) -> a) form, for
+    -- efficiency?
     Lift    :: Uniform o ns
             -> Uniform o ms
             -> (forall a. Floating a => Vec (Len ns) a -> Vec (Len ms) a)
