@@ -8,6 +8,7 @@
 
 module Data.Type.Length.Util where
 
+import           Data.Kind
 import           Data.Proxy
 import           Data.Type.Equality
 import           Data.Type.Length
@@ -38,3 +39,16 @@ reverse' = \case
     LZ   -> \_ -> LS LZ
     LS l -> LS . (l >:)
 
+data ViewR :: [k] -> Type where
+    RNil  :: ViewR '[]
+    RSnoc :: Proxy n -> Length ns -> ViewR (ns >: n)
+
+
+viewR
+    :: Length ns
+    -> ViewR ns
+viewR = \case
+    LZ   -> RNil
+    LS l -> case viewR l of
+              RNil       -> RSnoc Proxy LZ
+              RSnoc p l' -> RSnoc p (LS l')

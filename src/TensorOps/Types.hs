@@ -75,7 +75,7 @@ class Tensor (t :: [k] -> Type) where
             -> t ns
     getDiag :: (SingI ns, SingI '[n])
             => Uniform n ns
-            -> t ns
+            -> t (n ': n ': ns)
             -> t '[n]
 
 type TensorOp = OpPipe TOp

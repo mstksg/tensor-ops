@@ -1,5 +1,7 @@
 {-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE DeriveFoldable       #-}
 {-# LANGUAGE DeriveFunctor        #-}
+{-# LANGUAGE DeriveTraversable    #-}
 {-# LANGUAGE EmptyCase            #-}
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE GADTs                #-}
@@ -27,6 +29,7 @@ import           Data.Type.Combinator
 import           Data.Type.Fin
 import           Data.Type.Index
 import           Data.Type.Length
+import           Data.Type.Length.Util        as TCL
 import           Data.Type.Nat
 import           Data.Type.Product            as TCP
 import           Data.Type.Product.Util       as TCP
@@ -34,7 +37,6 @@ import           Data.Type.Sing
 import           Data.Type.Uniform
 import           Data.Type.Vector             as TCV
 import           Data.Type.Vector.Util
-import           TensorOps.Tensor
 import           TensorOps.Types
 import           Type.Class.Higher
 import           Type.Class.Known
@@ -42,16 +44,15 @@ import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
+import qualified TensorOps.Tensor             as Tensor
 
 data NestedVec :: [N] -> Type -> Type where
     NVZ :: !a -> NestedVec '[]  a
     NVS :: VecT n (NestedVec ns) a -> NestedVec (n ': ns) a
 
--- data NestedFin :: [N] -> Type where
---     NFZ :: NestedFin '[]
---     NFS :: Fin n -> NestedFin ns -> NestedFin (n ': ns)
-
 deriving instance Functor (NestedVec ns)
+deriving instance Foldable (NestedVec ns)
+deriving instance Traversable (NestedVec ns)
 instance Known (Prod Nat) ns => Applicative (NestedVec ns) where
     pure x = case known :: Length ns of
                LZ   -> NVZ x
@@ -62,11 +63,102 @@ instance Known (Prod Nat) ns => Applicative (NestedVec ns) where
       NVS fs -> \case
         NVS xs -> NVS $ vap (<*>) fs xs
 
-nestedVec0
-    :: NestedVec '[] a
-    -> a
-nestedVec0 = \case
-    NVZ x -> x
+instance (Num a, Applicative (NestedVec ns)) => Num (NestedVec ns a) where
+    (+)         = liftA2 (+)
+    (-)         = liftA2 (-)
+    (*)         = liftA2 (*)
+    negate      = fmap negate
+    abs         = fmap abs
+    signum      = fmap signum
+    fromInteger = pure . fromInteger
+
+nvHead
+    :: NestedVec ('S m ': ms) a
+    -> NestedVec ms a
+nvHead = \case
+    NVS xs -> TCV.head' xs
+
+nvTail
+    :: NestedVec ('S m ': ms) a
+    -> NestedVec (m ': ms) a
+nvTail = \case
+    NVS xs -> NVS $ TCV.tail' xs
+
+nvToMatrix
+    :: NestedVec ns a
+    -> Matrix ns a
+nvToMatrix = \case
+    NVZ x  -> I x
+    NVS xs -> nvToMatrix `vmap` xs
+
+matrixToNV
+    :: Length ns
+    -> Matrix ns a
+    -> NestedVec ns a
+matrixToNV = \case
+    LZ   -> \case
+      I x -> NVZ x
+    LS l -> \case
+      xs  -> NVS $ matrixToNV l `vmap` xs
+
+sumNVec
+    :: (Num a, Known (Prod Nat) ns)
+    => NestedVec (n ': ns) a
+    -> NestedVec ns a
+sumNVec = \case
+    NVS xs -> sum $ vmap I xs
+
+mapNVecSlices
+    :: (NestedVec ms a -> b)
+    -> Length ns
+    -> NestedVec (ns ++ ms) a
+    -> NestedVec ns b
+mapNVecSlices f = \case
+    LZ -> NVZ . f
+    LS l -> \case
+      NVS xs -> NVS $ mapNVecSlices f l `vmap` xs
+
+frontSlices
+    :: Applicative f
+    => (NestedVec ns a -> f b)
+    -> Length ns
+    -> NestedVec (ns ++ ms) a
+    -> f (NestedVec ms b)
+frontSlices f = \case
+    LZ -> \case
+      NVZ x  -> NVZ <$> f (NVZ x)
+      NVS xs -> NVS . vmap getI <$> sequenceA (vmap (I . frontSlices f LZ) xs)
+
+imapNestedVec
+    :: (Prod Fin ns -> a -> b)
+    -> NestedVec ns a
+    -> NestedVec ns b
+imapNestedVec f = \case
+    NVZ x  -> NVZ (f Ø x)
+    NVS xs -> NVS $ TCV.imap (\i -> imapNestedVec (\is -> f (i :< is))) xs
+
+joinNestedVec
+    :: NestedVec ns (NestedVec ms a)
+    -> NestedVec (ns ++ ms) a
+joinNestedVec = \case
+    NVZ x  -> x
+    NVS xs -> NVS $ vmap joinNestedVec xs
+
+
+-- unjoinNestedVec
+--     :: Length ns
+--     -> NestedVec (ns ++ ms) a
+--     -> NestedVec
+
+imapNVecSlices
+    :: (Prod Fin ns -> NestedVec ms a -> b)
+    -> Length ns
+    -> NestedVec (ns ++ ms) a
+    -> NestedVec ns b
+imapNVecSlices f = \case
+    LZ -> NVZ . f Ø
+    LS l -> \case
+      NVS xs -> NVS $ TCV.imap (\i -> imapNVecSlices (\is -> f (i :< is)) l) xs
 
 genNestedVec
     :: Prod Nat ns
@@ -86,9 +178,119 @@ indexNestedVec = \case
     i :< is -> \case
       NVS xs -> indexNestedVec is (TCV.index i xs)
 
+innerNV
+    :: forall ns o ms a. (Num a, Known (Prod Nat) ms)
+    => Length ns
+    -> Length ms
+    -> NestedVec (ns >: o) a
+    -> NestedVec (o ': ms) a
+    -> NestedVec (ns ++ ms) a
+innerNV lN lM x y = joinNestedVec $ innerNV' lN lM x y
+
+innerNV'
+    :: forall ns o ms a. (Num a, Known (Prod Nat) ms)
+    => Length ns
+    -> Length ms
+    -> NestedVec (ns >: o) a
+    -> NestedVec (o ': ms) a
+    -> NestedVec ns (NestedVec ms a)
+innerNV' lN _ x y = mapNVecSlices rowMat lN x
+                       \\ appendSnoc lN (Proxy :: Proxy o)
+  where
+    rowMat :: NestedVec '[o] a -> NestedVec ms a
+    rowMat x' = case y of
+      NVS y' -> sum $ vap (\(I z) zs -> I (fmap (z *) zs))
+                          (nvToMatrix x')
+                           y'
+
+reduceTrace
+    :: forall ns ms a. (Num a, Known (Prod Nat) (Reverse ns ++ ms))
+    => Length ns
+    -> Length ms
+    -> NestedVec ns (NestedVec (Reverse ns ++ ms) a)
+    -> NestedVec ms a
+reduceTrace lN lM x =
+    case viewR lN of
+      RNil -> case x of
+        NVZ y -> y
+      RSnoc (p :: Proxy o) lN' ->
+        reduceTrace lN' lM (mapNVecSlices (f p lN') lN' x)
+          \\ appendSnoc lN' p
+          \\ snocReverse lN' p
+          \\ TCL.reverse' lN' `TCL.append'` lM
+  where
+    f   :: forall o os. (Known (Prod Nat) (Reverse os ++ ms))
+        => Proxy o
+        -> Length os
+        -> NestedVec '[o] (NestedVec ((o ': Reverse os) ++ ms) a)
+        -> NestedVec (Reverse os ++ ms) a
+    f _ _ = (\case NVS xs -> sum (vmap I xs)) . diagNV' . joinNestedVec
+
+-- mulMatMat
+--     :: Num a
+--     => Length ns
+--     -> Length ms
+--     -> NestedVec ns a
+--     -> NestedVec (Reverse ns ++ ms) a
+--     -> NestedVec ms a
+-- mulMatMat lN lM x y = undefined
+
+-- zipTransp
+--     :: (a -> b -> c)
+--     -> NestedVec ns a
+--     -> NestedVec (Reverse ns) b
+--     -> NestedVec ns c
+-- zipTransp f = \case
+--     NVZ x -> \case
+--       NVZ y -> NVZ $ f x y
+--     NVS xs -> \case
+--       NVS ys -> NVS $ _
+
+
+
+diagNV'
+    :: NestedVec (n ': n ': ns) a
+    -> NestedVec (n ': ns) a
+diagNV' = \case
+    NVS xs ->
+      case xs of
+        y :* ys -> case diagNV' $ NVS (vmap nvTail ys) of
+          NVS zs -> NVS $ nvHead y :* zs
+
+diagNV
+    :: Uniform n ms
+    -> NestedVec (n ': n ': ms) a
+    -> NestedVec '[n] a
+diagNV = \case
+    UØ   -> diagNV'
+    US u -> diagNV u . diagNV'
+
+
 newtype LTensor :: [N] -> Type where
     LTensor :: { getNVec :: NestedVec ns Double
                } -> LTensor ns
+
+overNVec
+    :: (NestedVec ns Double -> NestedVec ms Double)
+    -> LTensor ns
+    -> LTensor ms
+overNVec f = LTensor . f . getNVec
+
+overNVec2
+    :: (NestedVec ns Double -> NestedVec ms Double -> NestedVec os Double)
+    -> LTensor ns
+    -> LTensor ms
+    -> LTensor os
+overNVec2 f x y = LTensor $ f (getNVec x) (getNVec y)
+
+instance Known (Prod Nat) ns => Num (LTensor ns) where
+    (+)         = overNVec2 (+)
+    (-)         = overNVec2 (-)
+    (*)         = overNVec2 (*)
+    negate      = overNVec negate
+    abs         = overNVec abs
+    signum      = overNVec signum
+    fromInteger = LTensor . fromInteger
 
 genLTensor
     :: Prod Nat ns
@@ -117,6 +319,16 @@ liftLT
     -> Vec m (NestedVec o Double)
 liftLT f xs = fmap (\g -> liftVec g xs) (vecFunc f)
 
+outer
+    :: forall ns ms. (SingI ns, SingI ms, SingI (ns ++ ms))
+    => LTensor ns
+    -> LTensor ms
+    -> LTensor (ns ++ ms)
+outer (LTensor x) (LTensor y) = LTensor (joinNestedVec z)
+  where
+    z :: NestedVec ns (NestedVec ms Double)
+    z = fmap (\x' -> (x' *) <$> y) x
+
 instance Tensor LTensor where
     type ElemT LTensor = Double
 
@@ -143,6 +355,41 @@ instance Tensor LTensor where
         lNs :: Length ns
         lNs = singLength sing
 
+    -- TODO: Decently inefficient because it multiples everything and then
+    -- sums only the diagonal.
+    gmul
+        :: forall ms os ns. (SingI (ms ++ os), SingI (Reverse os ++ ns), SingI (ms ++ ns))
+        => Length ms
+        -> Length os
+        -> Length ns
+        -> LTensor (ms         ++ os)
+        -> LTensor (Reverse os ++ ns)
+        -> LTensor (ms         ++ ns)
+    gmul lM lO lN = overNVec2 $ \x y ->
+                      joinNestedVec $ mapNVecSlices (f y) lM x
+      where
+        f   :: NestedVec (Reverse os ++ ns) Double
+            -> NestedVec os Double
+            -> NestedVec ns Double
+        f y x = (reduceTrace lO lN $ fmap (\x' -> fmap (x' *) y) x)
+                  \\ (TCL.reverse' lO `TCL.append'` lN)
+                  \\ (entailEvery entailNat :: SingI (Reverse os ++ ns)
+                                            :- Every (Known Nat) (Reverse os ++ ns)
+                     )
+
+-- reduceTrace
+--     :: forall ns ms a. (Num a, Known (Prod Nat) (Reverse ns ++ ms))
+--     => Length ns
+--     -> Length ms
+--     -> NestedVec ns (NestedVec (Reverse ns ++ ms) a)
+--     -> NestedVec ms a
+    -- x y = mapNVecSlices x
+-- mapNVecSlices
+    -- :: (NestedVec ms a -> b)
+    -- -> Length ns
+    -- -> NestedVec (ns ++ ms) a
+    -- -> NestedVec ns b
+
     diag
         :: forall n ns. SingI ns
         => Uniform n ns
@@ -159,8 +406,8 @@ instance Tensor LTensor where
     getDiag
         :: forall n ns. SingI '[n]
         => Uniform n ns
-        -> LTensor ns
+        -> LTensor (n ': n ': ns)
         -> LTensor '[n]
-    getDiag u m = genLTensor known (\i -> indexLTensor (vecToProd (TCP.head' . getI) u (vrep (I i))) m)
-                    \\ uniformLength u
-                    \\ getNat (sHead (sing :: Sing '[n]))
+    getDiag u = overNVec (diagNV u)
+
+
