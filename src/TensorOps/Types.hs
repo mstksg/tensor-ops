@@ -26,6 +26,7 @@ module TensorOps.Types where
 -- import qualified Control.Foldl                       as F
 import           Data.Kind
 import           Data.Singletons
+import           Data.Type.Index
 import           Data.Type.Length
 import           Data.Type.Nat
 import           Data.Type.Product
@@ -103,10 +104,18 @@ data TOp :: [[k]] -> [[k]] -> Type where
     -- Fold    :: Length ns
     --         -> (forall a. Floating a => F.Fold a a)
     --         -> TOp '[n ': ns] '[ns]
+    Shuffle :: Prod (Index ns) ms
+            -> TOp ns ms
 
 data OpPipe :: ([k] -> [k] -> Type) -> [k] -> [k] -> Type where
     OPØ   :: OpPipe f a a
-    Pop   :: (SingI (b ++ d), SingI (a ++ d), SingI a, SingI b)
+    -- Shuff :: (SingI (a ++ b), SingI (b ++ d), SingI a, SingI c, SingI b)
+    --       => Length a
+    --       -> Length d
+    --       -> Prod (Index a) b
+    --       -> OpPipe f (b ++ d) c
+    --       -> OpPipe f (a ++ d) c
+    Pop   :: (SingI (b ++ d), SingI (a ++ d), SingI a, SingI b, SingI c)
           => Length a
           -> Length d
           -> f a b

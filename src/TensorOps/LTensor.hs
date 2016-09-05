@@ -144,7 +144,6 @@ joinNestedVec = \case
     NVZ x  -> x
     NVS xs -> NVS $ vmap joinNestedVec xs
 
-
 -- unjoinNestedVec
 --     :: Length ns
 --     -> NestedVec (ns ++ ms) a
@@ -376,19 +375,6 @@ instance Tensor LTensor where
                   \\ (entailEvery entailNat :: SingI (Reverse os ++ ns)
                                             :- Every (Known Nat) (Reverse os ++ ns)
                      )
-
--- reduceTrace
---     :: forall ns ms a. (Num a, Known (Prod Nat) (Reverse ns ++ ms))
---     => Length ns
---     -> Length ms
---     -> NestedVec ns (NestedVec (Reverse ns ++ ms) a)
---     -> NestedVec ms a
-    -- x y = mapNVecSlices x
--- mapNVecSlices
-    -- :: (NestedVec ms a -> b)
-    -- -> Length ns
-    -- -> NestedVec (ns ++ ms) a
-    -- -> NestedVec ns b
 
     diag
         :: forall n ns. SingI ns

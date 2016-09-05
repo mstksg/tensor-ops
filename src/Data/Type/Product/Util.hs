@@ -9,14 +9,18 @@
 module Data.Type.Product.Util where
 
 -- import           Data.Singletons.Prelude.List hiding (Length)
--- import           Type.Class.Known
 import           Data.Bifunctor
 import           Data.Functor.Identity
+import           Data.Type.Combinator
+import           Data.Type.Conjunction
+import           Data.Type.Equality
+import           Data.Type.Index
 import           Data.Type.Length
-import           Data.Type.Product
+import           Data.Type.Product                      as TCP
 import           Data.Type.Uniform
 import           Data.Type.Vector
 import           Prelude hiding                         (replicate)
+import           Type.Class.Known
 import           Type.Family.List
 import           Type.Family.Nat
 
@@ -28,6 +32,16 @@ splitProd = \case
     LZ   -> \p -> (Ø, p)
     LS l -> \case
       x :< xs -> first (x :<) (splitProd l xs)
+
+takeProd
+    :: Length ns
+    -> Length ms
+    -> Prod f (ns ++ ms)
+    -> Prod f ns
+takeProd = \case
+    LZ   -> \_ _ -> Ø
+    LS l -> \lM -> \case
+      x :< xs -> x :< takeProd l lM xs
 
 overProdInit
     :: Length ns
@@ -116,3 +130,51 @@ prodToVec f = go
       US u -> \case
         x :< xs -> f x :* prodToVec f u xs
 
+unselect
+    :: forall as bs f. (Known Length as, Known Length bs)
+    => Prod (Index as) bs
+    -> Prod f bs
+    -> Prod (Maybe :.: f) as
+unselect is xs = go indices
+  where
+    go  :: forall cs. ()
+        => Prod (Index as) cs
+        -> Prod (Maybe :.: f) cs
+    go = \case
+      Ø       -> Ø
+      j :< js -> Comp ((`TCP.index` xs) <$> findIndex j) :< go js
+    findIndex
+        :: forall a. ()
+        => Index as a
+        -> Maybe (Index bs a)
+    findIndex i = go' indices is
+      where
+        go' :: forall cs. ()
+            => Prod (Index bs) cs
+            -> Prod (Index as) cs
+            -> Maybe (Index bs a)
+        go' = \case
+          Ø       -> \_ -> Nothing
+          j :< js -> \case
+            k :< ks -> case testEquality i k of
+              Just Refl -> Just j
+              Nothing   -> go' js ks
+
+zipProd
+    :: Prod f as
+    -> Prod g as
+    -> Prod (f :&: g) as
+zipProd = \case
+    Ø -> \case
+      Ø -> Ø
+    x :< xs -> \case
+      y :< ys -> (x :&: y) :< zipProd xs ys
+
+-- collect
+--     :: (Every c as, Every d bs)
+--     => Prod (Index as) bs
+--     -> Prod f bs
+--     -> (forall a b. (c a, d b) => f b -> f a -> f a)
+--     -> Prod f as
+--     -> Prod f as
+-- collect = undefined

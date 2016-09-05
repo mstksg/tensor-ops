@@ -41,6 +41,7 @@ runTOp = (\case
     GMul lM lO lN  -> \case
       x :< y :< Ø  -> only (gmul lM lO lN x y)
     Transp _       -> only . transp . head'
+    Shuffle i      -> select i
     ) \\ (singSings :: SingI ns :- ListC (SingI <$> ns))
       \\ (singSings :: SingI ms :- ListC (SingI <$> ms))
     -- Fold _ f       -> only . foldT f     . head'
@@ -51,8 +52,8 @@ runTensorOp
     -> Prod t ns
     -> Prod t ms
 runTensorOp = \case
-    OPØ            -> id
-    Pop lA lD o os -> runTensorOp os . overProdInit lA lD (runTOp o)
+    OPØ              -> id
+    Pop lA lD o os   -> runTensorOp os . overProdInit lA lD (runTOp o)
 
     -- OP1 o    -> runTOp o
     -- oL :. oR -> runTensorOp oR . runTensorOp oL

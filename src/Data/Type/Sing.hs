@@ -33,6 +33,12 @@ singLength = \case
     SNil        -> LZ
     _ `SCons` s -> LS (singLength s)
 
+singProd
+    :: Sing as
+    -> Prod Sing as
+singProd = \case
+    SNil         -> Ø
+    s `SCons` ss -> s :< singProd ss
 
 singProdNat
     :: forall (as :: [N]). ()
