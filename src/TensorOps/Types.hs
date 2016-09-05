@@ -109,12 +109,6 @@ data TOp :: [[k]] -> [[k]] -> Type where
 
 data OpPipe :: ([k] -> [k] -> Type) -> [k] -> [k] -> Type where
     OPØ   :: OpPipe f a a
-    -- Shuff :: (SingI (a ++ b), SingI (b ++ d), SingI a, SingI c, SingI b)
-    --       => Length a
-    --       -> Length d
-    --       -> Prod (Index a) b
-    --       -> OpPipe f (b ++ d) c
-    --       -> OpPipe f (a ++ d) c
     Pop   :: (SingI (b ++ d), SingI (a ++ d), SingI a, SingI b, SingI c)
           => Length a
           -> Length d

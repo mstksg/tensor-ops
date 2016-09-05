@@ -7,6 +7,7 @@
 
 import           Data.Kind
 import           Data.Singletons
+import           Data.Type.Index
 import           Data.Type.Length
 import           Data.Type.Product
 import           Data.Type.Uniform
@@ -20,11 +21,13 @@ import qualified TensorOps.TOp     as TO
 
 ffLayer
     -- :: (SingI '[o,i], SingI '[o], SingI '[i])
-    :: (SingI '[ '[o,i], '[i], '[o]], SingI '[ '[o] ], SingI '[ '[o,i], '[i]], SingI '[ '[o], '[o] ])
+    -- :: (SingI '[ '[i], '[o,i], '[o]], SingI '[ '[o] ], SingI '[ '[o,i], '[i]], SingI '[ '[o], '[o] ])
     -- :: (SingI o, SingI i)
-    => TensorOp '[ '[o,i], '[i], '[o]] '[ '[o] ]
-ffLayer = Pop (LS (LS LZ)) (LS LZ) (GMul (LS LZ) (LS LZ) LZ)
-        $ Pop (LS (LS LZ)) LZ (TO.zip2 (+))
+    :: (SingI i, SingI o)
+    => TensorOp '[ '[i], '[o,i], '[o]] '[ '[o] ]
+ffLayer = Pop (LS (LS LZ)) known (Shuffle (IS IZ :< IZ :< Ø))
+        $ Pop known        known (GMul (LS LZ) (LS LZ) LZ)
+        $ Pop known        known (TO.zip2 (+))
         $ OPØ
 
 data Layer :: ([k] -> Type) -> k -> k -> Type where
