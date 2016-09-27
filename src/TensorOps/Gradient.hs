@@ -11,6 +11,8 @@
 module TensorOps.Gradient where
 
 -- import           Control.Applicative
+-- import           Data.Kind
+-- import           Data.Maybe
 -- import           Data.Proxy
 -- import           Data.Singletons.Prelude.List ((:++), Reverse, sReverse)
 -- import           Data.Type.Equality hiding    (outer)
@@ -18,12 +20,12 @@ module TensorOps.Gradient where
 -- import           Data.Type.Vector             as TCV
 -- import           Data.Type.Vector.Util
 -- import           Numeric.AD
+-- import           Type.Class.Known
 -- import           Type.Family.Nat
 -- import           Unsafe.Coerce
 import           Data.Foldable
-import           Data.Kind
-import           Data.Maybe
 import           Data.Singletons
+import           Data.Singletons.Prelude.List    (Sing(..))
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
 import           Data.Type.Index
@@ -36,19 +38,20 @@ import           Data.Type.Uniform
 import           TensorOps.Run
 import           TensorOps.Types
 import           Type.Class.Higher
-import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
 import qualified TensorOps.Tensor                as Tensor
 
 gradTOp
-    :: forall ns ms t. (Tensor t, Floating (ElemT t), SingI ns, SingI ms)
-    => TOp ns ms
+    :: forall ns ms t. (Tensor t, Floating (ElemT t))
+    => Sing ns
+    -> Sing ms
+    -> TOp ns ms
     -> Prod t ns    -- ^ inputs
     -> Prod t ms    -- ^ d target / d outputs
     -> Prod t ns    -- ^ d target / d inputs
-gradTOp = (\case
+gradTOp sNs sMs = (\case
     Lift uN uM f -> case uN of
       UØ   -> \_ _ -> Ø
       US _ -> \x -> vecToProd getI uN
@@ -128,9 +131,9 @@ gradTOp = (\case
               g (k :&: d) = case testEquality k i of
                 Just Refl -> [d]
                 Nothing   -> []
-      in  imap1 f (singProd sing :: Prod Sing ns)
-    ) \\ (singSings :: SingI ns :- ListC (SingI <$> ns))
-      \\ (singSings :: SingI ms :- ListC (SingI <$> ms))
+      in  imap1 f (singProd sNs)
+    ) \\ witSings sNs
+      \\ witSings sMs
 
 gradTensorOp
     :: forall ns t. (Tensor t, Floating (ElemT t))
@@ -140,16 +143,26 @@ gradTensorOp
 gradTensorOp = \case
     OPØ            -> \_ -> only $ Tensor.konst 1
     -- ns ~ a ++ d
-    Pop (lA :: Length a)
-        (lD :: Length d)
+    Pop (sA :: Sing a)
+        (sB :: Sing b)
+        (sD :: Sing d)
         (o  :: TOp a b)
         (os :: OpPipe TOp (b ++ d) '[ '[] ])
-                   -> \x -> let y    :: Prod t (b ++ d)
-                                y    = overProdInit lA lD (runTOp o) x
+                   -> \x -> let lA   :: Length a
+                                lA   = singLength sA
+                                lB   :: Length b
+                                lB   = singLength sB
+                                lD   :: Length d
+                                lD   = singLength sD
+                                y    :: Prod t (b ++ d)
+                                y    = overProdInit lA lD
+                                                    (runTOp sA sB o)
+                                                    x
                                 dtdy :: Prod t (b ++ d)
                                 dtdy = gradTensorOp os y
-                                lB   :: Length b
-                                lB   = singLength (sing :: Sing b)
                                 res  :: Prod t (a ++ d)
-                                res  = overProdInit lB lD (gradTOp o (takeProd lA lD x)) dtdy
+                                res  = overProdInit lB lD
+                                                    (gradTOp sA sB o (takeProd lA lD x))
+                                                    dtdy
                             in  res
+

@@ -160,6 +160,20 @@ unselect is xs = go indices
               Just Refl -> Just j
               Nothing   -> go' js ks
 
+replicate
+    :: forall a f as. ()
+    => f a
+    -> Uniform a as
+    -> Prod f as
+replicate x = go
+  where
+    go  :: forall bs. ()
+        => Uniform a bs
+        -> Prod f bs
+    go = \case
+      UØ   -> Ø
+      US u -> x :< go u
+
 zipProd
     :: Prod f as
     -> Prod g as

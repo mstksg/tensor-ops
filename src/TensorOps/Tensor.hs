@@ -78,11 +78,12 @@ zip3
 zip3 f x y z = getI . head' $ liftT (\(I x' :* I y' :* I z' :* ØV) -> f x' y' z' :+ ØV)
                                     (x :+ y :+ z :+ ØV)
 
-replicate
-    :: (Tensor t, Floating (ElemT t), SingI o, Known Nat n)
-    => t o
-    -> Vec n (t o)
-replicate x = liftT (\(x' :* ØV) -> vrep x') (x :+ ØV)
+-- replicate
+--     :: (Tensor t, Floating (ElemT t), SingI o, Known Nat n)
+--     => t o
+--     -> Vec n (t o)
+-- replicate = vrep
+-- -- replicate x = liftT (\(x' :* ØV) -> vrep x') (x :+ ØV)
 
 
 -- problem: shouldn't need Sing o if n or m is zero

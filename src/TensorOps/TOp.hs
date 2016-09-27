@@ -9,10 +9,11 @@
 module TensorOps.TOp where
 
 -- import           Data.Type.Equality
--- import           Data.Type.Index
 -- import           Data.Type.Product
 import           Data.Type.Combinator
+import           Data.Type.Index
 import           Data.Type.Length
+import           Data.Type.Product.Util as TCP
 import           Data.Type.Uniform
 import           Data.Type.Vector
 import           Prelude hiding         (map, replicate)
@@ -55,9 +56,7 @@ zip3 f = Lift (US (US (US UØ)))
 replicate
     :: Uniform n ns
     -> TOp '[ n ] ns
-replicate u = Lift (US UØ)
-                   u
-                   (\case x :* ØV -> vrep x \\ uniformLength u)
+replicate u = Shuffle (TCP.replicate IZ u)
 
 -- transpose :: TOp '[ '[m,n] ] '[ '[n,m] ]
 -- transpose = Transp Refl (IS IZ :< IZ :< Ø)

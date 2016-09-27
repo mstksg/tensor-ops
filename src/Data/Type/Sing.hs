@@ -1,21 +1,22 @@
-{-# LANGUAGE ConstraintKinds      #-}
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE GADTs                #-}
-{-# LANGUAGE LambdaCase           #-}
-{-# LANGUAGE PolyKinds            #-}
-{-# LANGUAGE RankNTypes           #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE TypeOperators        #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PolyKinds             #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 module Data.Type.Sing where
 
 import           Data.Kind
 import           Data.Singletons
-import           Data.Singletons.Prelude.List hiding (Length, Reverse, sReverse, Head)
+import           Data.Singletons.Prelude.List hiding (Length, Reverse, sReverse, Head, (%:++))
 import           Data.Type.Index
 import           Data.Type.Length
 import           Data.Type.Nat
@@ -23,8 +24,13 @@ import           Data.Type.Product
 import           Data.Type.Uniform
 import           Type.Class.Known
 import           Type.Class.Witness
+import           Type.Family.Constraint
 import           Type.Family.List
 import           Type.Family.Nat
+
+instance Witness ØC (SingI a) (Sing a) where
+    q \\ s = withSingI s q
+
 
 singLength
     :: Sing ns
@@ -62,15 +68,16 @@ entailNat = Sub $ case (sing :: Sing n) of
 singSings
     :: forall ns. ()
     => SingI ns :- ListC (SingI <$> ns)
-singSings = Sub (go (sing :: Sing ns))
-  where
-    go :: forall ms. ()
-       => Sing ms
-       -> Wit (ListC (SingI <$> ms))
-    go = \case
-      SNil         -> Wit
-      s `SCons` ss -> case go ss of
-                        Wit -> withSingI s Wit
+singSings = Sub (witSings (sing :: Sing ns))
+
+witSings
+    :: forall ns. ()
+    => Sing ns
+    -> Wit (ListC (SingI <$> ns))
+witSings = \case SNil         -> Wit
+                 s `SCons` ss -> case witSings ss of
+                                   Wit -> withSingI s Wit
+
 
 entailEvery
     :: forall (as :: [k]) (f :: k -> Constraint). ()
@@ -110,14 +117,16 @@ singWit
     -> (SingI a :- q)
 singWit f = Sub $ Wit \\ f (sing :: Sing a)
 
-sAppend
+infixr 5 %:++
+
+(%:++)
     :: Sing as
     -> Sing bs
     -> Sing (as ++ bs)
-sAppend = \case
+(%:++) = \case
     SNil         -> id
     x `SCons` xs -> \ys ->
-      x `SCons` sAppend xs ys
+      x `SCons` (xs %:++ ys)
 
 sReverse
     :: Sing as
@@ -133,3 +142,8 @@ sSnoc
 sSnoc = \case
     SNil         -> (`SCons` SNil)
     x `SCons` xs -> (x `SCons`) . (xs `sSnoc`)
+
+sOnly
+    :: Sing a
+    -> Sing '[a]
+sOnly = (`SCons` SNil)

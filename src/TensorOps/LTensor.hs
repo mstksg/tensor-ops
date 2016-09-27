@@ -22,9 +22,10 @@
 module TensorOps.LTensor where
 
 import           Control.Applicative
+import           Control.Monad.Primitive
 import           Data.Kind
 import           Data.Singletons
-import           Data.Singletons.Prelude.List (sHead)
+import           Data.Singletons.Prelude.List (sHead,Sing(..))
 import           Data.Type.Combinator
 import           Data.Type.Fin
 import           Data.Type.Index
@@ -37,6 +38,8 @@ import           Data.Type.Sing
 import           Data.Type.Uniform
 import           Data.Type.Vector             as TCV
 import           Data.Type.Vector.Util
+import           Statistics.Distribution
+import           System.Random.MWC
 import           TensorOps.Types
 import           Type.Class.Higher
 import           Type.Class.Known
@@ -396,4 +399,28 @@ instance Tensor LTensor where
         -> LTensor '[n]
     getDiag u = overNVec (diagNV u)
 
+    genRand
+        :: forall m d (ns :: [N]). (ContGen d, PrimMonad m, SingI ns)
+        => d
+        -> Gen (PrimState m)
+        -> m (LTensor ns)
+    genRand d g = LTensor <$> randNestedVec d g
+                    \\ singLength (sing :: Sing ns)
+                    \\ (entailEvery entailNat :: SingI ns :- Every (Known Nat) ns)
+
+
+randNestedVec
+    :: forall ns g d m. (ContGen d, PrimMonad m, Known (Prod Nat) ns)
+    => d
+    -> Gen (PrimState m)
+    -> m (NestedVec ns Double)
+randNestedVec d g = go known
+  where
+    go  :: forall ms. ()
+        => Prod Nat ms
+        -> m (NestedVec ms Double)
+    go = \case
+      Ø       -> NVZ <$> genContVar d g
+      n :< ns -> NVS . vmap getI <$> sequence (vrep (I (go ns)))
+                  \\ n
 
