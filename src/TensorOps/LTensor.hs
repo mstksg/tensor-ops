@@ -53,6 +53,7 @@ data NestedVec :: [N] -> Type -> Type where
     NVZ :: !a -> NestedVec '[]  a
     NVS :: VecT n (NestedVec ns) a -> NestedVec (n ': ns) a
 
+deriving instance Show a => Show (NestedVec ns a)
 deriving instance Functor (NestedVec ns)
 deriving instance Foldable (NestedVec ns)
 deriving instance Traversable (NestedVec ns)
@@ -272,6 +273,8 @@ newtype LTensor :: [N] -> Type where
     LTensor :: { getNVec :: NestedVec ns Double
                } -> LTensor ns
 
+deriving instance Show (LTensor ns)
+
 overNVec
     :: (NestedVec ns Double -> NestedVec ms Double)
     -> LTensor ns
@@ -407,6 +410,12 @@ instance Tensor LTensor where
     genRand d g = LTensor <$> randNestedVec d g
                     \\ singLength (sing :: Sing ns)
                     \\ (entailEvery entailNat :: SingI ns :- Every (Known Nat) ns)
+
+    showT
+        :: SingI ns
+        => LTensor ns
+        -> String
+    showT = show
 
 
 randNestedVec

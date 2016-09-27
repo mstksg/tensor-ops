@@ -3,6 +3,7 @@
 {-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeInType            #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
@@ -23,6 +24,8 @@ import           Type.Family.Nat
 data Uniform :: a -> [a] -> Type where
     UØ :: Uniform a '[]
     US :: Uniform a as -> Uniform a (a ': as)
+
+deriving instance Show (Uniform a as)
 
 uniformLength :: Uniform n ns -> Length ns
 uniformLength = \case

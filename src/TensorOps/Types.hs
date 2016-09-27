@@ -10,6 +10,7 @@
 {-# LANGUAGE PolyKinds               #-}
 {-# LANGUAGE RankNTypes              #-}
 {-# LANGUAGE ScopedTypeVariables     #-}
+{-# LANGUAGE StandaloneDeriving      #-}
 {-# LANGUAGE TypeFamilies            #-}
 {-# LANGUAGE TypeFamilyDependencies  #-}
 {-# LANGUAGE TypeInType              #-}
@@ -89,6 +90,9 @@ class Tensor (t :: [k] -> Type) where
             => d
             -> Gen (PrimState m)
             -> m (t ns)
+    showT   :: SingI ns
+            => t ns
+            -> String
 
 type TensorOp = OpPipe TOp
 

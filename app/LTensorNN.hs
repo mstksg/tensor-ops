@@ -11,6 +11,7 @@
 {-# LANGUAGE TypeOperators       #-}
 
 import           Control.Category
+import           Control.Monad
 import           Control.Monad.Primitive
 import           Data.Kind
 import           Data.Singletons
@@ -18,6 +19,7 @@ import           Data.Singletons.Prelude.List   (Sing(..))
 import           Data.Type.Conjunction
 import           Data.Type.Index
 import           Data.Type.Length
+import           Data.Type.Nat
 import           Data.Type.Product              as TCP
 import           Data.Type.Product.Util
 import           Data.Type.Sing
@@ -32,10 +34,12 @@ import           TensorOps.LTensor
 import           TensorOps.Run
 import           TensorOps.Types
 import           Type.Class.Higher
+import           Type.Class.Higher.Util
 import           Type.Class.Known
 import           Type.Class.Witness hiding      (inner)
 import           Type.Family.List
 import           Type.Family.List.Util
+import           Type.Family.Nat
 import qualified TensorOps.TOp                  as TO
 import qualified TensorOps.Tensor               as TT
 
@@ -142,4 +146,12 @@ squaredError = ((LS (LS LZ), LZ   , TO.zip2      (-)         )
                )
 
 main :: IO ()
-main = putStrLn "omg"
+main = withSystemRandom $ \g -> do
+    n :: Network LTensor ('S ('S ('S ('S 'Z)))) ('S ('S 'Z))
+        <- genNet [SomeSing (SN (S_ (S_ (S_ Z_)))), SomeSing (SN (S_ (S_ Z_)))] g
+    case n of
+      N (s :: Sing os) _ (p :: Prod LTensor os) -> do
+        let p' :: Prod (Sing :&: LTensor) os
+            p' = zipProd (singProd s) p
+        traverse1_ (\(s' :&: t) -> putStrLn (showT t) \\ s') p'
+

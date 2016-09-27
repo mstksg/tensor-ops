@@ -38,7 +38,7 @@ reverseReverse
     -> (as :~: Reverse (Reverse as))
 reverseReverse = \case
     LZ   -> Refl
-    LS _ -> undefined
+    LS _ -> unsafeCoerce Refl
 
 reverseConcat
     :: Length as
