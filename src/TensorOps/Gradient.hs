@@ -10,27 +10,14 @@
 
 module TensorOps.Gradient where
 
--- import           Control.Applicative
--- import           Data.Kind
--- import           Data.Maybe
--- import           Data.Proxy
--- import           Data.Singletons.Prelude.List ((:++), Reverse, sReverse)
--- import           Data.Type.Equality hiding    (outer)
--- import           Data.Type.Product.Util
--- import           Data.Type.Vector             as TCV
--- import           Data.Type.Vector.Util
--- import           Numeric.AD
--- import           Type.Class.Known
--- import           Type.Family.Nat
--- import           Unsafe.Coerce
 import           Data.Foldable
 import           Data.Singletons
-import           Data.Singletons.Prelude.List    (Sing(..))
+import           Data.Singletons.Prelude.List (Sing(..))
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
 import           Data.Type.Index
 import           Data.Type.Length
-import           Data.Type.Length.Util           as TCL
+import           Data.Type.Length.Util        as TCL
 import           Data.Type.Product
 import           Data.Type.Product.Util
 import           Data.Type.Sing
@@ -41,7 +28,7 @@ import           Type.Class.Higher
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
-import qualified TensorOps.Tensor                as Tensor
+import qualified TensorOps.Tensor             as Tensor
 
 gradTOp
     :: forall ns ms t. (Tensor t, Floating (ElemT t))

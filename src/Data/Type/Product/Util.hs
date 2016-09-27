@@ -1,9 +1,12 @@
+{-# LANGUAGE ConstraintKinds     #-}
+{-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE PolyKinds           #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE TypeOperators       #-}
 
 module Data.Type.Product.Util where
@@ -11,6 +14,7 @@ module Data.Type.Product.Util where
 -- import           Data.Singletons.Prelude.List hiding (Length)
 import           Data.Bifunctor
 import           Data.Functor.Identity
+import           Data.Proxy
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
 import           Data.Type.Equality
@@ -21,7 +25,9 @@ import           Data.Type.Uniform
 import           Data.Type.Vector
 import           Prelude hiding                         (replicate)
 import           Type.Class.Known
+import           Type.Class.Witness
 import           Type.Family.List
+import           Type.Family.List.Util
 import           Type.Family.Nat
 
 splitProd
@@ -184,6 +190,33 @@ zipProd = \case
     x :< xs -> \case
       y :< ys -> (x :&: y) :< zipProd xs ys
 
+zipProd3
+    :: Prod f as
+    -> Prod g as
+    -> Prod h as
+    -> Prod (f :&: g :&: h) as
+zipProd3 = \case
+    Ø -> \case
+      Ø -> \case
+        Ø -> Ø
+    x :< xs -> \case
+      y :< ys -> \case
+        z :< zs -> (x :&: y :&: z) :< zipProd3 xs ys zs
+
+
+-- zipProd'
+--     :: Every c as
+--     => (forall a. c a => f a -> g a -> h a)
+--     -> Prod f as
+--     -> Prod g as
+--     -> Prod h as
+-- zipProd' f = \case
+--     Ø -> \case
+--       Ø -> Ø
+--     x :< xs -> \case
+--       y :< ys -> f x y :< zipProd xs ys
+
+
 -- collect
 --     :: (Every c as, Every d bs)
 --     => Prod (Index as) bs
@@ -192,3 +225,31 @@ zipProd = \case
 --     -> Prod f as
 --     -> Prod f as
 -- collect = undefined
+
+-- take
+--     :: Length as
+--     -> Prod f (as ++ bs)
+--     -> Prod f as
+
+-- unSnoc
+--     :: forall f a as. ()
+--     => Proxy a
+--     -> Prod f (as ++ '[ a ])
+--     -> Prod f as
+-- unSnoc p r = case r of
+--     -- '[b] ~ (as >: a)
+--     -- '[b] ~ (as ++ '[a])
+--     (x :: f b) :< Ø -> Ø
+--                -- @(x :< xs) = case xs of
+--     -- Ø      -> Ø \\ appendSnoc (prodLength r) (Proxy @a)
+--     -- -- _ :< _ -> x :< unSnoc p xs
+
+-- appendAssoc
+
+prodLength
+    :: Prod f as
+    -> Length as
+prodLength = \case
+    Ø       -> LZ
+    _ :< xs -> LS (prodLength xs)
+

@@ -1,27 +1,32 @@
-{-# LANGUAGE DataKinds        #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs            #-}
-{-# LANGUAGE LambdaCase       #-}
-{-# LANGUAGE PolyKinds        #-}
-{-# LANGUAGE RankNTypes       #-}
-{-# LANGUAGE TypeOperators    #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE PolyKinds           #-}
+{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications    #-}
+{-# LANGUAGE TypeOperators       #-}
 
 module TensorOps.TOp where
 
 -- import           Data.Type.Equality
 -- import           Data.Type.Product
+-- import           Type.Class.Known
+-- import qualified Control.Foldl          as F
+import           Data.Proxy
 import           Data.Type.Combinator
 import           Data.Type.Index
 import           Data.Type.Length
-import           Data.Type.Product.Util as TCP
+import           Data.Type.Product.Util    as TCP
 import           Data.Type.Uniform
 import           Data.Type.Vector
-import           Prelude hiding         (map, replicate)
-import           TensorOps.Types hiding (OpPipe(..))
-import           Type.Class.Known
-import           Type.Class.Witness
+import           Prelude hiding            (map, replicate)
+import           TensorOps.Types hiding    (OpPipe(..))
+import           Type.Class.Witness hiding (inner)
+import           Type.Family.List
+import           Type.Family.List.Util
 import           Type.Family.Nat
-import qualified Control.Foldl          as F
 
 konst
     :: forall n ns. ()
@@ -57,6 +62,17 @@ replicate
     :: Uniform n ns
     -> TOp '[ n ] ns
 replicate u = Shuffle (TCP.replicate IZ u)
+
+inner
+    :: forall ms ns o. ()
+    => Length ms
+    -> Length ns
+    -> TOp '[ms >: o, o ': ns] '[ ms ++ ns ]
+inner lM lN = GMul lM (LS LZ) lN
+                \\ appendSnoc lM (Proxy @o)
+
+dot :: TOp '[ '[m], '[m] ] '[ '[] ]
+dot = inner LZ LZ
 
 -- transpose :: TOp '[ '[m,n] ] '[ '[n,m] ]
 -- transpose = Transp Refl (IS IZ :< IZ :< Ø)
