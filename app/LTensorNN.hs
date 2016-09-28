@@ -10,24 +10,29 @@
 {-# LANGUAGE TypeInType          #-}
 {-# LANGUAGE TypeOperators       #-}
 
+-- import           Data.Type.Nat.Quote
+-- import           GHC.TypeLits
+-- import           Statistics.Distribution
 import           Control.Category
 import           Control.Monad
 import           Control.Monad.Primitive
 import           Data.Kind
+import           Data.List hiding                ((\\))
+import           Data.Maybe
 import           Data.Singletons
-import           Data.Singletons.Prelude.List   (Sing(..))
+import           Data.Singletons.Prelude.List    (Sing(..))
+import           Data.Type.Combinator
 import           Data.Type.Conjunction
 import           Data.Type.Index
 import           Data.Type.Length
 import           Data.Type.Nat
-import           Data.Type.Product              as TCP
+import           Data.Type.Product               as TCP
 import           Data.Type.Product.Util
 import           Data.Type.Sing
 import           Data.Type.Uniform
-import           GHC.TypeLits
-import           Prelude hiding                 ((.), id)
-import           Statistics.Distribution
+import           Prelude hiding                  ((.), id)
 import           Statistics.Distribution.Normal
+import           Statistics.Distribution.Uniform
 import           System.Random.MWC
 import           TensorOps.Gradient
 import           TensorOps.LTensor
@@ -36,12 +41,12 @@ import           TensorOps.Types
 import           Type.Class.Higher
 import           Type.Class.Higher.Util
 import           Type.Class.Known
-import           Type.Class.Witness hiding      (inner)
+import           Type.Class.Witness hiding       (inner)
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
-import qualified TensorOps.TOp                  as TO
-import qualified TensorOps.Tensor               as TT
+import qualified TensorOps.TOp                   as TO
+import qualified TensorOps.Tensor                as TT
 
 
 ffLayer'
@@ -57,7 +62,7 @@ logistic
     :: forall a. Floating a
     => a
     -> a
-logistic x = 1 / (1 + exp (- x))
+logistic x = 2 / (2 + exp (- x))
 
 data Network :: ([k] -> Type) -> k -> k -> Type where
     N :: { nsOs     :: Sing os
@@ -139,19 +144,65 @@ trainNetwork r x y = \case
 squaredError
     :: forall o. SingI o
     => TensorOp '[ '[o], '[o]] '[ '[] ]
-squaredError = ((LS (LS LZ), LZ   , TO.zip2      (-)         )
-             ~. (LS LZ     , LZ   , TO.replicate (US (US UØ)))
-             ~. (LS (LS LZ), LZ   , TO.dot                   )
-             ~. OPØ
-               )
+squaredError = (LS (LS LZ), LZ   , TO.zip2      (-)         )
+            ~. (LS LZ     , LZ   , TO.replicate (US (US UØ)))
+            ~. (LS (LS LZ), LZ   , TO.dot                   )
+            ~. OPØ
+
+netTest
+    :: PrimMonad m
+    => Double
+    -> Int
+    -> Gen (PrimState m)
+    -> m String
+netTest rate n g = do
+    inps :: [LTensor '[N2]] <- replicateM n (genRand (uniformDistr (-1) 1) g)
+    let outs :: [LTensor '[N1]]
+        outs = flip map inps $ \v ->
+                 if v `inCircle` (fromRational 0.33, 0.33)
+                      || v `inCircle` (fromRational (-0.33), 0.33)
+                   then fromRational 1
+                   else fromRational 0
+    net0 :: Network LTensor N2 N1
+            <- genNet [ SomeSing (sing :: Sing N10)
+                      , SomeSing (sing :: Sing N10)
+                      ] g
+    let trained = foldl' trainEach net0 (zip inps outs)
+          where
+            trainEach :: (Known Nat i, Known Nat o)
+                      => Network LTensor i o
+                      -> (LTensor '[i], LTensor '[o])
+                      -> Network LTensor i o
+            trainEach nt (i, o) = trainNetwork rate i o nt
+
+        outMat = [ [ render . unScalar . join TT.dot . runNetwork trained $
+                       LTensor (fromJust (fromList [x / 25 - 1,y / 10 - 1]))
+                   | x <- [0..50] ]
+                 | y <- [0..20] ]
+        render r | r <= 0.2  = ' '
+                 | r <= 0.4  = '.'
+                 | r <= 0.6  = '-'
+                 | r <= 0.8  = '='
+                 | otherwise = '#'
+    return $ unlines outMat
+  where
+    inCircle
+        :: LTensor '[N2]
+        -> (LTensor '[N2], Double)
+        -> Bool
+    v `inCircle` (o, r) = let d = v - o
+                          in  unScalar (d `TT.dot` d) <= r**2
 
 main :: IO ()
 main = withSystemRandom $ \g -> do
-    n :: Network LTensor ('S ('S ('S ('S 'Z)))) ('S ('S 'Z))
-        <- genNet [SomeSing (SN (S_ (S_ (S_ Z_)))), SomeSing (SN (S_ (S_ Z_)))] g
-    case n of
-      N (s :: Sing os) _ (p :: Prod LTensor os) -> do
-        let p' :: Prod (Sing :&: LTensor) os
-            p' = zipProd (singProd s) p
-        traverse1_ (\(s' :&: t) -> putStrLn (showT t) \\ s') p'
+    -- n :: Network LTensor N4 N2
+    --     <- genNet [SomeSing (sing :: Sing N3), SomeSing (sing :: Sing N2)] g
+    -- case n of
+    --   N (s :: Sing os) _ (p :: Prod LTensor os) -> do
+    --     let p' :: Prod (Sing :&: LTensor) os
+    --         p' = zipProd (singProd s) p
+    --     traverse1_ (\(s' :&: t) -> putStrLn (showT t) \\ s') p'
+
+    putStrLn "Training network..."
+    putStrLn =<< netTest 1 100000 g
 

@@ -1,42 +1,46 @@
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE DeriveFoldable       #-}
-{-# LANGUAGE DeriveFunctor        #-}
-{-# LANGUAGE DeriveTraversable    #-}
-{-# LANGUAGE EmptyCase            #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE GADTs                #-}
-{-# LANGUAGE IncoherentInstances  #-}
-{-# LANGUAGE InstanceSigs         #-}
-{-# LANGUAGE KindSignatures       #-}
-{-# LANGUAGE LambdaCase           #-}
-{-# LANGUAGE PolyKinds            #-}
-{-# LANGUAGE RankNTypes           #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE StandaloneDeriving   #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE TypeInType           #-}
-{-# LANGUAGE TypeOperators        #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE ViewPatterns         #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DeriveFoldable             #-}
+{-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE DeriveTraversable          #-}
+{-# LANGUAGE EmptyCase                  #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE GADTs                      #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE IncoherentInstances        #-}
+{-# LANGUAGE InstanceSigs               #-}
+{-# LANGUAGE KindSignatures             #-}
+{-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE PolyKinds                  #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeInType                 #-}
+{-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE ViewPatterns               #-}
 
 module TensorOps.LTensor where
 
 import           Control.Applicative
 import           Control.Monad.Primitive
+import           Control.Monad.Trans.Maybe
+import           Control.Monad.Trans.State.Strict
 import           Data.Kind
+import           Data.List hiding                 ((\\))
 import           Data.Singletons
-import           Data.Singletons.Prelude.List (sHead,Sing(..))
+import           Data.Singletons.Prelude.List     (sHead,Sing(..))
 import           Data.Type.Combinator
 import           Data.Type.Fin
 import           Data.Type.Index
 import           Data.Type.Length
-import           Data.Type.Length.Util        as TCL
+import           Data.Type.Length.Util            as TCL
 import           Data.Type.Nat
-import           Data.Type.Product            as TCP
-import           Data.Type.Product.Util       as TCP
+import           Data.Type.Product                as TCP
+import           Data.Type.Product.Util           as TCP
 import           Data.Type.Sing
 import           Data.Type.Uniform
-import           Data.Type.Vector             as TCV
+import           Data.Type.Vector                 as TCV
 import           Data.Type.Vector.Util
 import           Statistics.Distribution
 import           System.Random.MWC
@@ -47,7 +51,7 @@ import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
-import qualified TensorOps.Tensor             as Tensor
+import qualified TensorOps.Tensor                 as Tensor
 
 data NestedVec :: [N] -> Type -> Type where
     NVZ :: !a -> NestedVec '[]  a
@@ -75,6 +79,11 @@ instance (Num a, Applicative (NestedVec ns)) => Num (NestedVec ns a) where
     abs         = fmap abs
     signum      = fmap signum
     fromInteger = pure . fromInteger
+
+instance (Fractional a, Applicative (NestedVec ns)) => Fractional (NestedVec ns a) where
+    (/)          = liftA2 (/)
+    recip        = fmap recip
+    fromRational = pure . fromRational
 
 nvHead
     :: NestedVec ('S m ': ms) a
@@ -259,6 +268,7 @@ diagNV' = \case
       case xs of
         y :* ys -> case diagNV' $ NVS (vmap nvTail ys) of
           NVS zs -> NVS $ nvHead y :* zs
+        ØV      -> NVS ØV
 
 diagNV
     :: Uniform n ms
@@ -268,12 +278,19 @@ diagNV = \case
     UØ   -> diagNV'
     US u -> diagNV u . diagNV'
 
+fromList
+    :: Known (Prod Nat) ns
+    => [a]
+    -> Maybe (NestedVec ns a)
+fromList = evalStateT . sequence $ pure (StateT uncons)
 
 newtype LTensor :: [N] -> Type where
     LTensor :: { getNVec :: NestedVec ns Double
                } -> LTensor ns
 
 deriving instance Show (LTensor ns)
+deriving instance Known (Prod Nat) ns => Num (LTensor ns)
+deriving instance Known (Prod Nat) ns => Fractional (LTensor ns)
 
 overNVec
     :: (NestedVec ns Double -> NestedVec ms Double)
@@ -287,15 +304,6 @@ overNVec2
     -> LTensor ms
     -> LTensor os
 overNVec2 f x y = LTensor $ f (getNVec x) (getNVec y)
-
-instance Known (Prod Nat) ns => Num (LTensor ns) where
-    (+)         = overNVec2 (+)
-    (-)         = overNVec2 (-)
-    (*)         = overNVec2 (*)
-    negate      = overNVec negate
-    abs         = overNVec abs
-    signum      = overNVec signum
-    fromInteger = LTensor . fromInteger
 
 genLTensor
     :: Prod Nat ns
@@ -432,4 +440,10 @@ randNestedVec d g = go known
       Ø       -> NVZ <$> genContVar d g
       n :< ns -> NVS . vmap getI <$> sequence (vrep (I (go ns)))
                   \\ n
+
+unScalar
+    :: LTensor '[]
+    -> Double
+unScalar (LTensor (NVZ x)) = x
+
 

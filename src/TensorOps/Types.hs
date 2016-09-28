@@ -147,17 +147,14 @@ pappend _ sB sD = \case
         (sD' :: Sing d')
         (x   :: f a' b'  )
         (xs  :: OpPipe f (b' ++ d') b)
-          -> \ys -> let lA' :: Length a'
-                        lA' = singLength sA'
-                        lB' :: Length b'
-                        lB' = singLength sB'
-                        lD' :: Length d'
+          -> \ys -> let lD' :: Length d'
                         lD' = singLength sD'
-                        lD  :: Length d
-                        lD  = singLength sD
                     in  Pop sA' sB' (sD' %:++ sD) x (pappend (sB' %:++ sD') sB sD xs ys)
-                          \\ appendAssoc lA' lD' lD
-                          \\ appendAssoc lB' lD' lD
+                          \\ appendAssoc (singLength sA') lD' lD
+                          \\ appendAssoc (singLength sB') lD' lD
+  where
+    lD :: Length d
+    lD = singLength sD
 
 
 pop :: forall a b c d f. (SingI a, SingI b, SingI d)

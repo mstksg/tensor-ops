@@ -40,6 +40,7 @@ library
                      , primitive
                      , singletons
                      , statistics
+                     , transformers
                      , type-combinators
   ghc-options:         -Wall -O2
   default-language:    Haskell2010
@@ -55,6 +56,7 @@ executable tensor-ops-ltensor-nn
                      , statistics
                      , tensor-ops
                      , type-combinators
+                     , type-combinators-quote
   default-language:    Haskell2010
 
 test-suite tensor-ops-test
