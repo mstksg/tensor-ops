@@ -11,13 +11,13 @@
 module TensorOps.TOp where
 
 -- import           Data.Type.Equality
--- import           Data.Type.Product
 -- import           Type.Class.Known
 -- import qualified Control.Foldl          as F
 import           Data.Proxy
 import           Data.Type.Combinator
 import           Data.Type.Index
 import           Data.Type.Length
+import           Data.Type.Product
 import           Data.Type.Product.Util    as TCP
 import           Data.Type.Uniform
 import           Data.Type.Vector
@@ -73,6 +73,9 @@ inner lM lN = GMul lM (LS LZ) lN
 
 dot :: TOp '[ '[m], '[m] ] '[ '[] ]
 dot = inner LZ LZ
+
+flip :: TOp '[ms,ns] '[ns,ms]
+flip = Shuffle (IS IZ :< IZ :< Ø)
 
 -- transpose :: TOp '[ '[m,n] ] '[ '[n,m] ]
 -- transpose = Transp Refl (IS IZ :< IZ :< Ø)

@@ -52,7 +52,7 @@ import qualified TensorOps.Tensor                as TT
 ffLayer'
     :: (SingI i, SingI o)
     => TensorOp '[ '[i], '[o,i], '[o]] '[ '[o] ]
-ffLayer' = (LS (LS LZ), LS LZ, Shuffle (IS IZ :< IZ :< Ø))
+ffLayer' = (LS (LS LZ), LS LZ, TO.flip                   )
         ~. (LS (LS LZ), LS LZ, GMul    (LS LZ) (LS LZ) LZ)
         ~. (LS (LS LZ), LZ   , TO.zip2 (+)               )
         ~. (LS LZ     , LZ   , TO.map  (US UØ) logistic  )
@@ -62,7 +62,7 @@ logistic
     :: forall a. Floating a
     => a
     -> a
-logistic x = 2 / (2 + exp (- x))
+logistic x = 1 / (1 + exp (- x))
 
 data Network :: ([k] -> Type) -> k -> k -> Type where
     N :: { nsOs     :: Sing os
@@ -176,7 +176,7 @@ netTest rate n g = do
             trainEach nt (i, o) = trainNetwork rate i o nt
 
         outMat = [ [ render . unScalar . join TT.dot . runNetwork trained $
-                       LTensor (fromJust (fromList [x / 25 - 1,y / 10 - 1]))
+                       fromJust (TT.fromList [x / 25 - 1,y / 10 - 1])
                    | x <- [0..50] ]
                  | y <- [0..20] ]
         render r | r <= 0.2  = ' '
@@ -201,8 +201,8 @@ main = withSystemRandom $ \g -> do
     --   N (s :: Sing os) _ (p :: Prod LTensor os) -> do
     --     let p' :: Prod (Sing :&: LTensor) os
     --         p' = zipProd (singProd s) p
-    --     traverse1_ (\(s' :&: t) -> putStrLn (showT t) \\ s') p'
+    --     traverse1_ (\(s' :&: t) -> putStrLn (show t) \\ s') p'
 
     putStrLn "Training network..."
-    putStrLn =<< netTest 1 100000 g
+    putStrLn =<< netTest 5 75000 g
 

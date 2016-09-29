@@ -12,17 +12,20 @@ module TensorOps.Tensor where
 
 -- import           Data.Singletons.Prelude.List hiding (Length)
 -- import           Data.Type.Index
--- import           Data.Type.Product                   as TCP
 -- import           Data.Type.Product.Util
 -- import           Data.Type.Sing
 -- import           Data.Type.Uniform
 -- import           Type.Family.Nat.Util
 import           Control.Applicative
+import           Control.Monad.Trans.State.Strict
+import           Data.List hiding                       ((\\))
 import           Data.Proxy
 import           Data.Singletons
 import           Data.Type.Combinator
+import           Data.Type.Fin
 import           Data.Type.Length
 import           Data.Type.Nat
+import           Data.Type.Product                      as TCP
 import           Data.Type.Vector                       as TCV
 import           Data.Type.Vector.Util                  as TCV
 import           Numeric.AD
@@ -50,14 +53,14 @@ map
     => (ElemT t -> ElemT t)
     -> t o
     -> t o
-map f = getI . head' . liftT (fmap f) . (:+ ØV)
+map f = getI . TCV.head' . liftT (fmap f) . (:+ ØV)
 
 zip
     :: (Floating (ElemT t), SingI o, Tensor t)
     => (Vec n (ElemT t) -> ElemT t)
     -> Vec n (t o)
     -> t o
-zip f = getI . head' . liftT ((:+ ØV) . f)
+zip f = getI . TCV.head' . liftT ((:+ ØV) . f)
 
 zip2
     :: (Floating (ElemT t), SingI o, Tensor t)
@@ -65,8 +68,9 @@ zip2
     -> t o
     -> t o
     -> t o
-zip2 f x y = getI . head' $ liftT (\(I x' :* I y' :* ØV) -> f x' y' :+ ØV)
-                                  (x :+ y :+ ØV)
+zip2 f x y = getI . TCV.head'
+           $ liftT (\(I x' :* I y' :* ØV) -> f x' y' :+ ØV)
+                   (x :+ y :+ ØV)
 
 zip3
     :: (Floating (ElemT t), SingI o, Tensor t)
@@ -75,8 +79,9 @@ zip3
     -> t o
     -> t o
     -> t o
-zip3 f x y z = getI . head' $ liftT (\(I x' :* I y' :* I z' :* ØV) -> f x' y' z' :+ ØV)
-                                    (x :+ y :+ z :+ ØV)
+zip3 f x y z = getI . TCV.head'
+             $ liftT (\(I x' :* I y' :* I z' :* ØV) -> f x' y' z' :+ ØV)
+                     (x :+ y :+ z :+ ØV)
 
 -- replicate
 --     :: (Tensor t, Floating (ElemT t), SingI o, Known Nat n)
@@ -159,3 +164,15 @@ matMat
     -> t '[m,o]
 matMat = inner (LS LZ) (LS LZ)
 
+fromList
+    :: (Tensor t, SingI ns)
+    => [ElemT t]
+    -> Maybe (t ns)
+-- fromList = evalStateT . sequence $ pure (StateT uncons)
+fromList = evalStateT . generateA $ \_ -> StateT uncons
+
+generate
+    :: (Tensor t, SingI ns)
+    => (IndexT t ns -> ElemT t)
+    -> t ns
+generate = getI . generateA . fmap I

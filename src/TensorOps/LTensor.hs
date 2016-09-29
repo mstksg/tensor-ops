@@ -22,36 +22,36 @@
 
 module TensorOps.LTensor where
 
+-- import           Control.Monad.Trans.Maybe
+-- import           Control.Monad.Trans.State.Strict
+-- import           Data.List hiding                 ((\\))
+-- import           Data.Singletons.Prelude.List     (sHead,Sing(..))
+-- import           Type.Class.Higher
+-- import qualified TensorOps.Tensor                 as Tensor
 import           Control.Applicative
 import           Control.Monad.Primitive
-import           Control.Monad.Trans.Maybe
-import           Control.Monad.Trans.State.Strict
 import           Data.Kind
-import           Data.List hiding                 ((\\))
 import           Data.Singletons
-import           Data.Singletons.Prelude.List     (sHead,Sing(..))
 import           Data.Type.Combinator
 import           Data.Type.Fin
 import           Data.Type.Index
 import           Data.Type.Length
-import           Data.Type.Length.Util            as TCL
+import           Data.Type.Length.Util               as TCL
 import           Data.Type.Nat
-import           Data.Type.Product                as TCP
-import           Data.Type.Product.Util           as TCP
+import           Data.Type.Product                   as TCP
+import           Data.Type.Product.Util              as TCP
 import           Data.Type.Sing
 import           Data.Type.Uniform
-import           Data.Type.Vector                 as TCV
+import           Data.Type.Vector                    as TCV
 import           Data.Type.Vector.Util
 import           Statistics.Distribution
 import           System.Random.MWC
 import           TensorOps.Types
-import           Type.Class.Higher
 import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
-import qualified TensorOps.Tensor                 as Tensor
 
 data NestedVec :: [N] -> Type -> Type where
     NVZ :: !a -> NestedVec '[]  a
@@ -141,6 +141,7 @@ frontSlices f = \case
     LZ -> \case
       NVZ x  -> NVZ <$> f (NVZ x)
       NVS xs -> NVS . vmap getI <$> sequenceA (vmap (I . frontSlices f LZ) xs)
+    LS _ -> error "wait why"
 
 imapNestedVec
     :: (Prod Fin ns -> a -> b)
@@ -179,6 +180,16 @@ genNestedVec
 genNestedVec = \case
     Ø       -> \f -> NVZ (f Ø)
     n :< ns -> \f -> NVS . vgen n $ \i -> genNestedVec ns (f . (i :<))
+
+genNestedVecA
+    :: Applicative f
+    => Prod Nat ns
+    -> (Prod Fin ns -> f a)
+    -> f (NestedVec ns a)
+genNestedVecA = \case
+    Ø       -> \f -> NVZ <$> f Ø
+    -- n :< ns -> \f -> NVS <$> vgen n A\i -> genNestedVec ns (f . (i :<))
+    n :< ns -> \f -> NVS <$> vgenA n (\i -> genNestedVecA ns (f . (i :<)))
 
 indexNestedVec
     :: Prod Fin ns
@@ -278,12 +289,6 @@ diagNV = \case
     UØ   -> diagNV'
     US u -> diagNV u . diagNV'
 
-fromList
-    :: Known (Prod Nat) ns
-    => [a]
-    -> Maybe (NestedVec ns a)
-fromList = evalStateT . sequence $ pure (StateT uncons)
-
 newtype LTensor :: [N] -> Type where
     LTensor :: { getNVec :: NestedVec ns Double
                } -> LTensor ns
@@ -311,6 +316,13 @@ genLTensor
     -> LTensor ns
 genLTensor l f = LTensor $ genNestedVec l f
 
+genLTensorA
+    :: Applicative f
+    => Prod Nat ns
+    -> (Prod Fin ns -> f Double)
+    -> f (LTensor ns)
+genLTensorA l f = LTensor <$> genNestedVecA l f
+
 indexLTensor
     :: Prod Fin ns
     -> LTensor ns
@@ -333,7 +345,7 @@ liftLT
 liftLT f xs = fmap (\g -> liftVec g xs) (vecFunc f)
 
 outer
-    :: forall ns ms. (SingI ns, SingI ms, SingI (ns ++ ms))
+    :: forall ns ms. ()
     => LTensor ns
     -> LTensor ms
     -> LTensor (ns ++ ms)
@@ -343,7 +355,8 @@ outer (LTensor x) (LTensor y) = LTensor (joinNestedVec z)
     z = fmap (\x' -> (x' *) <$> y) x
 
 instance Tensor LTensor where
-    type ElemT LTensor = Double
+    type ElemT  LTensor = Double
+    type IndexT LTensor = Prod Fin
 
     liftT
         :: forall (n :: N) (m :: N) (o :: [N]). (SingI o, Known Nat m)
@@ -371,7 +384,7 @@ instance Tensor LTensor where
     -- TODO: Decently inefficient because it multiples everything and then
     -- sums only the diagonal.
     gmul
-        :: forall ms os ns. (SingI (ms ++ os), SingI (Reverse os ++ ns), SingI (ms ++ ns))
+        :: forall ms os ns. SingI (Reverse os ++ ns)
         => Length ms
         -> Length os
         -> Length ns
@@ -391,7 +404,7 @@ instance Tensor LTensor where
                      )
 
     diag
-        :: forall n ns. SingI ns
+        :: forall n ns. (SingI ns)
         => Uniform n ns
         -> LTensor '[n]
         -> LTensor ns
@@ -404,7 +417,7 @@ instance Tensor LTensor where
             \\ (entailEvery entailNat :: SingI ns :- Every (Known Nat) ns)
 
     getDiag
-        :: forall n ns. SingI '[n]
+        :: forall n ns. ()
         => Uniform n ns
         -> LTensor (n ': n ': ns)
         -> LTensor '[n]
@@ -419,15 +432,17 @@ instance Tensor LTensor where
                     \\ singLength (sing :: Sing ns)
                     \\ (entailEvery entailNat :: SingI ns :- Every (Known Nat) ns)
 
-    showT
-        :: SingI ns
-        => LTensor ns
-        -> String
-    showT = show
+    generateA :: forall f ns. (Applicative f, SingI ns)
+              => (Prod Fin ns -> f Double)
+              -> f (LTensor ns)
+    generateA = genLTensorA known \\ singLength (sing :: Sing ns)
+                                  \\ (entailEvery entailNat :: SingI ns :- Every (Known Nat) ns)
+
+    (!) = flip indexLTensor
 
 
 randNestedVec
-    :: forall ns g d m. (ContGen d, PrimMonad m, Known (Prod Nat) ns)
+    :: forall ns d m. (ContGen d, PrimMonad m, Known (Prod Nat) ns)
     => d
     -> Gen (PrimState m)
     -> m (NestedVec ns Double)

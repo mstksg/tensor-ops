@@ -12,6 +12,7 @@ module Data.Type.Vector.Util where
 import           Data.Bifunctor
 import           Data.Distributive
 import           Data.Type.Combinator
+import           Data.Type.Fin
 import           Data.Type.Nat
 import           Data.Type.Vector
 import           Type.Class.Known
@@ -90,3 +91,12 @@ unVecFunc
     -> a
     -> Vec n b
 unVecFunc xs x = fmap ($ x) xs
+
+vgenA
+    :: Applicative g
+    => Nat n
+    -> (Fin n -> g (f a))
+    -> g (VecT n f a)
+vgenA = \case
+  Z_   -> \_ -> pure ØV
+  S_ n -> \f -> (:*) <$> f FZ <*> vgenA n (f . FS)

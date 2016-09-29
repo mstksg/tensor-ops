@@ -46,14 +46,15 @@ import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
 
-class LenUnder (t :: N) (n :: [k])
-instance LenUnder n '[]
-instance LenUnder n as => LenUnder ('S n) (a ': as)
+-- class LenUnder (t :: N) (n :: [k])
+-- instance LenUnder n '[]
+-- instance LenUnder n as => LenUnder ('S n) (a ': as)
 
 -- type TensorRank t n = (LenUnder (MaxRank t) n, ListC (DimConstr t <$> n))
 
 class Tensor (t :: [k] -> Type) where
     type ElemT t      :: Type
+    type IndexT t     :: [k] -> Type
     -- type RankConstr t :: [k] -> Constraint
 
     liftT   :: (SingI o, Floating (ElemT t), Known Nat m)
@@ -90,9 +91,12 @@ class Tensor (t :: [k] -> Type) where
             => d
             -> Gen (PrimState m)
             -> m (t ns)
-    showT   :: SingI ns
-            => t ns
-            -> String
+    generateA :: (Applicative f, SingI ns)
+              => (IndexT t ns -> f (ElemT t))
+              -> f (t ns)
+    (!)     :: t ns
+            -> IndexT t ns
+            -> ElemT t
 
 type TensorOp = OpPipe TOp
 
