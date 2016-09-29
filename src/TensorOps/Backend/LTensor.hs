@@ -20,7 +20,9 @@
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE ViewPatterns               #-}
 
-module TensorOps.Backend.LTensor where
+module TensorOps.Backend.LTensor
+  ( LTensor
+  ) where
 
 -- import           Control.Monad.Trans.Maybe
 -- import           Control.Monad.Trans.State.Strict

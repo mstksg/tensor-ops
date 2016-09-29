@@ -40,6 +40,7 @@ packages:
 - location:
     git: https://github.com/mstksg/type-combinators-quote
     commit: e96e3fd2b1f084bfe5d97f7ff45a60f2d4988b63
+  extra-dep: true
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)

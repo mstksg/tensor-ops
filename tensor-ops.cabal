@@ -17,6 +17,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     TensorOps.Types
+                       Data.Nested
                        Data.Type.Combinator.Util
                        Data.Type.Length.Util
                        Data.Type.Nat.Util
@@ -26,6 +27,7 @@ library
                        Data.Type.Vector.Util
                        Orphans
                        TensorOps.Backend.LTensor
+                       TensorOps.Backend.VTensor
                        TensorOps.Gradient
                        TensorOps.Run
                        TensorOps.TOp
@@ -43,6 +45,7 @@ library
                      , statistics
                      , transformers
                      , type-combinators
+                     , vector
   ghc-options:         -Wall -O2
   default-language:    Haskell2010
 
