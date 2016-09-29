@@ -21,6 +21,8 @@ import           Data.List hiding                ((\\))
 import           Data.Maybe
 import           Data.Singletons
 import           Data.Singletons.Prelude.List    (Sing(..))
+import           Data.Singletons.Prelude.Num
+import           Data.Singletons.TypeLits
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
 import           Data.Type.Index
@@ -34,8 +36,8 @@ import           Prelude hiding                  ((.), id)
 import           Statistics.Distribution.Normal
 import           Statistics.Distribution.Uniform
 import           System.Random.MWC
+import           TensorOps.Backend.LTensor
 import           TensorOps.Gradient
-import           TensorOps.LTensor
 import           TensorOps.Run
 import           TensorOps.Types
 import           Type.Class.Higher
@@ -45,18 +47,10 @@ import           Type.Class.Witness hiding       (inner)
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
+import           Type.Family.Nat.Util
 import qualified TensorOps.TOp                   as TO
 import qualified TensorOps.Tensor                as TT
 
-
-ffLayer'
-    :: (SingI i, SingI o)
-    => TensorOp '[ '[i], '[o,i], '[o]] '[ '[o] ]
-ffLayer' = (LS (LS LZ), LS LZ, TO.flip                   )
-        ~. (LS (LS LZ), LS LZ, GMul    (LS LZ) (LS LZ) LZ)
-        ~. (LS (LS LZ), LZ   , TO.zip2 (+)               )
-        ~. (LS LZ     , LZ   , TO.map  (US UØ) logistic  )
-        ~. OPØ
 
 logistic
     :: forall a. Floating a
@@ -87,6 +81,15 @@ ffLayer
 ffLayer g = (\w b -> N sing ffLayer' (w :< b :< Ø))
         <$> genRand (normalDistr 0 0.5) g
         <*> genRand (normalDistr 0 0.5) g
+  where
+    ffLayer'
+        :: TensorOp '[ '[i], '[o,i], '[o]] '[ '[o] ]
+    ffLayer' = (LS (LS LZ), LS LZ, TO.flip                   )
+            ~. (LS (LS LZ), LS LZ, GMul    (LS LZ) (LS LZ) LZ)
+            ~. (LS (LS LZ), LZ   , TO.zip2 (+)               )
+            ~. (LS LZ     , LZ   , TO.map  (US UØ) logistic  )
+            ~. OPØ
+
 
 genNet
     :: forall k o i m (t :: [k] -> Type). (SingI o, SingI i, PrimMonad m, Tensor t)
@@ -150,32 +153,41 @@ squaredError = (LS (LS LZ), LZ   , TO.zip2      (-)         )
             ~. OPØ
 
 netTest
-    :: PrimMonad m
-    => Double
+    :: forall k m (t :: [k] -> Type).
+     ( NatKind k
+     , PrimMonad m
+     , Tensor t
+     , ElemT t ~ Double
+     , SingI (FromNat 10 :: k)
+     , SingI (FromNat 1  :: k)
+     , SingI (FromNat 2  :: k)
+     )
+    => Proxy t
+    -> Double
     -> Int
     -> Gen (PrimState m)
     -> m String
-netTest rate n g = do
-    inps :: [LTensor '[N2]] <- replicateM n (genRand (uniformDistr (-1) 1) g)
-    let outs :: [LTensor '[N1]]
-        outs = flip map inps $ \v ->
-                 if v `inCircle` (fromRational 0.33, 0.33)
-                      || v `inCircle` (fromRational (-0.33), 0.33)
-                   then fromRational 1
-                   else fromRational 0
-    net0 :: Network LTensor N2 N1
-            <- genNet [ SomeSing (sing :: Sing N10)
-                      , SomeSing (sing :: Sing N10)
+netTest _ rate n g = do
+    inps :: [t '[FromNat 2]] <- replicateM n (genRand (uniformDistr (-1) 1) g)
+    let outs :: [t '[FromNat 1]]
+        outs = flip map inps $ \v -> TT.konst $
+                 if v `inCircle` (TT.konst 0.33, 0.33)
+                      || v `inCircle` (TT.konst (-0.33), 0.33)
+                   then 1
+                   else 0
+    net0 :: Network t (FromNat 2) (FromNat 1)
+            <- genNet [ SomeSing (sFromNat (SNat @10))
+                      , SomeSing (sFromNat (SNat @10))
                       ] g
     let trained = foldl' trainEach net0 (zip inps outs)
           where
-            trainEach :: (Known Nat i, Known Nat o)
-                      => Network LTensor i o
-                      -> (LTensor '[i], LTensor '[o])
-                      -> Network LTensor i o
+            trainEach :: (SingI i, SingI o)
+                      => Network t i o
+                      -> (t '[i], t '[o])
+                      -> Network t i o
             trainEach nt (i, o) = trainNetwork rate i o nt
 
-        outMat = [ [ render . unScalar . join TT.dot . runNetwork trained $
+        outMat = [ [ render . TT.unScalar . join TT.dot . runNetwork trained $
                        fromJust (TT.fromList [x / 25 - 1,y / 10 - 1])
                    | x <- [0..50] ]
                  | y <- [0..20] ]
@@ -187,11 +199,12 @@ netTest rate n g = do
     return $ unlines outMat
   where
     inCircle
-        :: LTensor '[N2]
-        -> (LTensor '[N2], Double)
+        :: SingI n
+        => t '[n]
+        -> (t '[n], Double)
         -> Bool
-    v `inCircle` (o, r) = let d = v - o
-                          in  unScalar (d `TT.dot` d) <= r**2
+    v `inCircle` (o, r) = let d = TT.zip2 (-) v o
+                          in  TT.unScalar (d `TT.dot` d) <= r**2
 
 main :: IO ()
 main = withSystemRandom $ \g -> do
@@ -204,5 +217,5 @@ main = withSystemRandom $ \g -> do
     --     traverse1_ (\(s' :&: t) -> putStrLn (show t) \\ s') p'
 
     putStrLn "Training network..."
-    putStrLn =<< netTest 5 75000 g
+    putStrLn =<< netTest (Proxy @LTensor) 5 75000 g
 

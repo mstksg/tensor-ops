@@ -21,6 +21,7 @@ module TensorOps.Types where
 
 -- import           Data.Singletons.Prelude.List hiding (Length)
 -- import           Data.Type.Equality
+-- import           Data.Type.Length.Util               as TCL
 -- import           Data.Type.Subset
 -- import           GHC.TypeLits
 -- import           Unsafe.Coerce
@@ -28,12 +29,14 @@ module TensorOps.Types where
 import           Control.Category
 import           Control.Monad.Primitive
 import           Data.Kind
+import           Data.Maybe
 import           Data.Singletons
 import           Data.Type.Index
 import           Data.Type.Length                       as TCL
--- import           Data.Type.Length.Util                  as TCL
 import           Data.Type.Nat
+import           Data.Type.Nat.Util
 import           Data.Type.Product
+import           Data.Type.Sing
 import           Data.Type.Sing
 import           Data.Type.Uniform
 import           Data.Type.Vector
@@ -45,17 +48,22 @@ import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
+import           Type.Family.Nat.Util
+import           Unsafe.Coerce
+import qualified Data.Singletons.TypeLits               as GT
+import qualified GHC.TypeLits                           as GT
 
--- class LenUnder (t :: N) (n :: [k])
--- instance LenUnder n '[]
--- instance LenUnder n as => LenUnder ('S n) (a ': as)
+class NatKind k where
+    type FromNat (n :: GT.Nat) :: k
+    sFromNat :: Sing (n :: GT.Nat) -> Sing (FromNat n :: k)
 
--- type TensorRank t n = (LenUnder (MaxRank t) n, ListC (DimConstr t <$> n))
+instance NatKind N where
+    type FromNat n = NatNat n
+    sFromNat s = fromJust $ withNat (fromSing s) (Just . SN . unsafeCoerce)
 
 class Tensor (t :: [k] -> Type) where
     type ElemT t      :: Type
     type IndexT t     :: [k] -> Type
-    -- type RankConstr t :: [k] -> Constraint
 
     liftT   :: (SingI o, Floating (ElemT t), Known Nat m)
             => (Vec n (ElemT t) -> Vec m (ElemT t))
@@ -94,6 +102,10 @@ class Tensor (t :: [k] -> Type) where
     generateA :: (Applicative f, SingI ns)
               => (IndexT t ns -> f (ElemT t))
               -> f (t ns)
+    ixElems :: Applicative f
+            => ((IndexT t ns, ElemT t) -> f (ElemT t))
+            -> t ns
+            -> f (t ns)
     (!)     :: t ns
             -> IndexT t ns
             -> ElemT t
@@ -124,6 +136,8 @@ data TOp :: [[k]] -> [[k]] -> Type where
     -- Fold    :: Length ns
     --         -> (forall a. Floating a => F.Fold a a)
     --         -> TOp '[n ': ns] '[ns]
+    -- should this also include indices to go backwards?  how can this be
+    -- statically verified?
     Shuffle :: Prod (Index ns) ms
             -> TOp ns ms
 

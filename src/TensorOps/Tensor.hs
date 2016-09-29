@@ -18,14 +18,17 @@ module TensorOps.Tensor where
 -- import           Type.Family.Nat.Util
 import           Control.Applicative
 import           Control.Monad.Trans.State.Strict
+import           Control.Monad.Trans.Writer.Strict
+import           Data.Functor
 import           Data.List hiding                       ((\\))
+import           Data.Monoid
 import           Data.Proxy
 import           Data.Singletons
 import           Data.Type.Combinator
 import           Data.Type.Fin
 import           Data.Type.Length
 import           Data.Type.Nat
-import           Data.Type.Product                      as TCP
+import           Data.Type.Product as TCP hiding        (toList)
 import           Data.Type.Vector                       as TCV
 import           Data.Type.Vector.Util                  as TCV
 import           Numeric.AD
@@ -176,3 +179,36 @@ generate
     => (IndexT t ns -> ElemT t)
     -> t ns
 generate = getI . generateA . fmap I
+
+itoList
+    :: Tensor t
+    => t ns
+    -> [(IndexT t ns, ElemT t)]
+itoList = ($ [])
+        . appEndo
+        . execWriter
+        . ixElems (\ix@(_,x) -> tell (Endo (ix:)) $> x)
+
+elems
+    :: (Applicative f, Tensor t)
+    => (ElemT t -> f (ElemT t))
+    -> t ns
+    -> f (t ns)
+elems f = ixElems (f . snd)
+
+toList
+    :: Tensor t
+    => t ns
+    -> [ElemT t]
+toList = ($[])
+       . appEndo
+       . execWriter
+       . elems (\x -> tell (Endo (x:)) $> x)
+
+unScalar
+    :: Tensor t
+    => t '[]
+    -> ElemT t
+unScalar = head . toList
+
+

@@ -20,7 +20,7 @@
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE ViewPatterns               #-}
 
-module TensorOps.LTensor where
+module TensorOps.Backend.LTensor where
 
 -- import           Control.Monad.Trans.Maybe
 -- import           Control.Monad.Trans.State.Strict
@@ -150,6 +150,16 @@ imapNestedVec
 imapNestedVec f = \case
     NVZ x  -> NVZ (f Ø x)
     NVS xs -> NVS $ TCV.imap (\i -> imapNestedVec (\is -> f (i :< is))) xs
+
+itraverseNestedVec
+    :: Applicative f
+    => (Prod Fin ns -> a -> f b)
+    -> NestedVec ns a
+    -> f (NestedVec ns b)
+itraverseNestedVec f = \case
+    NVZ x  -> NVZ <$> f Ø x
+    NVS xs -> NVS <$> TCV.itraverse (\i -> itraverseNestedVec (\is -> f (i :< is))) xs
+
 
 joinNestedVec
     :: NestedVec ns (NestedVec ms a)
@@ -297,11 +307,18 @@ deriving instance Show (LTensor ns)
 deriving instance Known (Prod Nat) ns => Num (LTensor ns)
 deriving instance Known (Prod Nat) ns => Fractional (LTensor ns)
 
+ltNVec
+    :: Functor f
+    => (NestedVec ns Double -> f (NestedVec ms Double))
+    -> LTensor ns
+    -> f (LTensor ms)
+ltNVec f = fmap LTensor . f . getNVec
+
 overNVec
     :: (NestedVec ns Double -> NestedVec ms Double)
     -> LTensor ns
     -> LTensor ms
-overNVec f = LTensor . f . getNVec
+overNVec f = getI . ltNVec (I . f)
 
 overNVec2
     :: (NestedVec ns Double -> NestedVec ms Double -> NestedVec os Double)
@@ -432,11 +449,19 @@ instance Tensor LTensor where
                     \\ singLength (sing :: Sing ns)
                     \\ (entailEvery entailNat :: SingI ns :- Every (Known Nat) ns)
 
-    generateA :: forall f ns. (Applicative f, SingI ns)
-              => (Prod Fin ns -> f Double)
-              -> f (LTensor ns)
+    generateA
+        :: forall f ns. (Applicative f, SingI ns)
+        => (Prod Fin ns -> f Double)
+        -> f (LTensor ns)
     generateA = genLTensorA known \\ singLength (sing :: Sing ns)
                                   \\ (entailEvery entailNat :: SingI ns :- Every (Known Nat) ns)
+
+    ixElems
+        :: Applicative f
+        => ((Prod Fin ns, Double) -> f Double)
+        -> LTensor ns
+        -> f (LTensor ns)
+    ixElems f = ltNVec (itraverseNestedVec (curry f))
 
     (!) = flip indexLTensor
 
@@ -455,10 +480,4 @@ randNestedVec d g = go known
       Ø       -> NVZ <$> genContVar d g
       n :< ns -> NVS . vmap getI <$> sequence (vrep (I (go ns)))
                   \\ n
-
-unScalar
-    :: LTensor '[]
-    -> Double
-unScalar (LTensor (NVZ x)) = x
-
 
