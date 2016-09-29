@@ -74,8 +74,8 @@ inner lM lN = GMul lM (LS LZ) lN
 dot :: TOp '[ '[m], '[m] ] '[ '[] ]
 dot = inner LZ LZ
 
-flip :: TOp '[ms,ns] '[ns,ms]
-flip = Shuffle (IS IZ :< IZ :< Ø)
+swap :: TOp '[ms,ns] '[ns,ms]
+swap = Shuffle (IS IZ :< IZ :< Ø)
 
 -- transpose :: TOp '[ '[m,n] ] '[ '[n,m] ]
 -- transpose = Transp Refl (IS IZ :< IZ :< Ø)
