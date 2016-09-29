@@ -154,11 +154,9 @@ squaredError = (LS (LS LZ), LZ   , TO.zip2      (-)         )
 
 netTest
     :: forall k m (t :: [k] -> Type).
-     ( NatKind k
-     , PrimMonad m
+     ( PrimMonad m
      , Tensor t
      , ElemT t ~ Double
-     , SingI (FromNat 10 :: k)
      , SingI (FromNat 1  :: k)
      , SingI (FromNat 2  :: k)
      )

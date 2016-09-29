@@ -61,7 +61,7 @@ instance NatKind N where
     type FromNat n = NatNat n
     sFromNat s = fromJust $ withNat (fromSing s) (Just . SN . unsafeCoerce)
 
-class Tensor (t :: [k] -> Type) where
+class NatKind k => Tensor (t :: [k] -> Type) where
     type ElemT t      :: Type
     type IndexT t     :: [k] -> Type
 
