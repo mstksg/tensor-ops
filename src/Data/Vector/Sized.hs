@@ -43,6 +43,7 @@ instance (KnownNat n, Applicative f) => Applicative (VectorT n f) where
     pure x = UnsafeV $ V.replicate n (pure x)
       where
         n = fromIntegral $ natVal (Proxy @n)
+    -- UnsafeV fs <*> UnsafeV xs = UnsafeV (V.zipWith (<*>) fs xs)
     UnsafeV fs <*> UnsafeV xs = UnsafeV (V.zipWith (<*>) fs xs)
 
 mkVectorT
@@ -129,7 +130,7 @@ vap :: (f a -> g b -> h c)
     -> VectorT n f a
     -> VectorT n g b
     -> VectorT n h c
-vap f (UnsafeV xs) (UnsafeV ys) = UnsafeV (f <$> xs <*> ys)
+vap f (UnsafeV xs) (UnsafeV ys) = UnsafeV (V.zipWith f xs ys)
 
 vmap
     :: (f a -> g b)

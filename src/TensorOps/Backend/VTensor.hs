@@ -1,22 +1,25 @@
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE DeriveFoldable       #-}
-{-# LANGUAGE DeriveFunctor        #-}
-{-# LANGUAGE DeriveTraversable    #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE GADTs                #-}
-{-# LANGUAGE InstanceSigs         #-}
-{-# LANGUAGE KindSignatures       #-}
-{-# LANGUAGE LambdaCase           #-}
-{-# LANGUAGE RankNTypes           #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE StandaloneDeriving   #-}
-{-# LANGUAGE TypeApplications     #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE TypeInType           #-}
-{-# LANGUAGE TypeOperators        #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DeriveFoldable             #-}
+{-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE DeriveTraversable          #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE GADTs                      #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE InstanceSigs               #-}
+{-# LANGUAGE KindSignatures             #-}
+{-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeInType                 #-}
+{-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
-module TensorOps.Backend.VTensor where
+module TensorOps.Backend.VTensor
+  ( VTensor
+  ) where
 
 -- import           Data.Type.Fin
 -- import qualified Data.Vector                      as V
@@ -227,6 +230,10 @@ itraverseNestedVec f = \case
 newtype VTensor :: [Nat] -> Type where
     VTensor :: { getNVec :: NestedVec ns Double
                } -> VTensor ns
+
+deriving instance Show (VTensor ns)
+deriving instance SingI ns => Num (VTensor ns)
+-- deriving instance SingI ns => Fractional (VTensor ns)
 
 liftLT
     :: (Applicative (NestedVec o), Known TCN.Nat m)

@@ -14,6 +14,8 @@
 -- import           GHC.TypeLits
 -- import           Statistics.Distribution
 import           Control.Category
+import           Control.DeepSeq
+import           Control.Exception
 import           Control.Monad
 import           Control.Monad.Primitive
 import           Data.Kind
@@ -23,6 +25,7 @@ import           Data.Singletons
 import           Data.Singletons.Prelude.List    (Sing(..))
 import           Data.Singletons.Prelude.Num
 import           Data.Singletons.TypeLits
+import           Data.Time.Clock
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
 import           Data.Type.Index
@@ -37,6 +40,7 @@ import           Statistics.Distribution.Normal
 import           Statistics.Distribution.Uniform
 import           System.Random.MWC
 import           TensorOps.Backend.LTensor
+import           TensorOps.Backend.VTensor
 import           TensorOps.Gradient
 import           TensorOps.Run
 import           TensorOps.Types
@@ -98,7 +102,7 @@ genNet
     -> m (Network t i o)
 genNet xs0 g = go sing xs0
   where
-    go  :: forall j. ()
+    go  :: forall (j :: k). ()
         => Sing j
         -> [SomeSing k]
         -> m (Network t j o)
@@ -215,5 +219,22 @@ main = withSystemRandom $ \g -> do
     --     traverse1_ (\(s' :&: t) -> putStrLn (show t) \\ s') p'
 
     putStrLn "Training network..."
-    putStrLn =<< netTest (Proxy @LTensor) 5 75000 g
+    (r1, t1) <- time $ netTest (Proxy @LTensor) 5 100000 g
+    putStrLn r1
+    print t1
+    (r1, t1) <- time $ netTest (Proxy @VTensor) 5 100000 g
+    putStrLn r1
+    print t1
+
+time
+    :: NFData a
+    => IO a
+    -> IO (a, NominalDiffTime)
+time x = do
+    t1 <- getCurrentTime
+    y  <- evaluate . force =<< x
+    t2 <- getCurrentTime
+    return (y, t2 `diffUTCTime` t1)
+
+
 
