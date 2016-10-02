@@ -11,10 +11,12 @@ module Data.Type.Vector.Util where
 -- import           Data.Type.Combinator.Util ()
 import           Data.Bifunctor
 import           Data.Distributive
+import           Data.Monoid
 import           Data.Type.Combinator
 import           Data.Type.Fin
 import           Data.Type.Nat
 import           Data.Type.Vector
+import           Type.Class.Higher.Util
 import           Type.Class.Known
 import           Type.Family.Nat
 
@@ -100,3 +102,13 @@ vgenA
 vgenA = \case
   Z_   -> \_ -> pure ØV
   S_ n -> \f -> (:*) <$> f FZ <*> vgenA n (f . FS)
+
+uniformVec
+    :: Eq (f a)
+    => VecT m f a
+    -> Maybe (f a)
+uniformVec = \case
+    ØV      -> Nothing
+    x :* xs | getAll (vfoldMap (All . (== x)) xs) -> Just x
+            | otherwise                           -> Nothing
+

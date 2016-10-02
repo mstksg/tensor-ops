@@ -47,6 +47,13 @@ singProd = \case
     SNil         -> Ø
     s `SCons` ss -> s :< singProd ss
 
+prodSing
+    :: Prod Sing as
+    -> Sing as
+prodSing = \case
+    Ø        -> SNil
+    s :< ss -> s `SCons` prodSing ss
+
 singProdNat
     :: forall (as :: [N]). ()
     => Sing as
@@ -54,6 +61,7 @@ singProdNat
 singProdNat = \case
     SNil              -> Ø
     (SN n) `SCons` ns -> n :< singProdNat ns
+
 
 data instance Sing (n :: N) where
     SN :: { getNat :: !(Nat n) } -> Sing n

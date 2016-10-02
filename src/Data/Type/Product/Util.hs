@@ -29,6 +29,7 @@ import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
+import qualified Data.Type.Length.Util                  as TCL
 
 splitProd
     :: Length ns

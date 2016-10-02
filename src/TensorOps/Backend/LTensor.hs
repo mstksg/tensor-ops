@@ -57,7 +57,7 @@ import           Type.Family.Nat
 
 data NestedVec :: [N] -> Type -> Type where
     NVZ :: !a -> NestedVec '[]  a
-    NVS :: VecT n (NestedVec ns) a -> NestedVec (n ': ns) a
+    NVS :: !(VecT n (NestedVec ns) a) -> NestedVec (n ': ns) a
 
 deriving instance Show a => Show (NestedVec ns a)
 deriving instance Functor (NestedVec ns)
@@ -200,7 +200,6 @@ genNestedVecA
     -> f (NestedVec ns a)
 genNestedVecA = \case
     Ø       -> \f -> NVZ <$> f Ø
-    -- n :< ns -> \f -> NVS <$> vgen n A\i -> genNestedVec ns (f . (i :<))
     n :< ns -> \f -> NVS <$> vgenA n (\i -> genNestedVecA ns (f . (i :<)))
 
 indexNestedVec
@@ -348,14 +347,6 @@ indexLTensor
     -> Double
 indexLTensor i = indexNestedVec i . getNVec
 
-onDiagonal
-    :: Vec m (Fin n)
-    -> Maybe (Fin n)
-onDiagonal = \case
-    ØV        -> Nothing
-    I x :* xs | all (== x) xs -> Just x
-              | otherwise     -> Nothing
-
 liftLT
     :: (Known Length o, Known Nat m, Every (Known Nat) o)
     => (Vec n Double -> Vec m Double)
@@ -386,6 +377,7 @@ instance Tensor LTensor where
                 \\ singLength (sing :: Sing o)
                 \\ (entailEvery entailNat :: SingI o :- Every (Known Nat) o)
 
+    -- TODO: ugh this is literally the worst implementation
     transp
         :: forall ns. (SingI ns, SingI (Reverse ns))
         => LTensor ns
@@ -400,7 +392,7 @@ instance Tensor LTensor where
         lNs :: Length ns
         lNs = singLength sing
 
-    -- TODO: Decently inefficient because it multiples everything and then
+    -- TODO: Decently inefficient because it multiplies everything and then
     -- sums only the diagonal.
     gmul
         :: forall ms os ns. SingI (Reverse os ++ ns)
@@ -423,14 +415,14 @@ instance Tensor LTensor where
                      )
 
     diag
-        :: forall n ns. (SingI ns)
+        :: forall n ns. SingI ns
         => Uniform n ns
         -> LTensor '[n]
         -> LTensor ns
     diag u d
-        = genLTensor known (\i -> case onDiagonal (prodToVec I u i) of
-                                    Nothing -> 0
-                                    Just i' -> indexLTensor (i' :< Ø) d
+        = genLTensor known (\i -> case uniformVec (prodToVec I u i) of
+                                    Nothing     -> 0
+                                    Just (I i') -> indexLTensor (i' :< Ø) d
                            )
             \\ uniformLength u
             \\ (entailEvery entailNat :: SingI ns :- Every (Known Nat) ns)
@@ -447,9 +439,7 @@ instance Tensor LTensor where
         => d
         -> Gen (PrimState m)
         -> m (LTensor ns)
-    genRand d g = LTensor <$> randNestedVec d g
-                    \\ singLength (sing :: Sing ns)
-                    \\ (entailEvery entailNat :: SingI ns :- Every (Known Nat) ns)
+    genRand d g = generateA (\_ -> genContVar d g)
 
     generateA
         :: forall f ns. (Applicative f, SingI ns)
@@ -467,19 +457,4 @@ instance Tensor LTensor where
 
     (!) = flip indexLTensor
 
-
-randNestedVec
-    :: forall ns d m. (ContGen d, PrimMonad m, Known (Prod Nat) ns)
-    => d
-    -> Gen (PrimState m)
-    -> m (NestedVec ns Double)
-randNestedVec d g = go known
-  where
-    go  :: forall ms. ()
-        => Prod Nat ms
-        -> m (NestedVec ms Double)
-    go = \case
-      Ø       -> NVZ <$> genContVar d g
-      n :< ns -> NVS . vmap getI <$> sequence (vrep (I (go ns)))
-                  \\ n
 

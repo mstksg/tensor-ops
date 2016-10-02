@@ -1,4 +1,7 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveFoldable        #-}
+{-# LANGUAGE DeriveFunctor         #-}
+{-# LANGUAGE DeriveTraversable     #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
@@ -8,6 +11,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeInType            #-}
@@ -19,6 +23,7 @@ module Data.Nested where
 import           Control.Applicative
 import           Data.Kind
 import           Data.Singletons
+import           Data.Type.Combinator
 import           Data.Singletons.Prelude.List hiding (Length)
 import           Data.Type.Index
 import           Data.Type.Length
@@ -28,37 +33,44 @@ import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
 
--- class Nestable (v :: k -> Type -> Type) where
---     nmap :: (a -> b) -> v j a -> v j b
+type family Nest (f :: k -> (Type -> Type) -> Type -> Type)
+                 (as :: [k])
+              :: Type -> Type where
+    Nest f '[]       = I
+    Nest f (a ': as) = f a (Nest f as)
 
 class Nesting c v where
     nesting :: Sing a -> Wit (c (v a))
 
-data Nested :: (k -> Type -> Type) -> [k] -> Type -> Type where
-    NØ :: a                   -> Nested v '[]       a
-    NS :: v j (Nested v js a) -> Nested v (j ': js) a
+data Nested :: (k -> (Type -> Type) -> Type -> Type) -> [k] -> Type -> Type where
+    Nested :: { getNested :: Nest f js a }
+           -> Nested f js a
 
-instance (ListC (Functor <$> (v <$> js))) => Functor (Nested v js) where
-    fmap f = \case
-      NØ x  -> NØ (f x)
-      NS xs -> NS ((fmap . fmap) f xs)
+-- data Nested :: (k -> (Type -> Type) -> Type -> Type) -> [k] -> Type -> Type where
+--     NØ :: a                   -> Nested v '[]       a
+--     NS :: v j (Nested v js) a -> Nested v (j ': js) a
 
-instance (Known Length js, ListC (Functor <$> (v <$> js)), ListC (Applicative <$> (v <$> js)))
-            => Applicative (Nested v js) where
-    pure = go known
-      where
-        go  :: ListC (Applicative <$> (v <$> ks))
-            => Length ks
-            -> a
-            -> Nested v ks a
-        go = \case
-          LZ   -> NØ
-          LS l -> NS . pure . go l
-    (<*>) = \case
-      NØ f -> \case
-        NØ x -> NØ (f x)
-      NS fs -> \case
-        NS xs -> NS $ liftA2 (<*>) fs xs
+-- deriving instance ListC (Functor <$> (v <$> js))     => Functor (Nested v js)
+-- deriving instance ListC (Foldable <$> (v <$> js))    => Foldable (Nested v js)
+-- deriving instance (ListC (Functor <$> (v <$> js)), ListC (Traversable <$> (v <$> js)), ListC (Foldable <$> (v <$> js)))
+--     => Traversable (Nested v js)
+
+-- instance (Known Length js, ListC (Functor <$> (v <$> js)), ListC (Applicative <$> (v <$> js)))
+--             => Applicative (Nested v js) where
+--     pure = go known
+--       where
+--         go  :: ListC (Applicative <$> (v <$> ks))
+--             => Length ks
+--             -> a
+--             -> Nested v ks a
+--         go = \case
+--           LZ   -> NØ
+--           LS l -> NS . pure . go l
+--     (<*>) = \case
+--       NØ f -> \case
+--         NØ x -> NØ (f x)
+--       NS fs -> \case
+--         NS xs -> NS $ liftA2 (<*>) fs xs
 
 
 -- instance (SingI js, Nesting Functor v) => Functor (Nested v js) where

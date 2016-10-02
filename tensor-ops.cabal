@@ -23,8 +23,11 @@ library
                        Data.Type.Nat.Util
                        Data.Type.Product.Util
                        Data.Type.Sing
+                       Data.Type.SnocProd
                        Data.Type.Uniform
                        Data.Type.Vector.Util
+                       Data.Vector.Sized
+                       GHC.TypeLits.Util
                        Orphans
                        TensorOps.Backend.LTensor
                        TensorOps.Backend.VTensor
@@ -38,6 +41,7 @@ library
   build-depends:       base >= 4.7 && < 5
                      , ad
                      , distributive
+                     , finite-typelits
                      , foldl
                      , mwc-random
                      , primitive

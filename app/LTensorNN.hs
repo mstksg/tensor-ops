@@ -157,8 +157,8 @@ netTest
      ( PrimMonad m
      , Tensor t
      , ElemT t ~ Double
-     , SingI (FromNat 1  :: k)
-     , SingI (FromNat 2  :: k)
+     , SingI (FromNat 1 :: k)
+     , SingI (FromNat 2 :: k)
      )
     => Proxy t
     -> Double

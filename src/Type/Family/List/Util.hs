@@ -25,9 +25,9 @@ reverseSnoc = \case
     LS l -> \_ -> Refl \\ reverseSnoc l (Proxy @(Head as))
 
 snocReverse
-    :: forall a as. ()
+    :: forall p a as. ()
     => Length as
-    -> Proxy a
+    -> p a
     -> (Reverse (as >: a) :~: (a ': Reverse as))
 snocReverse = \case
     LZ   -> \_ -> Refl
@@ -64,7 +64,7 @@ appendAssoc = \case
 
 appendSnoc
     :: Length ms
-    -> Proxy n
+    -> p n
     -> ((ms >: n) :~: (ms ++ '[n]))
 appendSnoc = \case
     LZ   -> \_ -> Refl

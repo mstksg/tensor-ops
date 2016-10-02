@@ -109,8 +109,8 @@ gradTOp sNs sMs = (\case
              => Index ns n
              -> Sing n
              -> t n
-          f i s = withSingI s $
-                    foldl' (Tensor.zip2 (+)) (Tensor.konst 0) $ foldMap1 g ixds
+          f i s = foldl' (Tensor.zip2 (+)) (Tensor.konst 0) (foldMap1 g ixds)
+                    \\ s
             where
               g :: forall m. ()
                 => (Index ns :&: t) m

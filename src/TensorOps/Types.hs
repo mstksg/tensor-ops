@@ -61,10 +61,15 @@ instance NatKind N where
     type FromNat n = NatNat n
     sFromNat s = fromJust $ withNat (fromSing s) (Just . SN . unsafeCoerce)
 
+instance NatKind GT.Nat where
+    type FromNat n = n
+    sFromNat = id
+
 class NatKind k => Tensor (t :: [k] -> Type) where
     type ElemT t      :: Type
     type IndexT t     :: [k] -> Type
 
+    -- TODO: can we detach Vec from liftT ?
     liftT   :: (SingI o, Floating (ElemT t), Known Nat m)
             => (Vec n (ElemT t) -> Vec m (ElemT t))
             -> Vec n (t o)
