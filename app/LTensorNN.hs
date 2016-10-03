@@ -62,6 +62,18 @@ logistic
     -> a
 logistic x = 1 / (1 + exp (- x))
 
+sigmoid
+    :: forall a. Floating a
+    => a
+    -> a
+sigmoid x = (tanh x + 2) / 2
+
+relu
+    :: forall a. Floating a
+    => a
+    -> a
+relu x = x * ((signum x + 1)/ 2)
+
 data Network :: ([k] -> Type) -> k -> k -> Type where
     N :: { nsOs     :: Sing os
          , nOp      :: TensorOp ('[i] ': os) '[ '[o] ]
@@ -92,27 +104,28 @@ ffLayer g = (\w b -> N sing ffLayer' (w :< b :< Ø))
             ~. (LS (LS LZ), LS LZ, GMul    (LS LZ) (LS LZ) LZ)
             ~. (LS (LS LZ), LZ   , TO.zip2 (+)               )
             ~. (LS LZ     , LZ   , TO.map  logistic          )
+            -- ~. (LS LZ     , LZ   , TO.map  sigmoid           )
+            -- ~. (LS LZ     , LZ   , TO.map  relu              )
             ~. OPØ
 
 
 genNet
     :: forall k o i m (t :: [k] -> Type). (SingI o, SingI i, PrimMonad m, Tensor t)
-    => [SomeSing k]
+    => [Integer]
     -> Gen (PrimState m)
     -> m (Network t i o)
 genNet xs0 g = go sing xs0
   where
     go  :: forall (j :: k). ()
         => Sing j
-        -> [SomeSing k]
+        -> [Integer]
         -> m (Network t j o)
     go sj = \case
       []   -> ffLayer g           \\ sj
-      x:xs -> case x of
-        SomeSing sl -> do
-          n <- go sl xs
-          l <- ffLayer g    \\ sl \\ sj
-          return $ l ~** n  \\ sl \\ sj
+      x:xs -> withNatKind x $ \sl -> do
+        n <- go sl xs
+        l <- ffLayer g    \\ sl \\ sj
+        return $ l ~** n  \\ sl \\ sj
 
 
 runNetwork
@@ -161,15 +174,15 @@ netTest
      ( PrimMonad m
      , Tensor t
      , ElemT t ~ Double
-     , SingI (FromNat 1 :: k)
-     , SingI (FromNat 2 :: k)
      )
     => Proxy t
     -> Double
     -> Int
+    -> [Integer]
     -> Gen (PrimState m)
     -> m String
-netTest _ rate n g = do
+netTest _ rate n hs g = withSingI (sFromNat @k (SNat @1)) $
+                        withSingI (sFromNat @k (SNat @2)) $ do
     inps :: [t '[FromNat 2]] <- replicateM n (genRand (uniformDistr (-1) 1) g)
     let outs :: [t '[FromNat 1]]
         outs = flip map inps $ \v -> TT.konst $
@@ -178,9 +191,7 @@ netTest _ rate n g = do
                    then 1
                    else 0
     net0 :: Network t (FromNat 2) (FromNat 1)
-            <- genNet [ SomeSing (sFromNat (SNat @8))
-                      , SomeSing (sFromNat (SNat @4))
-                      ] g
+            <- genNet hs g
     let trained = foldl' trainEach net0 (zip inps outs)
           where
             trainEach :: (SingI i, SingI o)
@@ -219,12 +230,12 @@ main = withSystemRandom $ \g -> do
     --     traverse1_ (\(s' :&: t) -> putStrLn (show t) \\ s') p'
 
     putStrLn "Training network..."
-    (r1, t1) <- time $ netTest (Proxy @LTensor) 2 50000 g
-    putStrLn r1
-    print t1
-    -- (r2, t2) <- time $ netTest (Proxy @VTensor) 2 50000 g
-    -- putStrLn r2
-    -- print t2
+    -- (r1, t1) <- time $ netTest (Proxy @LTensor) 1 50000 [5,5] g
+    -- putStrLn r1
+    -- print t1
+    (r2, t2) <- time $ netTest (Proxy @VTensor) 1 50000 [5,5] g
+    putStrLn r2
+    print t2
 
 time
     :: NFData a

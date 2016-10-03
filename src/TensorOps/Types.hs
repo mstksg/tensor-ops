@@ -60,6 +60,19 @@ instance NatKind N where
     type FromNat n = NatNat n
     sFromNat s = fromJust $ withNat (fromSing s) (Just . SN . unsafeCoerce)
 
+someNatKind
+    :: NatKind k
+    => Integer
+    -> SomeSing k
+someNatKind n = withSomeSing n (SomeSing . sFromNat)
+
+withNatKind
+    :: NatKind k
+    => Integer
+    -> (forall (n :: k). Sing n -> r)
+    -> r
+withNatKind n f = withSomeSing n (f . sFromNat)
+
 instance NatKind GT.Nat where
     type FromNat n = n
     sFromNat = id

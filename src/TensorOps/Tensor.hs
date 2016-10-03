@@ -118,6 +118,8 @@ gradLift fs xs dtdys =
         -> Vec m (ElemT t)
         -> ElemT t
     go i x dtdy = sum $ (vap . liftA2) (\d (VF f) -> d * index' i (grad f x)) dtdy fs
+    {-# INLINE go #-}
+{-# INLINE gradLift #-}
 -- TODO: having to use index' is the downside of the special new form for
 -- lifted functions.  but i guess it's just as bad as before because the
 -- implementation of liftT would have index''d everything anyways.

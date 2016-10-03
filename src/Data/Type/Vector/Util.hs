@@ -31,6 +31,7 @@ splitVec = \case
     Z_   -> (ØV,)
     S_ n -> \case
       x :* xs -> first (x :*) (splitVec n xs)
+{-# INLINE splitVec #-}
 
 zipVecs
     :: (Traversable g, Applicative g, Known Nat n)
@@ -38,6 +39,7 @@ zipVecs
     -> VecT m g (VecT n g a)
     -> VecT n g b
 zipVecs = liftVec
+{-# INLINE zipVecs #-}
 
 liftVec
     :: (Applicative f, Traversable g)
@@ -45,6 +47,7 @@ liftVec
     -> VecT m g (f a)
     -> f b
 liftVec f xs = f <$> sequenceA xs
+{-# INLINE liftVec #-}
 
 zipVecsD
     :: (Distributive g, Known Nat n)
@@ -52,6 +55,7 @@ zipVecsD
     -> VecT m g (VecT n g a)
     -> VecT n g b
 zipVecsD = liftVecD
+{-# INLINE zipVecsD #-}
 
 liftVecD
     :: (Distributive f, Distributive g)
@@ -59,6 +63,7 @@ liftVecD
     -> VecT m g (f a)
     -> f b
 liftVecD f xs = f <$> distribute xs
+{-# INLINE liftVecD #-}
 
 curryV
     :: (VecT ('S n) f a -> b)
@@ -66,6 +71,7 @@ curryV
     -> VecT n f a
     -> b
 curryV f x xs = f (x :* xs)
+{-# INLINE curryV #-}
 
 uncurryV
     :: (f a -> VecT n f a -> b)
@@ -73,6 +79,7 @@ uncurryV
     -> b
 uncurryV f = \case
     x :* xs -> f x xs
+{-# INLINE uncurryV #-}
 
 append'
     :: VecT n f a
@@ -81,18 +88,21 @@ append'
 append' = \case
     ØV -> id
     x :* xs -> (x :*) . append' xs
+{-# INLINE append' #-}
 
 vecFunc
     :: Known Nat n
     => (a -> Vec n b)
     -> Vec n (a -> b)
 vecFunc f = vgen_ (\i -> I $ index' i . f)
+{-# INLINE vecFunc #-}
 
 unVecFunc
     :: Vec n (a -> b)
     -> a
     -> Vec n b
 unVecFunc xs x = fmap ($ x) xs
+{-# INLINE unVecFunc #-}
 
 vgenA
     :: Applicative g
@@ -102,6 +112,7 @@ vgenA
 vgenA = \case
   Z_   -> \_ -> pure ØV
   S_ n -> \f -> (:*) <$> f FZ <*> vgenA n (f . FS)
+{-# INLINE vgenA #-}
 
 uniformVec
     :: Eq (f a)
@@ -111,7 +122,5 @@ uniformVec = \case
     ØV      -> Nothing
     x :* xs | getAll (vfoldMap (All . (== x)) xs) -> Just x
             | otherwise                           -> Nothing
-
--- data Uncons :: N -> (k -> Type) -> k where
---     VNil :: Uncons 'Z f a
+{-# INLINE uniformVec #-}
 
