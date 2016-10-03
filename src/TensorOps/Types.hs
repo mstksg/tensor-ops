@@ -71,8 +71,8 @@ class NatKind k => Tensor (t :: [k] -> Type) where
 
     -- TODO: can we detach Vec from liftT ?
     liftT   :: (SingI o, Floating (ElemT t), Known Nat m)
-            => (Vec n (ElemT t) -> Vec m (ElemT t))
-            -- => (Vec m (Vec n (ElemT t) -> ElemT t))
+            -- => (Vec n (ElemT t) -> Vec m (ElemT t))
+            => (Vec m (Vec n (ElemT t) -> ElemT t))
             -> Vec n (t o)
             -> Vec m (t o)
     gmul    :: (SingI (ms ++ os), SingI (Reverse os ++ ns), SingI (ms ++ ns))
@@ -126,7 +126,8 @@ data TOp :: [[k]] -> [[k]] -> Type where
     -- efficiency?
     Lift    :: Uniform o ns
             -> Uniform o ms
-            -> (forall a. Floating a => Vec (Len ns) a -> Vec (Len ms) a)
+            -- -> (forall a. Floating a => Vec (Len ns) a -> Vec (Len ms) a)
+            -> (forall a. Floating a => Vec (Len ms) (Vec (Len ns) a -> a))
             -> TOp ns ms
     -- | Generalized tensor product
     GMul    :: Length ms

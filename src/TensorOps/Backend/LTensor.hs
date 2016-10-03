@@ -351,10 +351,11 @@ indexLTensor i = indexNestedVec i . getNVec
 
 liftLT
     :: (Known Length o, Known Nat m, Every (Known Nat) o)
-    => (Vec n Double -> Vec m Double)
+    -- => (Vec n Double -> Vec m Double)
+    => (Vec m (Vec n Double -> Double))
     -> Vec n (NestedVec o Double)
     -> Vec m (NestedVec o Double)
-liftLT f xs = fmap (\g -> liftVec g xs) (vecFunc f)
+liftLT f xs = fmap (\g -> liftVec g xs) f
 {-# INLINE liftLT #-}
 
 outer
@@ -375,7 +376,8 @@ instance Tensor LTensor where
 
     liftT
         :: forall (n :: N) (m :: N) (o :: [N]). (SingI o, Known Nat m)
-        => (Vec n Double -> Vec m Double)
+        -- => (Vec n Double -> Vec m Double)
+        => (Vec m (Vec n Double -> Double))
         -> Vec n (LTensor o)
         -> Vec m (LTensor o)
     liftT f = fmap LTensor . liftLT f . fmap getNVec

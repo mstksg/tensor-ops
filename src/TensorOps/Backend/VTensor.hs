@@ -237,10 +237,11 @@ deriving instance SingI ns => Num (VTensor ns)
 
 liftLT
     :: (Applicative (NestedVec o), Known TCN.Nat m)
-    => (TCV.Vec n Double -> TCV.Vec m Double)
+    -- => (TCV.Vec n Double -> TCV.Vec m Double)
+    => (TCV.Vec m (TCV.Vec n Double -> Double))
     -> TCV.Vec n (NestedVec o Double)
     -> TCV.Vec m (NestedVec o Double)
-liftLT f xs = fmap (\g -> TCV.liftVec g xs) (TCV.vecFunc f)
+liftLT f xs = fmap (\g -> TCV.liftVec g xs) f
 
 genVTensor
     :: Sing ns
@@ -292,7 +293,8 @@ instance Tensor VTensor where
 
     liftT
         :: forall (n :: TCN.N) (m :: TCN.N) (o :: [Nat]). (SingI o, Known TCN.Nat m)
-        => (TCV.Vec n Double -> Vec m Double)
+        -- => (TCV.Vec n Double -> Vec m Double)
+        => (Vec m (Vec n Double -> Double))
         -> TCV.Vec n (VTensor o)
         -> TCV.Vec m (VTensor o)
     liftT f = fmap VTensor . liftLT f . fmap getNVec
