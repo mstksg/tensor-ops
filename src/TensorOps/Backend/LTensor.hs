@@ -320,6 +320,7 @@ overNVec
     -> LTensor ns
     -> LTensor ms
 overNVec f = getI . ltNVec (I . f)
+{-# INLINE overNVec #-}
 
 overNVec2
     :: (NestedVec ns Double -> NestedVec ms Double -> NestedVec os Double)
@@ -327,6 +328,7 @@ overNVec2
     -> LTensor ms
     -> LTensor os
 overNVec2 f x y = LTensor $ f (getNVec x) (getNVec y)
+{-# INLINE overNVec2 #-}
 
 genLTensor
     :: Prod Nat ns
@@ -353,6 +355,7 @@ liftLT
     -> Vec n (NestedVec o Double)
     -> Vec m (NestedVec o Double)
 liftLT f xs = fmap (\g -> liftVec g xs) (vecFunc f)
+{-# INLINE liftLT #-}
 
 outer
     :: forall ns ms. ()
@@ -363,6 +366,8 @@ outer (LTensor x) (LTensor y) = LTensor (joinNestedVec z)
   where
     z :: NestedVec ns (NestedVec ms Double)
     z = fmap (\x' -> (x' *) <$> y) x
+    {-# INLINE z #-}
+{-# INLINE outer #-}
 
 instance Tensor LTensor where
     type ElemT  LTensor = Double
@@ -376,6 +381,7 @@ instance Tensor LTensor where
     liftT f = fmap LTensor . liftLT f . fmap getNVec
                 \\ singLength (sing :: Sing o)
                 \\ (entailEvery entailNat :: SingI o :- Every (Known Nat) o)
+    {-# INLINE liftT #-}
 
     -- TODO: ugh this is literally the worst implementation
     transp
@@ -391,6 +397,7 @@ instance Tensor LTensor where
       where
         lNs :: Length ns
         lNs = singLength sing
+    {-# INLINE transp #-}
 
     -- TODO: Decently inefficient because it multiplies everything and then
     -- sums only the diagonal.
@@ -413,6 +420,8 @@ instance Tensor LTensor where
                   \\ (entailEvery entailNat :: SingI (Reverse os ++ ns)
                                             :- Every (Known Nat) (Reverse os ++ ns)
                      )
+        {-# INLINE f #-}
+    {-# INLINE gmul #-}
 
     diag
         :: forall n ns. SingI ns
@@ -426,6 +435,7 @@ instance Tensor LTensor where
                            )
             \\ uniformLength u
             \\ (entailEvery entailNat :: SingI ns :- Every (Known Nat) ns)
+    {-# INLINE diag #-}
 
     getDiag
         :: forall n ns. ()
@@ -433,6 +443,7 @@ instance Tensor LTensor where
         -> LTensor (n ': n ': ns)
         -> LTensor '[n]
     getDiag u = overNVec (diagNV u)
+    {-# INLINE getDiag #-}
 
     genRand
         :: forall m d (ns :: [N]). (ContGen d, PrimMonad m, SingI ns)
@@ -440,6 +451,7 @@ instance Tensor LTensor where
         -> Gen (PrimState m)
         -> m (LTensor ns)
     genRand d g = generateA (\_ -> genContVar d g)
+    {-# INLINE genRand #-}
 
     generateA
         :: forall f ns. (Applicative f, SingI ns)
@@ -447,6 +459,7 @@ instance Tensor LTensor where
         -> f (LTensor ns)
     generateA = genLTensorA known \\ singLength (sing :: Sing ns)
                                   \\ (entailEvery entailNat :: SingI ns :- Every (Known Nat) ns)
+    {-# INLINE generateA #-}
 
     ixElems
         :: Applicative f
@@ -454,7 +467,9 @@ instance Tensor LTensor where
         -> LTensor ns
         -> f (LTensor ns)
     ixElems f = ltNVec (itraverseNestedVec (curry f))
+    {-# INLINE ixElems #-}
 
     (!) = flip indexLTensor
+    {-# INLINE (!) #-}
 
 

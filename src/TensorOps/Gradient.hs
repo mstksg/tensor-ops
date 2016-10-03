@@ -28,7 +28,7 @@ import           Type.Class.Higher
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
-import qualified TensorOps.Tensor             as Tensor
+import qualified TensorOps.Tensor             as TT
 
 gradTOp
     :: forall ns ms t. (Tensor t, Floating (ElemT t))
@@ -42,7 +42,7 @@ gradTOp sNs sMs = (\case
     Lift uN uM f -> case uN of
       UØ   -> \_ _ -> Ø
       US _ -> \x -> vecToProd getI uN
-                  . Tensor.gradLift f (prodToVec I uN x)
+                  . TT.gradLift f (prodToVec I uN x)
                   . prodToVec I uM
     GMul lM lO lN -> \case
       -- lM   :: Length m
@@ -109,7 +109,7 @@ gradTOp sNs sMs = (\case
              => Index ns n
              -> Sing n
              -> t n
-          f i s = foldl' (Tensor.zip2 (+)) (Tensor.konst 0) (foldMap1 g ixds)
+          f i s = foldl' (TT.zip2 (+)) (TT.konst 0) (foldMap1 g ixds)
                     \\ s
             where
               g :: forall m. ()
@@ -128,7 +128,7 @@ gradTensorOp
     -> Prod t ns    -- ^ inputs
     -> Prod t ns    -- ^ d target / d inputs
 gradTensorOp = \case
-    OPØ            -> \_ -> only $ Tensor.konst 1
+    OPØ            -> \_ -> only $ TT.konst 1
     -- ns ~ a ++ d
     Pop (sA :: Sing a)
         (sB :: Sing b)

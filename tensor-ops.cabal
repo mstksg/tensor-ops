@@ -45,6 +45,7 @@ library
                      , foldl
                      , mwc-random
                      , primitive
+                     , reflection
                      , singletons
                      , statistics
                      , transformers

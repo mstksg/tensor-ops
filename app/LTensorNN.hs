@@ -10,9 +10,17 @@
 {-# LANGUAGE TypeInType          #-}
 {-# LANGUAGE TypeOperators       #-}
 
+-- import           Data.Singletons.Prelude.Num
+-- import           Data.Type.Combinator
+-- import           Data.Type.Index
+-- import           Data.Type.Nat
 -- import           Data.Type.Nat.Quote
 -- import           GHC.TypeLits
 -- import           Statistics.Distribution
+-- import           Type.Class.Higher.Util
+-- import           Type.Class.Known
+-- import           Type.Family.Nat
+-- import           Type.Family.Nat.Util
 import           Control.Category
 import           Control.DeepSeq
 import           Control.Exception
@@ -23,14 +31,10 @@ import           Data.List hiding                ((\\))
 import           Data.Maybe
 import           Data.Singletons
 import           Data.Singletons.Prelude.List    (Sing(..))
-import           Data.Singletons.Prelude.Num
 import           Data.Singletons.TypeLits
 import           Data.Time.Clock
-import           Data.Type.Combinator
 import           Data.Type.Conjunction
-import           Data.Type.Index
 import           Data.Type.Length
-import           Data.Type.Nat
 import           Data.Type.Product               as TCP
 import           Data.Type.Product.Util
 import           Data.Type.Sing
@@ -45,13 +49,9 @@ import           TensorOps.Gradient
 import           TensorOps.Run
 import           TensorOps.Types
 import           Type.Class.Higher
-import           Type.Class.Higher.Util
-import           Type.Class.Known
 import           Type.Class.Witness hiding       (inner)
 import           Type.Family.List
 import           Type.Family.List.Util
-import           Type.Family.Nat
-import           Type.Family.Nat.Util
 import qualified TensorOps.TOp                   as TO
 import qualified TensorOps.Tensor                as TT
 
@@ -178,8 +178,8 @@ netTest _ rate n g = do
                    then 1
                    else 0
     net0 :: Network t (FromNat 2) (FromNat 1)
-            <- genNet [ SomeSing (sFromNat (SNat @10))
-                      , SomeSing (sFromNat (SNat @10))
+            <- genNet [ SomeSing (sFromNat (SNat @8))
+                      , SomeSing (sFromNat (SNat @4))
                       ] g
     let trained = foldl' trainEach net0 (zip inps outs)
           where
@@ -219,12 +219,12 @@ main = withSystemRandom $ \g -> do
     --     traverse1_ (\(s' :&: t) -> putStrLn (show t) \\ s') p'
 
     putStrLn "Training network..."
-    (r1, t1) <- time $ netTest (Proxy @LTensor) 5 100000 g
+    (r1, t1) <- time $ netTest (Proxy @LTensor) 2 50000 g
     putStrLn r1
     print t1
-    (r1, t1) <- time $ netTest (Proxy @VTensor) 5 100000 g
-    putStrLn r1
-    print t1
+    -- (r2, t2) <- time $ netTest (Proxy @VTensor) 2 50000 g
+    -- putStrLn r2
+    -- print t2
 
 time
     :: NFData a

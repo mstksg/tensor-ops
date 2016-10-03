@@ -273,6 +273,7 @@ overNVec
     -> VTensor ns
     -> VTensor ms
 overNVec f = getI . ltNVec (I . f)
+{-# INLINE overNVec #-}
 
 overNVec2
     :: (NestedVec ns Double -> NestedVec ms Double -> NestedVec os Double)
@@ -280,6 +281,7 @@ overNVec2
     -> VTensor ms
     -> VTensor os
 overNVec2 f x y = VTensor $ f (getNVec x) (getNVec y)
+{-# INLINE overNVec2 #-}
 
 
 

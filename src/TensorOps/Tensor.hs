@@ -23,6 +23,7 @@ import           Data.Functor
 import           Data.List hiding                       ((\\))
 import           Data.Monoid
 import           Data.Proxy
+import           Data.Reflection
 import           Data.Singletons
 import           Data.Type.Combinator
 import           Data.Type.Fin
@@ -38,6 +39,7 @@ import           Type.Class.Witness hiding              (inner, outer)
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
+import qualified Numeric.AD.Internal.Reverse            as AD
 
 konst
     :: (Tensor t, Floating (ElemT t), SingI n)
@@ -97,13 +99,12 @@ zip3 f x y z = getI . TCV.head'
 -- problem: shouldn't need Sing o if n or m is zero
 gradLift
     :: forall o n m t. (Tensor t, Floating (ElemT t), SingI o)
-       -- TODO: make less polymorphic, maybe only require Reverse?
-    => (forall a. Floating a => Vec n a -> Vec m a)
+    => (forall s. Reifies s AD.Tape => Vec n (AD.Reverse s (ElemT t)) -> Vec m (AD.Reverse s (ElemT t)))
     -> Vec n (t o)    -- ^ inputs
     -> Vec m (t o)    -- ^ d target / d outputs
     -> Vec n (t o)    -- ^ d target / d inputs
 gradLift f xs dtdys =
-    liftT (uncurry go . splitVec (known \\ xs))
+    liftT (uncurry go . splitVec known)
           (xs `TCV.append'` dtdys)
       \\ xs
   where
@@ -171,7 +172,6 @@ fromList
     :: (Tensor t, SingI ns)
     => [ElemT t]
     -> Maybe (t ns)
--- fromList = evalStateT . sequence $ pure (StateT uncons)
 fromList = evalStateT . generateA $ \_ -> StateT uncons
 
 generate

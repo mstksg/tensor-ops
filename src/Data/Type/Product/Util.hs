@@ -57,6 +57,7 @@ overProdInit
     -> Prod g (ns ++ os)
     -> Prod g (ms ++ os)
 overProdInit lN lO f = runIdentity . prodInit lN lO (Identity . f)
+{-# INLINE overProdInit #-}
 
 prodInit
     :: Functor f
@@ -69,6 +70,7 @@ prodInit lN lO f = case lN of
     LZ     -> \xs -> (`append'` xs) <$> f Ø
     LS lN' -> \case
       x :< xs -> prodInit lN' lO (\xs' -> f (x :< xs')) xs
+{-# INLINE prodInit #-}
 
 overProdSplit
     :: Length ns
@@ -77,6 +79,7 @@ overProdSplit
     -> Prod g (ns ++ os)
     -> Prod g (ms ++ ps)
 overProdSplit lN f g = runIdentity . prodSplit lN (Identity . f) (Identity . g)
+{-# INLINE overProdSplit #-}
 
 prodSplit
     :: Applicative f
@@ -89,6 +92,7 @@ prodSplit lN f g = case lN of
     LZ     -> \xs -> append' <$> f Ø <*> g xs
     LS lN' -> \case
       x :< xs -> prodSplit lN' (\xs' -> f (x :< xs')) g xs
+{-# INLINE prodSplit #-}
 
 prodSplit'
     :: Functor f
@@ -100,6 +104,7 @@ prodSplit' lN f = case lN of
     LZ     -> \ys -> uncurry append' <$> f (Ø, ys)
     LS lN' -> \case
       x :< xs -> prodSplit' lN' (\(xs', ys) -> f (x :< xs', ys)) xs
+{-# INLINE prodSplit' #-}
 
 vecToProd
     :: forall a b f g as. ()
