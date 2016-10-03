@@ -91,7 +91,7 @@ ffLayer g = (\w b -> N sing ffLayer' (w :< b :< Ø))
     ffLayer' = (LS (LS LZ), LS LZ, TO.swap                   )
             ~. (LS (LS LZ), LS LZ, GMul    (LS LZ) (LS LZ) LZ)
             ~. (LS (LS LZ), LZ   , TO.zip2 (+)               )
-            ~. (LS LZ     , LZ   , TO.map  (US UØ) logistic  )
+            ~. (LS LZ     , LZ   , TO.map  logistic          )
             ~. OPØ
 
 

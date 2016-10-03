@@ -12,6 +12,7 @@
 
 module TensorOps.Tensor where
 
+-- import           Data.Reflection
 -- import           Data.Singletons.Prelude.List hiding (Length)
 -- import           Data.Type.Index
 -- import           Data.Type.Product as TCP hiding     (toList)
@@ -19,6 +20,7 @@ module TensorOps.Tensor where
 -- import           Data.Type.Sing
 -- import           Data.Type.Uniform
 -- import           Type.Family.Nat.Util
+-- import qualified Numeric.AD.Internal.Reverse         as AD
 import           Control.Applicative
 import           Control.Monad.Trans.State.Strict
 import           Control.Monad.Trans.Writer.Strict
@@ -27,7 +29,6 @@ import           Data.Kind
 import           Data.List hiding                       ((\\), zip)
 import           Data.Monoid
 import           Data.Proxy
-import           Data.Reflection
 import           Data.Singletons
 import           Data.Type.Combinator
 import           Data.Type.Fin
@@ -43,7 +44,6 @@ import           Type.Class.Witness hiding              (inner, outer)
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
-import qualified Numeric.AD.Internal.Reverse            as AD
 
 konst
     :: (Tensor t, Floating (ElemT t), SingI n)
@@ -101,25 +101,14 @@ zip3 f x y z = zip (\case I x' :* I y' :* I z' :* ØV -> f x' y' z') (x :+ y :+ 
 -- replicate = vrep
 -- -- replicate x = liftT (\(x' :* ØV) -> vrep x') (x :+ ØV)
 
-newtype VFunc n a = VF { getVF :: forall s. Reifies s AD.Tape => Vec n (AD.Reverse s a) -> AD.Reverse s a }
-
--- TODO: this implementation is pretty awful, but I hope there is a better
--- way.
-wrapVF
-    :: forall m n a. Floating a
-    => (forall b. Floating b => Vec m (Vec n b -> b))
-    -> Vec m (VFunc n a)
-wrapVF fs = flip imap fs $ \i _ -> I (VF (index' i fs))
-{-# INLINE wrapVF #-}
-
 -- problem: shouldn't need Sing o if n or m is zero
 gradLift
     :: forall o n m t. (Tensor t, Floating (ElemT t), SingI o)
-    => (forall a. Floating a => Vec m (Vec n a -> a))
+    => Vec m (VFunc n)
     -> Vec n (t o)    -- ^ inputs
     -> Vec m (t o)    -- ^ d target / d outputs
     -> Vec n (t o)    -- ^ d target / d inputs
-gradLift (wrapVF->fs) xs dtdys =
+gradLift fs xs dtdys =
     liftT (vgen_ (\i -> I (uncurry (go i) . splitVec known)))
           (xs `TCV.append'` dtdys)
       \\ xs
@@ -129,6 +118,9 @@ gradLift (wrapVF->fs) xs dtdys =
         -> Vec m (ElemT t)
         -> ElemT t
     go i x dtdy = sum $ (vap . liftA2) (\d (VF f) -> d * index' i (grad f x)) dtdy fs
+-- TODO: having to use index' is the downside of the special new form for
+-- lifted functions.  but i guess it's just as bad as before because the
+-- implementation of liftT would have index''d everything anyways.
 
 inner
     :: forall t ms ns o. (Tensor t, SingI (ms >: o), SingI (o ': ns), SingI (ms ++ ns))

@@ -37,7 +37,6 @@ import           Data.Type.Nat
 import           Data.Type.Nat.Util
 import           Data.Type.Product
 import           Data.Type.Sing
-import           Data.Type.Sing
 import           Data.Type.Uniform
 import           Data.Type.Vector
 import           Prelude hiding                         ((.), id)
@@ -118,16 +117,17 @@ class NatKind k => Tensor (t :: [k] -> Type) where
 
 type TensorOp = OpPipe TOp
 
+-- | A cludge to get around lack of impredicative types in Haskell
+newtype VFunc n = VF { getVF :: forall a. Floating a => Vec n a -> a }
+
 data TOp :: [[k]] -> [[k]] -> Type where
     -- | Lift any `R^N -> R^M` function over every element in a n-tensor list,
     -- producing a m-tensor list.
-    --
-    -- TODO: should be stated in Vec (Len ms) (Vec (Len ns) -> a) form, for
-    -- efficiency?
     Lift    :: Uniform o ns
             -> Uniform o ms
             -- -> (forall a. Floating a => Vec (Len ns) a -> Vec (Len ms) a)
-            -> (forall a. Floating a => Vec (Len ms) (Vec (Len ns) a -> a))
+            -- -> (forall a. Floating a => Vec (Len ms) (Vec (Len ns) a -> a))
+            -> Vec (Len ms) (VFunc (Len ns))
             -> TOp ns ms
     -- | Generalized tensor product
     GMul    :: Length ms

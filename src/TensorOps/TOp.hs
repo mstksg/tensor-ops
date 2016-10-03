@@ -20,7 +20,7 @@ import           Data.Type.Length
 import           Data.Type.Product
 import           Data.Type.Product.Util    as TCP
 import           Data.Type.Uniform
-import           Data.Type.Vector
+import           Data.Type.Vector          as TCV
 import           Prelude hiding            (map, replicate, zip)
 import           TensorOps.Types hiding    (OpPipe(..))
 import           Type.Class.Witness hiding (inner)
@@ -33,21 +33,26 @@ konst
     => Uniform n ns
     -> (forall a. Floating a => a)
     -> TOp '[] ns
-konst u x = Lift UØ u (vrep (I (\ØV -> x)))
+konst u x = Lift UØ u (vrep (I (VF $ \ØV -> x)))
               \\ uniformLength u
 {-# INLINE konst #-}
 
-map :: Uniform n ns
-    -> (forall a. Floating a => a -> a)
-    -> TOp ns ns
-map u f = Lift u u (vgen_ $ \i -> I $ \v -> f (index' i v))
-            \\ uniformLength u
+map :: (forall a. Floating a => a -> a)
+    -> TOp '[n] '[n]
+map f = Lift (US UØ) (US UØ) (VF (f . getI . TCV.head') :+ ØV)
 {-# INLINE map #-}
+
+mapN :: Uniform n ns
+     -> (forall a. Floating a => a -> a)
+     -> TOp ns ns
+mapN u f = Lift u u (vgen_ $ \i -> I (VF $ \v -> f (index' i v)))
+             \\ uniformLength u
+{-# INLINE mapN #-}
 
 zip :: Uniform n ns
     -> (forall a. Floating a => Vec (Len ns) a -> a)
     -> TOp ns '[n]
-zip u f = Lift u (US UØ) (f :+ ØV)
+zip u f = Lift u (US UØ) (VF f :+ ØV)
 {-# INLINE zip #-}
 
 zip2
@@ -66,6 +71,7 @@ replicate
     :: Uniform n ns
     -> TOp '[ n ] ns
 replicate u = Shuffle (TCP.replicate IZ u)
+{-# INLINE replicate #-}
 
 inner
     :: forall ms ns o. ()
@@ -74,12 +80,15 @@ inner
     -> TOp '[ms >: o, o ': ns] '[ ms ++ ns ]
 inner lM lN = GMul lM (LS LZ) lN
                 \\ appendSnoc lM (Proxy @o)
+{-# INLINE inner #-}
 
 dot :: TOp '[ '[m], '[m] ] '[ '[] ]
 dot = inner LZ LZ
+{-# INLINE dot #-}
 
 swap :: TOp '[ms,ns] '[ns,ms]
 swap = Shuffle (IS IZ :< IZ :< Ø)
+{-# INLINE swap #-}
 
 -- transpose :: TOp '[ '[m,n] ] '[ '[n,m] ]
 -- transpose = Transp Refl (IS IZ :< IZ :< Ø)

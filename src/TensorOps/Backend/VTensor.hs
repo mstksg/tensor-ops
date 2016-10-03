@@ -73,6 +73,7 @@ instance SingI ns => Applicative (NestedVec ns) where
         go = \case
           SNil            -> NVZ x
           SNat `SCons` ss -> NVS $ VS.generate (\_ -> go ss)
+    {-# INLINE pure #-}
     (<*>)
         :: forall a b. ()
         => NestedVec ns (a -> b)
@@ -89,6 +90,7 @@ instance SingI ns => Applicative (NestedVec ns) where
             NVZ x -> NVZ (f x)
           NVS fs -> \case
             NVS xs -> NVS $ VS.vap go fs xs
+    {-# INLINE (<*>) #-}
 
 instance (Num a, SingI ns) => Num (NestedVec ns a) where
     (+)    = liftA2 (+)
@@ -104,12 +106,14 @@ nvHead
     -> NestedVec ms a
 nvHead = \case
     NVS xs -> VS.head xs
+{-# INLINE nvHead #-}
 
 nvTail
     :: NestedVec ((m + 1) ': ms) a
     -> NestedVec (m ': ms) a
 nvTail = \case
     NVS xs -> NVS $ VS.tail xs
+{-# INLINE nvTail #-}
 
 genNestedVec
     :: Sing ns
@@ -118,6 +122,7 @@ genNestedVec
 genNestedVec = \case
     SNil            -> \f -> NVZ (f Ø)
     SNat `SCons` ss -> \f -> NVS $ VS.generate (\i -> genNestedVec ss (f . (i :<)))
+{-# INLINE genNestedVec #-}
 
 genNestedVecA
     :: Applicative f
@@ -127,6 +132,7 @@ genNestedVecA
 genNestedVecA = \case
     SNil            -> \f -> NVZ <$> f Ø
     SNat `SCons` ss -> \f -> NVS <$> VS.generateA (\i -> genNestedVecA ss (f . (i :<)))
+{-# INLINE genNestedVecA #-}
 
 
 indexNestedVec
@@ -138,6 +144,7 @@ indexNestedVec = \case
       NVZ x  -> x
     i :< is -> \case
       NVS xs -> indexNestedVec is (xs VS.! i)
+{-# INLINE indexNestedVec #-}
 
 joinNestedVec
     :: NestedVec ns (NestedVec ms a)
@@ -145,6 +152,7 @@ joinNestedVec
 joinNestedVec = \case
     NVZ x  -> x
     NVS xs -> NVS $ VS.vmap joinNestedVec xs
+{-# INLINE joinNestedVec #-}
 
 mapNVecSlices
     :: (NestedVec ms a -> b)
@@ -155,6 +163,7 @@ mapNVecSlices f = \case
     LZ -> NVZ . f
     LS l -> \case
       NVS xs -> NVS $ mapNVecSlices f l `VS.vmap` xs
+{-# INLINE mapNVecSlices #-}
 
 reduceTrace
     :: forall ns ms a. (Num a, SingI (Reverse ns ++ ms))
@@ -170,6 +179,7 @@ reduceTrace lN _ = reduceTraceHelp (reverseSnocProd sN) (prodSing sM)
     sN :: Prod Sing (Reverse ns)
     sM :: Prod Sing ms
     (sN, sM) = splitProd (snocLengthReverse slN) (singProd sing)
+{-# INLINE reduceTrace #-}
 
 reduceTraceHelp
     :: forall ns ms a. Num a
@@ -195,6 +205,7 @@ reduceTraceHelp = \case
     f sm sp so = (\case NVS xs -> sum (VS.vmap I xs)) . diagNV' . joinNestedVec
                     \\ prodSing (snocProdReverse sp) %:++ sm
                     \\ so
+{-# INLINE reduceTraceHelp #-}
 
 
 diagNV'
@@ -207,6 +218,7 @@ diagNV' = withKnownNat (sing :: Sing n) $ \case
         VS.VNil       -> NVS VS.empty
         VS.VCons y ys -> case diagNV' $ NVS (VS.vmap nvTail ys) of
           NVS zs -> NVS $ nvHead y `VS.cons` zs
+{-# INLINE diagNV' #-}
 
 diagNV
     :: SingI n
@@ -216,6 +228,7 @@ diagNV
 diagNV = \case
     UØ   -> diagNV'
     US u -> diagNV u . diagNV'
+{-# INLINE diagNV #-}
 
 itraverseNestedVec
     :: Applicative f
@@ -225,6 +238,7 @@ itraverseNestedVec
 itraverseNestedVec f = \case
     NVZ x  -> NVZ <$> f Ø x
     NVS xs -> NVS <$> VS.itraverse (\i -> itraverseNestedVec (\is -> f (i :< is))) xs
+{-# INLINE itraverseNestedVec #-}
 
 
 newtype VTensor :: [Nat] -> Type where
@@ -242,12 +256,14 @@ liftLT
     -> TCV.Vec n (NestedVec o Double)
     -> TCV.Vec m (NestedVec o Double)
 liftLT f xs = fmap (\g -> TCV.liftVec g xs) f
+{-# INLINE liftLT #-}
 
 genVTensor
     :: Sing ns
     -> (Prod Finite ns -> Double)
     -> VTensor ns
 genVTensor s f = VTensor $ genNestedVec s f
+{-# INLINE genVTensor #-}
 
 genVTensorA
     :: Applicative f
@@ -255,12 +271,14 @@ genVTensorA
     -> (Prod Finite ns -> f Double)
     -> f (VTensor ns)
 genVTensorA s f = VTensor <$> genNestedVecA s f
+{-# INLINE genVTensorA #-}
 
 indexVTensor
     :: Prod Finite ns
     -> VTensor ns
     -> Double
 indexVTensor i = indexNestedVec i . getNVec
+{-# INLINE indexVTensor #-}
 
 ltNVec
     :: Functor f
@@ -268,6 +286,7 @@ ltNVec
     -> VTensor ns
     -> f (VTensor ms)
 ltNVec f = fmap VTensor . f . getNVec
+{-# INLINE ltNVec #-}
 
 overNVec
     :: (NestedVec ns Double -> NestedVec ms Double)
@@ -298,6 +317,7 @@ instance Tensor VTensor where
         -> TCV.Vec n (VTensor o)
         -> TCV.Vec m (VTensor o)
     liftT f = fmap VTensor . liftLT f . fmap getNVec
+    {-# INLINE liftT #-}
 
     -- TODO: this is an awful implementation
     transp
@@ -309,6 +329,7 @@ instance Tensor VTensor where
       where
         lNs :: Length ns
         lNs = singLength sing
+    {-# INLINE transp #-}
 
     -- TODO: Decently inefficient because it multiplies everything and then
     -- sums only the diagonal.
@@ -327,6 +348,8 @@ instance Tensor VTensor where
             -> NestedVec os Double
             -> NestedVec ns Double
         f y x = (reduceTrace lO lN $ fmap (\x' -> fmap (x' *) y) x)
+        {-# INLINE f #-}
+    {-# INLINE gmul #-}
 
     diag
         :: forall n ns. SingI ns
@@ -339,6 +362,7 @@ instance Tensor VTensor where
                                    Just (I i') -> indexVTensor (i' :< Ø) d
                           )
             \\ witSings (sing :: Sing ns)
+    {-# INLINE diag #-}
 
     getDiag
         :: forall n ns. SingI '[n]
@@ -347,6 +371,7 @@ instance Tensor VTensor where
         -> VTensor '[n]
     getDiag u = overNVec (diagNV u)
                   \\ sHead (sing :: Sing '[n])
+    {-# INLINE getDiag #-}
 
     genRand
         :: forall m d (ns :: [Nat]). (ContGen d, PrimMonad m, SingI ns)
@@ -354,12 +379,14 @@ instance Tensor VTensor where
         -> Gen (PrimState m)
         -> m (VTensor ns)
     genRand d g = generateA (\_ -> genContVar d g)
+    {-# INLINE genRand #-}
 
     generateA
         :: forall f ns. (Applicative f, SingI ns)
         => (Prod Finite ns -> f Double)
         -> f (VTensor ns)
     generateA = genVTensorA sing
+    {-# INLINE generateA #-}
 
     ixElems
         :: Applicative f
@@ -367,7 +394,9 @@ instance Tensor VTensor where
         -> VTensor ns
         -> f (VTensor ns)
     ixElems f = ltNVec (itraverseNestedVec (curry f))
+    {-# INLINE ixElems #-}
 
     (!) = flip indexVTensor
+    {-# INLINE (!) #-}
 
 

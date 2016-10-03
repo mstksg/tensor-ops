@@ -112,3 +112,6 @@ uniformVec = \case
     x :* xs | getAll (vfoldMap (All . (== x)) xs) -> Just x
             | otherwise                           -> Nothing
 
+-- data Uncons :: N -> (k -> Type) -> k where
+--     VNil :: Uncons 'Z f a
+
