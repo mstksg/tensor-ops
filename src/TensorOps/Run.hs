@@ -41,7 +41,7 @@ runTOp
 runTOp sNs sMs = (\case
     Lift uNs uMs f -> case uMs of
                         UØ   -> \_ -> Ø
-                        US _ -> vecToProd getI uMs . liftT f . prodToVec I uNs
+                        US _ -> vecToProd getI uMs . liftT (getVF <$> f) . prodToVec I uNs
                                   \\ uniformLength uMs
     GMul lM lO lN  -> \case
       x :< y :< Ø  -> only (gmul lM lO lN x y)

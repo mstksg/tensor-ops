@@ -37,7 +37,6 @@ import           Data.Type.Nat
 import           Data.Type.Nat.Util
 import           Data.Type.Product
 import           Data.Type.Sing
-import           Data.Type.Sing
 import           Data.Type.Uniform
 import           Data.Type.Vector
 import           Prelude hiding                         ((.), id)
@@ -61,6 +60,19 @@ instance NatKind N where
     type FromNat n = NatNat n
     sFromNat s = fromJust $ withNat (fromSing s) (Just . SN . unsafeCoerce)
 
+someNatKind
+    :: NatKind k
+    => Integer
+    -> SomeSing k
+someNatKind n = withSomeSing n (SomeSing . sFromNat)
+
+withNatKind
+    :: NatKind k
+    => Integer
+    -> (forall (n :: k). Sing n -> r)
+    -> r
+withNatKind n f = withSomeSing n (f . sFromNat)
+
 instance NatKind GT.Nat where
     type FromNat n = n
     sFromNat = id
@@ -71,8 +83,8 @@ class NatKind k => Tensor (t :: [k] -> Type) where
 
     -- TODO: can we detach Vec from liftT ?
     liftT   :: (SingI o, Floating (ElemT t), Known Nat m)
-            => (Vec n (ElemT t) -> Vec m (ElemT t))
-            -- => (Vec m (Vec n (ElemT t) -> ElemT t))
+            -- => (Vec n (ElemT t) -> Vec m (ElemT t))
+            => (Vec m (Vec n (ElemT t) -> ElemT t))
             -> Vec n (t o)
             -> Vec m (t o)
     gmul    :: (SingI (ms ++ os), SingI (Reverse os ++ ns), SingI (ms ++ ns))
@@ -118,15 +130,17 @@ class NatKind k => Tensor (t :: [k] -> Type) where
 
 type TensorOp = OpPipe TOp
 
+-- | A cludge to get around lack of impredicative types in Haskell
+newtype VFunc n = VF { getVF :: forall a. Floating a => Vec n a -> a }
+
 data TOp :: [[k]] -> [[k]] -> Type where
     -- | Lift any `R^N -> R^M` function over every element in a n-tensor list,
     -- producing a m-tensor list.
-    --
-    -- TODO: should be stated in Vec (Len ms) (Vec (Len ns) -> a) form, for
-    -- efficiency?
     Lift    :: Uniform o ns
             -> Uniform o ms
-            -> (forall a. Floating a => Vec (Len ns) a -> Vec (Len ms) a)
+            -- -> (forall a. Floating a => Vec (Len ns) a -> Vec (Len ms) a)
+            -- -> (forall a. Floating a => Vec (Len ms) (Vec (Len ns) a -> a))
+            -> Vec (Len ms) (VFunc (Len ns))
             -> TOp ns ms
     -- | Generalized tensor product
     GMul    :: Length ms
