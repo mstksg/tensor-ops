@@ -52,6 +52,7 @@ import           Type.Class.Higher
 import           Type.Class.Witness hiding       (inner)
 import           Type.Family.List
 import           Type.Family.List.Util
+import           Type.NatKind
 import qualified TensorOps.TOp                   as TO
 import qualified TensorOps.Tensor                as TT
 

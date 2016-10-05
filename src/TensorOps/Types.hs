@@ -11,6 +11,7 @@
 {-# LANGUAGE RankNTypes              #-}
 {-# LANGUAGE ScopedTypeVariables     #-}
 {-# LANGUAGE StandaloneDeriving      #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies            #-}
 {-# LANGUAGE TypeFamilyDependencies  #-}
 {-# LANGUAGE TypeInType              #-}
@@ -28,9 +29,12 @@ module TensorOps.Types where
 -- import qualified Control.Foldl                       as F
 import           Control.Category
 import           Control.Monad.Primitive
+import           Data.Finite
 import           Data.Kind
 import           Data.Maybe
 import           Data.Singletons
+import           Data.Singletons.Prelude.Num
+import           Data.Type.Fin
 import           Data.Type.Index
 import           Data.Type.Length                       as TCL
 import           Data.Type.Nat
@@ -48,38 +52,17 @@ import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
 import           Type.Family.Nat.Util
+import           Type.NatKind
 import           Unsafe.Coerce
+import qualified Data.Singletons.TypeLits               as GT
 import qualified Data.Singletons.TypeLits               as GT
 import qualified GHC.TypeLits                           as GT
 
-class NatKind k where
-    type FromNat (n :: GT.Nat) :: k
-    sFromNat :: Sing (n :: GT.Nat) -> Sing (FromNat n :: k)
-
-instance NatKind N where
-    type FromNat n = NatNat n
-    sFromNat s = fromJust $ withNat (fromSing s) (Just . SN . unsafeCoerce)
-
-someNatKind
-    :: NatKind k
-    => Integer
-    -> SomeSing k
-someNatKind n = withSomeSing n (SomeSing . sFromNat)
-
-withNatKind
-    :: NatKind k
-    => Integer
-    -> (forall (n :: k). Sing n -> r)
-    -> r
-withNatKind n f = withSomeSing n (f . sFromNat)
-
-instance NatKind GT.Nat where
-    type FromNat n = n
-    sFromNat = id
 
 class NatKind k => Tensor (t :: [k] -> Type) where
-    type ElemT t      :: Type
-    type IndexT t     :: [k] -> Type
+    type ElemT t  :: Type
+    type IndexT t :: [k] -> Type
+    type IndexT (t :: [k] -> Type) = Prod (IndexN k)
 
     -- TODO: can we detach Vec from liftT ?
     liftT   :: (SingI o, Floating (ElemT t), Known Nat m)

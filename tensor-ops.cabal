@@ -38,6 +38,7 @@ library
                        Type.Class.Higher.Util
                        Type.Family.List.Util
                        Type.Family.Nat.Util
+                       Type.NatKind
   build-depends:       base >= 4.7 && < 5
                      , ad
                      , distributive
