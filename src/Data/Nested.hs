@@ -23,14 +23,16 @@
 
 module Data.Nested where
 
+-- import           Data.Finite
+-- import           Data.Type.Fin
 -- import           Data.Type.Index
 -- import           Type.Class.Higher
--- import           Type.Class.Known
 import           Control.Applicative
 import           Data.Kind
 import           Data.Singletons
 import           Data.Singletons.Prelude.List hiding (Length, Reverse, (%:++))
 import           Data.Type.Combinator
+import           Data.Type.Combinator.Util
 import           Data.Type.Length
 import           Data.Type.Length.Util
 import           Data.Type.Product
@@ -38,10 +40,22 @@ import           Data.Type.Product.Util
 import           Data.Type.Sing
 import           Data.Type.SnocProd
 import           Data.Type.Uniform
+import           TensorOps.Types
+import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.NatKind
+import qualified Data.Singletons.TypeLits            as GT
+import qualified Data.Type.Nat                       as TCN
+import qualified Data.Type.Vector                    as TCV
+import qualified Data.Type.Vector.Util               as TCV
+import qualified Data.Vector.Sized                   as VS
+import qualified Type.Family.Nat                     as TCN
+
+data Uncons :: (k -> Type -> Type) -> k -> Type -> Type where
+    UNil  :: Uncons v (FromNat 0) a
+    UCons :: Sing n -> a -> v n a -> Uncons v (Succ n) a
 
 class NatKind k => Vec (v :: k -> Type -> Type) where
     vHead   :: p j -> v (Succ j) a -> a
@@ -50,8 +64,12 @@ class NatKind k => Vec (v :: k -> Type -> Type) where
     vIndex  :: IndexN k j -> v j a -> a
     vUncons :: Sing j -> v j a -> Uncons v j a
     vEmpty  :: v (FromNat 0) a
-    vCons   :: Sing j -> a -> v j a -> v (Succ j) a
-    vITraverse ::  (IndexN k j -> a -> f b) -> v j a -> f (v j b)
+    vCons   :: a -> v j a -> v (Succ j) a
+    vITraverse
+        :: Applicative f
+        => (IndexN k j -> a -> f b)
+        -> v j a
+        -> f (v j b)
 
 vGen
     :: Vec (v :: k -> Type -> Type)
@@ -60,15 +78,60 @@ vGen
     -> v j a
 vGen s f = getI $ vGenA s (I . f)
 
-data Uncons :: (k -> Type -> Type) -> k -> Type -> Type where
-    VNil  :: Uncons v (FromNat 0) a
-    VCons :: Sing n -> a -> v n a -> Uncons v (Succ n) a
+instance Vec (Flip2 VS.VectorT I) where
+    vHead _ = getI . VS.head . getFlip2
+    vTail = Flip2 . VS.tail . getFlip2
+    vGenA = \case
+      GT.SNat -> fmap Flip2 . VS.generateA . (fmap I .)
+    vIndex i = (VS.!! i) . getFlip2
+    vUncons = \case
+      GT.SNat -> \case
+        Flip2 xs -> case VS.uncons xs of
+          VS.VNil           -> UNil
+          VS.VCons (I y) ys -> UCons sing y (Flip2 ys)
+    vEmpty = Flip2 VS.empty
+    vCons x (Flip2 xs) = Flip2 (VS.cons (I x) xs)
+    vITraverse f (Flip2 xs) = Flip2 <$> VS.itraverse (\i (I x) -> I <$> f i x) xs
+
+instance Vec (Flip2 TCV.VecT I) where
+    vHead _ = getI . TCV.head' . getFlip2
+    vTail = Flip2 . TCV.tail' . getFlip2
+    vGenA = \case
+      SN n -> \f -> Flip2 <$> TCV.vgenA n (fmap I . f)
+    vIndex i = TCV.index' i . getFlip2
+    vUncons = \case
+      SN TCN.Z_ -> \case
+        Flip2 TCV.ØV -> UNil
+      SN (TCN.S_ n) -> \case
+        Flip2 (I x TCV.:* xs) -> UCons (SN n) x (Flip2 xs)
+    vEmpty = Flip2 TCV.ØV
+    vCons x (Flip2 xs) = Flip2 (I x TCV.:* xs)
+    vITraverse f (Flip2 xs) = Flip2 <$> TCV.itraverse (\i (I x) -> I <$> f i x) xs
 
 -- class Nesting (w :: k -> Type) (c :: j -> Constraint) (v :: k -> j -> j) where
 --     nesting :: w i -> c a :- c (v i a)
 
-class Nesting1 (w :: k -> Type) (c :: j -> Constraint) (v :: k -> j) | c v -> w where
+class Nesting1 (w :: k -> Type) (c :: j -> Constraint) (v :: k -> j) where
     nesting1 :: w a -> Wit (c (v a))
+
+instance Functor f => Nesting1 w Functor (Flip2 VS.VectorT f) where
+    nesting1 _ = Wit
+instance Applicative f => Nesting1 Sing Applicative (Flip2 VS.VectorT f) where
+    nesting1 GT.SNat = Wit
+instance Foldable f => Nesting1 w Foldable (Flip2 VS.VectorT f) where
+    nesting1 _ = Wit
+instance Traversable f => Nesting1 w Traversable (Flip2 VS.VectorT f) where
+    nesting1 _ = Wit
+
+instance Functor f => Nesting1 w Functor (Flip2 TCV.VecT f) where
+    nesting1 _ = Wit
+instance Applicative f => Nesting1 Sing Applicative (Flip2 TCV.VecT f) where
+    nesting1 (SN n) = Wit \\ n
+instance Foldable f => Nesting1 w Foldable (Flip2 TCV.VecT f) where
+    nesting1 _ = Wit
+instance Traversable f => Nesting1 w Traversable (Flip2 TCV.VecT f) where
+    nesting1 _ = Wit
+
 
 data Nested :: (k -> Type -> Type) -> [k] -> Type -> Type where
     NØ :: a                   -> Nested v '[]       a
@@ -274,13 +337,13 @@ diagNV'
     -> Nested v (n ': ns) a
 diagNV' s = \case
   NS (xs :: v n (Nested v (n ': ns) a)) -> case vUncons s xs of
-    VNil          -> NS vEmpty
-    VCons (s' :: Sing n')
+    UNil          -> NS vEmpty
+    UCons (s' :: Sing n')
           (y :: Nested v (n ': ns) a)
           (ys :: v n' (Nested v (n ': ns) a)) ->
       case nesting1 Proxy :: Wit (Functor (v n')) of
         Wit -> case diagNV' s' (NS (nTail <$> ys)) of
-          NS zs -> NS $ vCons s' (nHead s' y) zs
+          NS zs -> NS $ vCons (nHead s' y) zs
 
 diagNV
     :: (Vec v, Nesting1 Proxy Functor v)
@@ -300,3 +363,4 @@ itraverseNestedVec
 itraverseNestedVec f = \case
     NØ x  -> NØ <$> f Ø x
     NS xs -> NS <$> vITraverse (\i -> itraverseNestedVec (\is -> f (i :< is))) xs
+

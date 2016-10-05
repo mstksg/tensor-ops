@@ -46,6 +46,7 @@ import           Data.Type.Vector
 import           Prelude hiding                         ((.), id)
 import           Statistics.Distribution
 import           System.Random.MWC
+import           Type.Class.Higher
 import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
@@ -193,3 +194,5 @@ infixr 4 ~.
     -> OpPipe f (a ++ d) c
 (_, lD, x) ~. y = pop lD x y
 
+
+instance Eq1 Finite

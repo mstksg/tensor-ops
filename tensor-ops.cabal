@@ -29,8 +29,7 @@ library
                        Data.Vector.Sized
                        GHC.TypeLits.Util
                        Orphans
-                       TensorOps.Backend.LTensor
-                       TensorOps.Backend.VTensor
+                       TensorOps.Backend.NTensor
                        TensorOps.Gradient
                        TensorOps.Run
                        TensorOps.TOp

@@ -17,6 +17,8 @@
 -- import           Data.Type.Nat.Quote
 -- import           GHC.TypeLits
 -- import           Statistics.Distribution
+-- import           TensorOps.Backend.LTensor
+-- import           TensorOps.Backend.VTensor
 -- import           Type.Class.Higher.Util
 -- import           Type.Class.Known
 -- import           Type.Family.Nat
@@ -43,8 +45,7 @@ import           Prelude hiding                  ((.), id)
 import           Statistics.Distribution.Normal
 import           Statistics.Distribution.Uniform
 import           System.Random.MWC
-import           TensorOps.Backend.LTensor
-import           TensorOps.Backend.VTensor
+import           TensorOps.Backend.NTensor
 import           TensorOps.Gradient
 import           TensorOps.Run
 import           TensorOps.Types
@@ -231,12 +232,12 @@ main = withSystemRandom $ \g -> do
     --     traverse1_ (\(s' :&: t) -> putStrLn (show t) \\ s') p'
 
     putStrLn "Training network..."
-    -- (r1, t1) <- time $ netTest (Proxy @LTensor) 1 50000 [5,5] g
-    -- putStrLn r1
-    -- print t1
-    (r2, t2) <- time $ netTest (Proxy @VTensor) 1 50000 [5,5] g
-    putStrLn r2
-    print t2
+    (r1, t1) <- time $ netTest (Proxy @LTensor) 1 50000 [5,5] g
+    putStrLn r1
+    print t1
+    -- (r2, t2) <- time $ netTest (Proxy @VTensor) 1 50000 [5,5] g
+    -- putStrLn r2
+    -- print t2
 
 time
     :: NFData a

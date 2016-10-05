@@ -1,10 +1,12 @@
-{-# LANGUAGE PolyKinds  #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE PolyKinds     #-}
+{-# LANGUAGE RankNTypes    #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Type.Class.Higher.Util where
 
 import           Control.Monad
 import           Data.Monoid
+import           Type.Class.Witness
 import           Type.Class.Higher
 
 traverse1_
@@ -34,3 +36,8 @@ all1
     -> t f a
     -> Bool
 all1 p = getAll . foldMap1 (All . p)
+
+produceEq1 :: Eq1 f :- Eq (f a)
+produceEq1 = Sub undefined
+
+-- data EqDic :: a

@@ -158,8 +158,7 @@ fromUncons = \case
     VCons x (UnsafeV xs) -> UnsafeV (V.cons x xs)
 
 cons
-    :: KnownNat n
-    => f a
+    :: f a
     -> VectorT n f a
     -> VectorT (n + 1) f a
 x `cons` UnsafeV xs = UnsafeV (x `V.cons` xs)
