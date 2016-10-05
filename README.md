@@ -33,6 +33,15 @@ ffLayer :: TensorOp '[ '[i], '[o, i], '[o] ] '[ '[o] ]
 Where the layer takes an input `i`-vector, an `o`-by-`i` weights matrix, and an
 `o`-vector of biases, and produces an `o`-vector of resuts.
 
+One important thing that makes `TensorOp`s usable is that they *compose*: that
+is, that you can build complex `TensorOp`s by composing and putting together
+smaller, simpler ones.  The `ffLayer` `TensorOp` above might, for example, be
+created by chaining a matrix-vector multiplication, a vector-vector addition,
+and an operation that maps the [logistic function][] over every element in a
+tensor.
+
+[logistic function]: https://en.wikipedia.org/wiki/Logistic_function
+
 `TensorOp`s can be "run" on any instance of the `Tensor` typeclass:
 
 ~~~haskell
