@@ -1,9 +1,11 @@
 {-# LANGUAGE DeriveFoldable      #-}
 {-# LANGUAGE DeriveFunctor       #-}
+{-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE DeriveTraversable   #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE KindSignatures      #-}
 {-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE PatternSynonyms     #-}
 {-# LANGUAGE PolyKinds           #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -14,6 +16,7 @@
 
 module Data.Vector.Sized where
 
+import           Control.DeepSeq
 import           Data.Finite
 import           Data.Finite.Internal
 import           Data.Kind
@@ -21,9 +24,11 @@ import           Data.Proxy
 import           Data.Singletons
 import           Data.Singletons.TypeLits
 import           Data.Type.Combinator
+import           GHC.Generics
 import           GHC.TypeLits
 import           GHC.TypeLits.Util
 import           Prelude hiding           ((!!))
+import           Text.Printf
 import qualified Data.Vector              as V
 
 
@@ -33,18 +38,20 @@ newtype VectorT :: Nat -> (Type -> Type) -> Type -> Type where
     UnsafeV :: { getV :: V.Vector (f a) }
             -> VectorT n f a
 
-
+deriving instance                  Generic (VectorT n f a)
 deriving instance Show (f a)    => Show (VectorT n f a)
 deriving instance Functor f     => Functor (VectorT n f)
 deriving instance Traversable f => Traversable (VectorT n f)
 deriving instance Foldable f    => Foldable (VectorT n f)
 
+instance NFData (f a) => NFData (VectorT n f a)
+
 instance (KnownNat n, Applicative f) => Applicative (VectorT n f) where
     pure x = UnsafeV $ V.replicate n (pure x)
       where
         n = fromIntegral $ natVal (Proxy @n)
-    -- UnsafeV fs <*> UnsafeV xs = UnsafeV (V.zipWith (<*>) fs xs)
     UnsafeV fs <*> UnsafeV xs = UnsafeV (V.zipWith (<*>) fs xs)
+    -- UnsafeV fs <*> UnsafeV xs = mkVectorT' (V.zipWith (<*>) fs xs)
 
 mkVectorT
     :: forall n f a. KnownNat n
@@ -60,6 +67,23 @@ mkVector
     => V.Vector a
     -> Maybe (Vector n a)
 mkVector = mkVectorT . fmap I
+
+mkVectorT'
+    :: forall n f a. KnownNat n
+    => V.Vector (f a)
+    -> VectorT n f a
+mkVectorT' v | V.length v == n = UnsafeV v
+             | otherwise       = error
+                               $ printf "mkVectorT: Mismatched vector length. %d, expected %d" (V.length v) n
+  where
+    n = fromIntegral $ natVal (Proxy @n)
+
+mkVector'
+    :: forall n a. KnownNat n
+    => V.Vector a
+    -> Vector n a
+mkVector' = mkVectorT' . fmap I
+
 
 generate
     :: forall n f a. KnownNat n

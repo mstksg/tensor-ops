@@ -9,6 +9,7 @@
 module Data.Type.Vector.Util where
 
 -- import           Data.Type.Combinator.Util ()
+import           Control.DeepSeq
 import           Data.Bifunctor
 import           Data.Distributive
 import           Data.Monoid
@@ -22,6 +23,11 @@ import           Type.Family.Nat
 
 instance (Known Nat n, Distributive f) => Distributive (VecT n f) where
     distribute xs = vgen_ $ \i -> distribute $ index i <$> xs
+
+instance NFData (f a) => NFData (VecT n f a) where
+    rnf = \case
+      ØV      -> ()
+      x :* xs -> x `deepseq` xs `deepseq` ()
 
 splitVec
     :: Nat n

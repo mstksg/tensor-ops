@@ -1,17 +1,19 @@
-{-# LANGUAGE ConstraintKinds     #-}
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE GADTs               #-}
-{-# LANGUAGE LambdaCase          #-}
-{-# LANGUAGE PolyKinds           #-}
-{-# LANGUAGE RankNTypes          #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications    #-}
-{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE ConstraintKinds      #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE GADTs                #-}
+{-# LANGUAGE LambdaCase           #-}
+{-# LANGUAGE PolyKinds            #-}
+{-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TypeApplications     #-}
+{-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Data.Type.Product.Util where
 
 -- import           Data.Singletons.Prelude.List hiding (Length)
+import           Control.DeepSeq
 import           Data.Bifunctor
 import           Data.Functor.Identity
 import           Data.Proxy
@@ -30,6 +32,11 @@ import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
 import qualified Data.Type.Length.Util                  as TCL
+
+instance Every NFData (f <$> as) => NFData (Prod f as) where
+    rnf = \case
+      Ø       -> ()
+      x :< xs -> x `deepseq` xs `deepseq` ()
 
 splitProd
     :: Length ns

@@ -24,11 +24,13 @@
 module Data.Nested where
 
 import           Control.Applicative
+import           Control.DeepSeq
 import           Data.Kind
 import           Data.Singletons
 import           Data.Singletons.Prelude.List hiding (Length, Reverse, (%:++), sReverse)
 import           Data.Type.Combinator
 import           Data.Type.Combinator.Util
+import           Data.Type.Index
 import           Data.Type.Length                    as TCL
 import           Data.Type.Length.Util               as TCL
 import           Data.Type.Product
@@ -36,6 +38,7 @@ import           Data.Type.Product.Util
 import           Data.Type.Sing
 import           Data.Type.SnocProd
 import           Data.Type.Uniform
+import           Type.Class.Higher
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
@@ -101,12 +104,14 @@ instance Vec (Flip2 TCV.VecT I) where
     vCons x (Flip2 xs) = Flip2 (I x TCV.:* xs)
     vITraverse f (Flip2 xs) = Flip2 <$> TCV.itraverse (\i (I x) -> I <$> f i x) xs
 
--- class Nesting (w :: k -> Type) (c :: j -> Constraint) (v :: k -> j -> j) where
---     nesting :: w i -> c a :- c (v i a)
+class Nesting (w :: k -> Type) (c :: j -> Constraint) (v :: k -> j -> j) where
+    nesting :: w i -> c a :- c (v i a)
 
 class Nesting1 (w :: k -> Type) (c :: j -> Constraint) (v :: k -> j) where
     nesting1 :: w a -> Wit (c (v a))
 
+instance Nesting w NFData (Flip2 VS.VectorT I) where
+    nesting _ = Sub Wit
 instance Functor f => Nesting1 w Functor (Flip2 VS.VectorT f) where
     nesting1 _ = Wit
 instance Applicative f => Nesting1 Sing Applicative (Flip2 VS.VectorT f) where
@@ -116,6 +121,9 @@ instance Foldable f => Nesting1 w Foldable (Flip2 VS.VectorT f) where
 instance Traversable f => Nesting1 w Traversable (Flip2 VS.VectorT f) where
     nesting1 _ = Wit
 
+
+instance Nesting w NFData (Flip2 TCV.VecT I) where
+    nesting _ = Sub Wit
 instance Functor f => Nesting1 w Functor (Flip2 TCV.VecT f) where
     nesting1 _ = Wit
 instance Applicative f => Nesting1 Sing Applicative (Flip2 TCV.VecT f) where
@@ -125,10 +133,28 @@ instance Foldable f => Nesting1 w Foldable (Flip2 TCV.VecT f) where
 instance Traversable f => Nesting1 w Traversable (Flip2 TCV.VecT f) where
     nesting1 _ = Wit
 
+-- class Nesting1 (w :: k -> Type) (c :: j -> Constraint) (v :: k -> j) where
+nesting1Every
+    :: forall p w c v as. Nesting1 w c v
+    => p v
+    -> Prod w as
+    -> Wit (Every c (v <$> as))
+nesting1Every p = \case
+    Ø       -> Wit
+    (w :: w a) :< (ws :: Prod w as')
+        -> Wit  \\ (nesting1 w :: Wit (c (v a)))
+                \\ (nesting1Every p ws :: Wit (Every c (v <$> as')))
 
 data Nested :: (k -> Type -> Type) -> [k] -> Type -> Type where
     NØ :: a                   -> Nested v '[]       a
     NS :: v j (Nested v js a) -> Nested v (j ': js) a
+
+instance (NFData a, Nesting Proxy NFData v) => NFData (Nested v js a) where
+    rnf = \case
+      NØ x  -> deepseq x  ()
+      NS (xs :: v j (Nested v ks a))
+            -> deepseq xs ()
+                 \\ (nesting Proxy :: NFData (Nested v ks a) :- NFData (v j (Nested v ks a)))
 
 -- deriving instance ListC (Show <$> ((v <$> js) <&> a)) => Show (Nested v js a)
 

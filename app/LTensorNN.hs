@@ -1,14 +1,15 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE GADTs               #-}
-{-# LANGUAGE KindSignatures      #-}
-{-# LANGUAGE LambdaCase          #-}
-{-# LANGUAGE PolyKinds           #-}
-{-# LANGUAGE RankNTypes          #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications    #-}
-{-# LANGUAGE TypeInType          #-}
-{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE GADTs                #-}
+{-# LANGUAGE KindSignatures       #-}
+{-# LANGUAGE LambdaCase           #-}
+{-# LANGUAGE PolyKinds            #-}
+{-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TypeApplications     #-}
+{-# LANGUAGE TypeInType           #-}
+{-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 -- import           Data.Singletons.Prelude.Num
 -- import           Data.Type.Combinator
@@ -20,7 +21,6 @@
 -- import           TensorOps.Backend.LTensor
 -- import           TensorOps.Backend.VTensor
 -- import           Type.Class.Higher.Util
--- import           Type.Class.Known
 -- import           Type.Family.Nat
 -- import           Type.Family.Nat.Util
 import           Control.Category
@@ -31,11 +31,13 @@ import           Control.Monad.Primitive
 import           Data.Kind
 import           Data.List hiding                ((\\))
 import           Data.Maybe
+import           Data.Nested
 import           Data.Singletons
 import           Data.Singletons.Prelude.List    (Sing(..))
 import           Data.Singletons.TypeLits
 import           Data.Time.Clock
 import           Data.Type.Conjunction
+import           Data.Type.Index
 import           Data.Type.Length
 import           Data.Type.Product               as TCP
 import           Data.Type.Product.Util
@@ -49,8 +51,11 @@ import           TensorOps.Backend.NTensor
 import           TensorOps.Gradient
 import           TensorOps.Run
 import           TensorOps.Types
+import           Text.Printf
 import           Type.Class.Higher
+import           Type.Class.Known
 import           Type.Class.Witness hiding       (inner)
+import           Type.Family.Constraint
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.NatKind
@@ -77,10 +82,18 @@ relu
 relu x = x * ((signum x + 1)/ 2)
 
 data Network :: ([k] -> Type) -> k -> k -> Type where
-    N :: { nsOs     :: Sing os
-         , nOp      :: TensorOp ('[i] ': os) '[ '[o] ]
-         , nParams  :: Prod t os
+    N :: { nsOs     :: !(Sing os)
+         , nOp      :: !(TensorOp ('[i] ': os) '[ '[o] ])
+         , nParams  :: !(Prod t os)
          } -> Network t i o
+
+instance Nesting1 Proxy NFData t => NFData (Network t i o) where
+    rnf = \case
+      N (s :: Sing os) _ p
+        -> p `deepseq` ()
+             \\ (nesting1Every (Proxy @t) (map1 (\_ -> Proxy) (singProd s))
+                    :: Wit (Every NFData (t <$> os))
+                )
 
 (~**)
     :: (SingI a, SingI b)
@@ -172,26 +185,31 @@ squaredError = (LS (LS LZ), LZ   , TO.zip2      (-)         )
             ~. OPØ
 
 netTest
-    :: forall k m (t :: [k] -> Type).
-     ( PrimMonad m
-     , Tensor t
+    :: forall k (t :: [k] -> Type).
+     ( Tensor t
      , ElemT t ~ Double
+     , NFData (t '[FromNat 1])
+     , NFData (t '[FromNat 2])
+     , Nesting1 Proxy NFData t
      )
     => Proxy t
     -> Double
     -> Int
     -> [Integer]
-    -> Gen (PrimState m)
-    -> m String
+    -> GenIO
+    -> IO String
 netTest _ rate n hs g = withSingI (sFromNat @k (SNat @1)) $
                         withSingI (sFromNat @k (SNat @2)) $ do
-    inps :: [t '[FromNat 2]] <- replicateM n (genRand (uniformDistr (-1) 1) g)
-    let outs :: [t '[FromNat 1]]
-        outs = flip map inps $ \v -> TT.konst $
-                 if v `inCircle` (TT.konst 0.33, 0.33)
-                      || v `inCircle` (TT.konst (-0.33), 0.33)
-                   then 1
-                   else 0
+    ((inps,outs),t) <- time $ do
+      inps :: [t '[FromNat 2]] <- replicateM n (genRand (uniformDistr (-1) 1) g)
+      let outs :: [t '[FromNat 1]]
+          outs = flip map inps $ \v -> TT.konst $
+                   if v `inCircle` (TT.konst 0.33, 0.33)
+                        || v `inCircle` (TT.konst (-0.33), 0.33)
+                     then 1
+                     else 0
+      evaluate . force $ (inps, outs)
+    printf "Generated test points (%s)\n" (show t)
     net0 :: Network t (FromNat 2) (FromNat 1)
             <- genNet hs g
     let trained = foldl' trainEach net0 (zip inps outs)
@@ -200,7 +218,7 @@ netTest _ rate n hs g = withSingI (sFromNat @k (SNat @1)) $
                       => Network t i o
                       -> (t '[i], t '[o])
                       -> Network t i o
-            trainEach nt (i, o) = trainNetwork rate i o nt
+            trainEach nt (i, o) = nt `deepseq` trainNetwork rate i o nt
 
         outMat = [ [ render . TT.unScalar . join TT.dot . runNetwork trained $
                        fromJust (TT.fromList [x / 25 - 1,y / 10 - 1])
@@ -232,12 +250,12 @@ main = withSystemRandom $ \g -> do
     --     traverse1_ (\(s' :&: t) -> putStrLn (show t) \\ s') p'
 
     putStrLn "Training network..."
-    (r1, t1) <- time $ netTest (Proxy @LTensor) 1 50000 [5,5] g
+    (r1, t1) <- time $ netTest (Proxy @LTensor) 1 50000 [7,7] g
     putStrLn r1
     print t1
-    -- (r2, t2) <- time $ netTest (Proxy @VTensor) 1 50000 [5,5] g
-    -- putStrLn r2
-    -- print t2
+    (r2, t2) <- time $ netTest (Proxy @VTensor) 1 50000 [7,7] g
+    putStrLn r2
+    print t2
 
 time
     :: NFData a

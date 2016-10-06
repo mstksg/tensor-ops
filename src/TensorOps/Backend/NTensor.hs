@@ -1,14 +1,18 @@
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs               #-}
 {-# LANGUAGE KindSignatures             #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeInType                 #-}
 {-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 module TensorOps.Backend.NTensor
   ( NTensor
@@ -17,6 +21,7 @@ module TensorOps.Backend.NTensor
   )
   where
 
+import           Control.DeepSeq
 import           Control.Monad.Primitive
 import           Data.Kind
 import           Data.Nested
@@ -31,6 +36,7 @@ import           Data.Type.Product                   as TCP
 import           Data.Type.Product.Util              as TCP
 import           Data.Type.Sing
 import           Data.Type.Uniform
+import           GHC.Generics
 import           Statistics.Distribution
 import           System.Random.MWC
 import           TensorOps.Types
@@ -52,6 +58,11 @@ newtype NTensor :: (k -> Type -> Type) -> Type -> [k] -> Type where
     NTensor
         :: { getNVec :: Nested v js a }
         -> NTensor v a js
+
+deriving instance Generic (NTensor v a ns)
+deriving instance (NFData a, Nesting Proxy NFData v) => NFData (NTensor v a ns)
+instance (NFData a, Nesting Proxy NFData v) => Nesting1 w NFData (NTensor v a) where
+    nesting1 _ = Wit
 
 liftLT
     :: (Applicative (Nested v o), Known TCN.Nat m)
