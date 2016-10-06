@@ -38,7 +38,8 @@ runTOp
     -> TOp ns ms
     -> Prod t ns
     -> Prod t ms
-runTOp sNs sMs = (\case
+runTOp sNs sMs = (\\ witSings sNs) $
+                 (\\ witSings sMs) $ \case
     Lift uNs uMs f -> case uMs of
                         UØ   -> \_ -> Ø
                         US _ -> vecToProd getI uMs . liftT (getVF <$> f) . prodToVec I uNs
@@ -47,8 +48,6 @@ runTOp sNs sMs = (\case
       x :< y :< Ø  -> only (gmul lM lO lN x y)
     Transp _       -> only . transp . head'
     Shuffle i      -> select i
-    ) \\ witSings sNs
-      \\ witSings sMs
     -- Fold _ f       -> only . foldT f     . head'
 
 runTensorOp

@@ -41,7 +41,6 @@ import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.NatKind
 import qualified Data.Type.Nat                       as TCN
-import qualified Data.Type.Nat.Util                  as TCN
 import qualified Data.Type.Vector                    as TCV
 import qualified Data.Type.Vector.Util               as TCV
 import qualified Data.Vector.Sized                   as VS

@@ -38,7 +38,8 @@ gradTOp
     -> Prod t ns    -- ^ inputs
     -> Prod t ms    -- ^ d target / d outputs
     -> Prod t ns    -- ^ d target / d inputs
-gradTOp sNs sMs = (\case
+gradTOp sNs sMs = (\\ witSings sNs) $
+                  (\\ witSings sMs) $ \case
     Lift uN uM f -> case uN of
       UØ   -> \_ _ -> Ø
       US _ -> \x -> vecToProd getI uN
@@ -119,8 +120,6 @@ gradTOp sNs sMs = (\case
                 Just Refl -> [d]
                 Nothing   -> []
       in  imap1 f (singProd sNs)
-    ) \\ witSings sNs
-      \\ witSings sMs
 
 gradTensorOp
     :: forall ns t. (Tensor t, Floating (ElemT t))
@@ -152,4 +151,3 @@ gradTensorOp = \case
                                                     (gradTOp sA sB o (takeProd lA lD x))
                                                     dtdy
                             in  res
-

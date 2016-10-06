@@ -23,10 +23,6 @@
 
 module Data.Nested where
 
--- import           Data.Finite
--- import           Data.Type.Fin
--- import           Data.Type.Index
--- import           Type.Class.Higher
 import           Control.Applicative
 import           Data.Kind
 import           Data.Singletons
@@ -40,8 +36,6 @@ import           Data.Type.Product.Util
 import           Data.Type.Sing
 import           Data.Type.SnocProd
 import           Data.Type.Uniform
-import           TensorOps.Types
-import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
@@ -51,7 +45,6 @@ import qualified Data.Type.Nat                       as TCN
 import qualified Data.Type.Vector                    as TCV
 import qualified Data.Type.Vector.Util               as TCV
 import qualified Data.Vector.Sized                   as VS
-import qualified Type.Family.Nat                     as TCN
 
 data Uncons :: (k -> Type -> Type) -> k -> Type -> Type where
     UNil  :: Uncons v (FromNat 0) a
