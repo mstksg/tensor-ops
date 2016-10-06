@@ -14,6 +14,7 @@
 
 module Data.Type.Sing where
 
+import           Data.Bifunctor
 import           Data.Kind
 import           Data.Singletons
 import           Data.Singletons.Prelude.List hiding (Length, Reverse, sReverse, Head, (%:++))
@@ -53,6 +54,15 @@ prodSing
 prodSing = \case
     Ø        -> SNil
     s :< ss -> s `SCons` prodSing ss
+
+splitSing
+    :: Length ns
+    -> Sing (ns ++ ms)
+    -> (Sing ns, Sing ms)
+splitSing = \case
+    LZ   -> \ss -> (SNil, ss)
+    LS l -> \case
+      s `SCons` ss -> first (s `SCons`) (splitSing l ss)
 
 singProdNat
     :: forall (as :: [N]). ()

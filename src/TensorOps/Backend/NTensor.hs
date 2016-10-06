@@ -26,6 +26,7 @@ import           Data.Singletons.Prelude.List hiding (Length, Reverse)
 import           Data.Type.Combinator
 import           Data.Type.Combinator.Util
 import           Data.Type.Length                    as TCL
+import           Data.Type.Length.Util               as TCL
 import           Data.Type.Product                   as TCP
 import           Data.Type.Product.Util              as TCP
 import           Data.Type.Sing
@@ -108,8 +109,15 @@ overNVec f = getI . ltNVec (I . f)
 {-# INLINE overNVec #-}
 
 
-instance (Vec (v :: k -> Type -> Type), a ~ Double, Nesting1 Proxy Functor v, Nesting1 Sing Applicative v, Nesting1 Proxy Foldable v, Eq1 (IndexN k))
-      => Tensor (NTensor v a) where
+instance
+      ( Vec (v :: k -> Type -> Type)
+      , a ~ Double
+      , Nesting1 Proxy Functor v
+      , Nesting1 Sing Applicative v
+      , Nesting1 Proxy Foldable v
+      , Nesting1 Proxy Traversable v
+      , Eq1 (IndexN k)
+      ) => Tensor (NTensor v a) where
     type ElemT  (NTensor v a) = a
     type IndexT (NTensor (v :: k -> Type -> Type) a) = Prod (IndexN k)
 
@@ -126,32 +134,32 @@ instance (Vec (v :: k -> Type -> Type), a ~ Double, Nesting1 Proxy Functor v, Ne
         :: forall ns. (SingI ns, SingI (Reverse ns))
         => NTensor v a ns
         -> NTensor v a (Reverse ns)
-    transp t = genNTensor sing (flip indexNTensor t . TCP.reverse')
-                 \\ reverseReverse lNs
-      where
-        lNs :: Length ns
-        lNs = singLength sing
+    transp = overNVec (transpose sing)
     {-# INLINE transp #-}
 
     -- TODO: Decently inefficient because it multiplies everything and then
     -- sums only the diagonal.
     gmul
-        :: forall ms os ns. SingI (Reverse os ++ ns)
+        :: forall ms os ns.
+         ( SingI (ms ++ os)
+         , SingI (Reverse os ++ ns)
+         , SingI (ms ++ ns)
+         )
         => Length ms
         -> Length os
         -> Length ns
         -> NTensor v a (ms         ++ os)
         -> NTensor v a (Reverse os ++ ns)
         -> NTensor v a (ms         ++ ns)
-    gmul lM lO lN = overNVec2 $ \x y ->
-                      joinNestedVec $ mapNVecSlices (f y) lM x
+    gmul lM lO lN = overNVec2 (gmul' lM lO lN)
+                      \\ sOr
+                      \\ sN
       where
-        f   :: Nested v (Reverse os ++ ns) a
-            -> Nested v os a
-            -> Nested v ns a
-        f y x = (reduceTrace lO lN $ fmap (\x' -> fmap (x' *) y) x)
-        {-# INLINE f #-}
-    -- {-# INLINE gmul #-}
+        lO' = TCL.reverse' lO
+        sOr :: Sing (Reverse os)
+        sN  :: Sing ns
+        (sOr, sN) = splitSing (TCL.reverse' lO)
+                              (sing :: Sing (Reverse os ++ ns))
 
     diag
         :: forall n ns. SingI ns

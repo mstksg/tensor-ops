@@ -9,13 +9,14 @@
 
 module Data.Type.Length.Util where
 
+-- import           Data.Type.Equality
 import           Data.Kind
 import           Data.Proxy
-import           Data.Type.Equality
 import           Data.Type.Length
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
+import           Unsafe.Coerce
 
 append'
     :: Length ns
@@ -25,13 +26,16 @@ append' = \case
     LZ   -> id
     LS l -> LS . append' l
 
+-- TODO: could PROBABLY just be unsafeCoerce?
+-- also, make the product reverse' efficient.
 reverse'
     :: forall ns. ()
     => Length ns
     -> Length (Reverse ns)
-reverse' = \case
-    LZ -> LZ
-    LS l -> reverse' l >: (Proxy @(Head ns))
+reverse' = unsafeCoerce
+-- reverse' = \case
+--     LZ   -> LZ
+--     LS l -> reverse' l >: (Proxy @(Head ns))
 
 (>:)
     :: Length ns
@@ -87,22 +91,3 @@ snocLengthReverse = \case
       LS (snocLengthReverse s)
         \\ snocReverse (snocLengthLength s) p
 
-
-
--- | I forgot what I was doing when I made this but I think it's a view for
--- a list separated by the init and last.
---
--- oh this is ListLast from that idris book isn't it
-data ViewR :: [k] -> Type where
-    RNil  :: ViewR '[]
-    RSnoc :: Proxy n -> Length ns -> ViewR (ns >: n)
-
-
-viewR
-    :: Length ns
-    -> ViewR ns
-viewR = \case
-    LZ   -> RNil
-    LS l -> case viewR l of
-              RNil       -> RSnoc Proxy LZ
-              RSnoc p l' -> RSnoc p (LS l')

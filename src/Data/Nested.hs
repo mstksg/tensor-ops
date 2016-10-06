@@ -26,11 +26,11 @@ module Data.Nested where
 import           Control.Applicative
 import           Data.Kind
 import           Data.Singletons
-import           Data.Singletons.Prelude.List hiding (Length, Reverse, (%:++))
+import           Data.Singletons.Prelude.List hiding (Length, Reverse, (%:++), sReverse)
 import           Data.Type.Combinator
 import           Data.Type.Combinator.Util
-import           Data.Type.Length
-import           Data.Type.Length.Util
+import           Data.Type.Length                    as TCL
+import           Data.Type.Length.Util               as TCL
 import           Data.Type.Product
 import           Data.Type.Product.Util
 import           Data.Type.Sing
@@ -204,6 +204,25 @@ nTail
 nTail = \case
   NS xs -> NS $ vTail xs
 
+unScalar
+    :: Nested v '[] a
+    -> a
+unScalar = \case
+  NØ x -> x
+
+unVector
+    :: Functor (v j)
+    => Nested v '[j] a
+    -> v j a
+unVector = \case
+    NS xs -> unScalar <$> xs
+
+nVector
+    :: Functor (v j)
+    => v j a
+    -> Nested v '[j] a
+nVector = NS . fmap NØ
+
 -- genNestedVec
 --     :: Vec (v :: k -> Type -> Type)
 --     => Sing ns
@@ -249,6 +268,13 @@ joinNestedVec = \case
     NS (xs :: v j (Nested v js (Nested v ms a))) ->
       NS $ fmap joinNestedVec xs
         \\ (nesting1 Proxy :: Wit (Functor (v j)))
+
+unjoinNestedVec
+    :: Nesting1 Proxy Functor v
+    => Length ns
+    -> Nested v (ns ++ ms) a
+    -> Nested v ns (Nested v ms a)
+unjoinNestedVec = mapNVecSlices id
 
 mapNVecSlices
     :: forall v ns ms a b. Nesting1 Proxy Functor v
@@ -356,4 +382,92 @@ itraverseNestedVec
 itraverseNestedVec f = \case
     NØ x  -> NØ <$> f Ø x
     NS xs -> NS <$> vITraverse (\i -> itraverseNestedVec (\is -> f (i :< is))) xs
+
+    -- gmul    :: (SingI (ms ++ os), SingI (Reverse os ++ ns), SingI (ms ++ ns))
+gmul'
+    :: forall ms os ns v a.
+     ( Nesting1 Proxy Functor     v
+     , Nesting1 Sing  Applicative v
+     , Nesting1 Proxy Foldable    v
+     , Nesting1 Proxy Traversable v
+     , SingI ns
+     , SingI (Reverse os)
+     , Num a
+     )
+    => Length ms
+    -> Length os
+    -> Length ns
+    -> Nested v (ms         ++ os) a
+    -> Nested v (Reverse os ++ ns) a
+    -> Nested v (ms         ++ ns) a
+gmul' lM lO _ x y = joinNestedVec $ mapNVecSlices f lM x
+  where
+    psO :: Prod Sing (Reverse os)
+    psO = singProd (sing :: Sing (Reverse os))
+    f   :: Nested v os a
+        -> Nested v ns a
+    f z = squish lO (snocProd psO) z (unjoinNestedVec (TCL.reverse' lO) y)
+
+squish
+    :: forall v os ns a.
+     ( Num a
+     , Nesting1 Proxy Functor     v
+     , Nesting1 Sing  Applicative v
+     , Nesting1 Proxy Foldable    v
+     , Nesting1 Proxy Traversable v
+     , SingI ns
+     )
+    => Length os
+    -> SnocProd Sing (Reverse os)
+    -> Nested v os a
+    -> Nested v (Reverse os) (Nested v ns a)
+    -> Nested v ns a
+squish lO spO x y = (\\ reverseReverse lO)              $
+                    (\\ prodSing (snocProdReverse spO)) $
+    sum $ liftA2 (\x' y' -> fmap (x' *) y') x (transposeHelp spO y)
+
+transpose
+    :: forall v os a.
+     ( Nesting1 Proxy Functor     v
+     , Nesting1 Sing  Applicative v
+     , Nesting1 Proxy Foldable    v
+     , Nesting1 Proxy Traversable v
+     )
+    => Sing os
+    -> Nested v os a
+    -> Nested v (Reverse os) a
+transpose s = transposeHelp (snocProd (singProd s))
+
+transposeHelp
+    :: forall v os a.
+     ( Nesting1 Proxy Functor     v
+     , Nesting1 Sing  Applicative v
+     , Nesting1 Proxy Foldable    v
+     , Nesting1 Proxy Traversable v
+     )
+    => SnocProd Sing os
+    -> Nested v os a
+    -> Nested v (Reverse os) a
+transposeHelp = \case
+    ØS -> \case
+      NØ x -> NØ x
+    (sOs' :: SnocProd Sing os') :& (sO :: Sing o) ->
+      (\\ (nesting1 Proxy :: Wit (Functor     (v o)))) $
+      (\\ (nesting1 sO    :: Wit (Applicative (v o)))) $ \x ->
+        let lOs'  :: Length os'
+            lOs'  = snocProdLength sOs'
+            x' :: Nested v os' (v o a)
+            x' = mapNVecSlices unVector lOs' x
+                   \\ appendSnoc lOs' sO
+            xT :: Nested v (Reverse os') (v o a)
+            xT = transposeHelp sOs' x'
+            -- TODO: analyze sequenceA vs. distribute
+            y :: v o (Nested v (Reverse os') a)
+            y = sequenceA xT
+            y' :: Nested v '[o] (Nested v (Reverse os') a)
+            y' = nVector y
+        in  joinNestedVec y'
+              \\ snocReverse lOs' sO
+
+
 
