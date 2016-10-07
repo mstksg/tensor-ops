@@ -62,6 +62,7 @@ executable tensor-ops-neural-nets
   build-depends:       base
                      , deepseq
                      , mwc-random
+                     , optparse-applicative
                      , primitive
                      , singletons
                      , statistics

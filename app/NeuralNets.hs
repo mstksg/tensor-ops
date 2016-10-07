@@ -5,24 +5,13 @@
 {-# LANGUAGE LambdaCase           #-}
 {-# LANGUAGE PolyKinds            #-}
 {-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE RecordWildCards      #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
 
--- import           Data.Singletons.Prelude.Num
--- import           Data.Type.Combinator
--- import           Data.Type.Index
--- import           Data.Type.Nat
--- import           Data.Type.Nat.Quote
--- import           GHC.TypeLits
--- import           Statistics.Distribution
--- import           TensorOps.Backend.LTensor
--- import           TensorOps.Backend.VTensor
--- import           Type.Class.Higher.Util
--- import           Type.Family.Nat
--- import           Type.Family.Nat.Util
 import           Control.Category
 import           Control.DeepSeq
 import           Control.Exception
@@ -43,6 +32,7 @@ import           Data.Type.Product               as TCP
 import           Data.Type.Product.Util
 import           Data.Type.Sing
 import           Data.Type.Uniform
+import           Options.Applicative
 import           Prelude hiding                  ((.), id)
 import           Statistics.Distribution.Normal
 import           Statistics.Distribution.Uniform
@@ -53,9 +43,7 @@ import           TensorOps.Run
 import           TensorOps.Types
 import           Text.Printf
 import           Type.Class.Higher
-import           Type.Class.Known
 import           Type.Class.Witness hiding       (inner)
-import           Type.Family.Constraint
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.NatKind
@@ -69,22 +57,10 @@ logistic
     -> a
 logistic x = 1 / (1 + exp (- x))
 
-sigmoid
-    :: forall a. Floating a
-    => a
-    -> a
-sigmoid x = (tanh x + 2) / 2
-
-relu
-    :: forall a. Floating a
-    => a
-    -> a
-relu x = x * ((signum x + 1)/ 2)
-
 data Network :: ([k] -> Type) -> k -> k -> Type where
-    N :: { nsOs     :: !(Sing os)
-         , nOp      :: !(TensorOp ('[i] ': os) '[ '[o] ])
-         , nParams  :: !(Prod t os)
+    N :: { _nsOs    :: !(Sing os)
+         , _nOp     :: !(TensorOp ('[i] ': os) '[ '[o] ])
+         , _nParams :: !(Prod t os)
          } -> Network t i o
 
 instance Nesting1 Proxy NFData t => NFData (Network t i o) where
@@ -239,23 +215,53 @@ netTest _ rate n hs g = withSingI (sFromNat @k (SNat @1)) $
     v `inCircle` (o, r) = let d = TT.zip2 (-) v o
                           in  TT.unScalar (d `TT.dot` d) <= r**2
 
+data Opts = O { oRate    :: Double
+              , oSamples :: Int
+              , oNetwork :: [Integer]
+              , oNoList  :: Bool
+              , oNoVect :: Bool
+              }
+
+opts :: Parser Opts
+opts = O <$> option auto
+               ( long "rate" <> short 'r' <> metavar "STEP"
+              <> help "Neural network learning rate"
+              <> value 1 <> showDefault
+               )
+         <*> option auto
+               ( long "samps" <> short 's' <> metavar "COUNT"
+              <> help "Number of samples to train the network on"
+              <> value 100000 <> showDefault
+               )
+         <*> option auto
+               ( long "layers" <> short 'l' <> metavar "LIST"
+              <> help "List of hidden layer sizes"
+              <> value [8,8] <> showDefault
+               )
+         <*> switch ( long "nolist" <> help "Do not run the nested linked list backend")
+         <*> switch ( long "novect" <> help "Do not run the nested vector backend")
+
 main :: IO ()
 main = withSystemRandom $ \g -> do
-    -- n :: Network LTensor N4 N2
-    --     <- genNet [SomeSing (sing :: Sing N3), SomeSing (sing :: Sing N2)] g
-    -- case n of
-    --   N (s :: Sing os) _ (p :: Prod LTensor os) -> do
-    --     let p' :: Prod (Sing :&: LTensor) os
-    --         p' = zipProd (singProd s) p
-    --     traverse1_ (\(s' :&: t) -> putStrLn (show t) \\ s') p'
+    O{..} <- execParser $ info (helper <*> opts)
+                            ( fullDesc
+                           <> header "tensor-ops-neural-nets - train neural nets with tensor-ops"
+                           <> progDesc ( "Implements a simple feed-forward neural network to "
+                                      <> "train on a simple 2D input using tensor-ops machinery."
+                                       )
+                            )
 
-    putStrLn "Training network..."
-    (r1, t1) <- time $ netTest (Proxy @LTensor) 1 100000 [7,7] g
-    putStrLn r1
-    print t1
-    (r2, t2) <- time $ netTest (Proxy @VTensor) 1 100000 [7,7] g
-    putStrLn r2
-    print t2
+    printf "rate: %f | samps: %d | layers: %s\n" oRate oSamples (show oNetwork)
+    unless oNoList $ do
+      putStrLn "Training nested linked list network..."
+      (r1, t1) <- time $ netTest (Proxy @LTensor) oRate oSamples oNetwork g
+      putStrLn r1
+      print t1
+    unless oNoVect $ do
+      putStrLn "Training nested vector network..."
+      (r2, t2) <- time $ netTest (Proxy @VTensor) oRate oSamples oNetwork g
+      putStrLn r2
+      print t2
 
 time
     :: NFData a
