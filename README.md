@@ -1,6 +1,8 @@
 tensor-ops
 ==========
 
+[![Build Status](https://travis-ci.org/mstksg/tensor-ops.svg?branch=master)](https://travis-ci.org/mstksg/tensor-ops)
+
 Adding a quick readme because of a recent explosion in publicity :)
 
 *tensor-ops* is a library for specifying type-safe tensor manipulations that
