@@ -21,10 +21,25 @@
 {-# LANGUAGE TypeOperators          #-}
 {-# LANGUAGE UndecidableInstances   #-}
 
-module Data.Nested where
+module Data.Nested
+  ( Vec(..)
+  , Nesting(..)
+  , Nesting1(..), nesting1Every
+  , Nested
+  , genNested, genNestedA
+  , indexNested
+  , transpose
+  , gmul'
+  , diagNV
+  , joinNested
+  , nIxRows
+  , vGen, itraverseNested
+  , liftNested
+  ) where
 
 import           Control.Applicative
 import           Control.DeepSeq
+import           Data.Distributive
 import           Data.Kind
 import           Data.Singletons
 import           Data.Singletons.Prelude.List hiding (Length, Reverse, (%:++), sReverse)
@@ -34,7 +49,6 @@ import           Data.Type.Index
 import           Data.Type.Length                    as TCL
 import           Data.Type.Length.Util               as TCL
 import           Data.Type.Product
-import           Data.Type.Product.Util
 import           Data.Type.Sing
 import           Data.Type.SnocProd
 import           Data.Type.Uniform
@@ -72,36 +86,53 @@ vGen
     -> (IndexN k j -> a)
     -> v j a
 vGen s f = getI $ vGenA s (I . f)
+{-# INLINE vGen #-}
 
 instance Vec (Flip2 VS.VectorT I) where
     vHead _ = getI . VS.head . getFlip2
+    {-# INLINE vHead #-}
     vTail = Flip2 . VS.tail . getFlip2
+    {-# INLINE vTail #-}
     vGenA = \case
       GT.SNat -> fmap Flip2 . VS.generateA . (fmap I .)
+    {-# INLINE vGenA #-}
     vIndex i = (VS.!! i) . getFlip2
+    {-# INLINE vIndex #-}
     vUncons = \case
       GT.SNat -> \case
         Flip2 xs -> case VS.uncons xs of
           VS.VNil           -> UNil
           VS.VCons (I y) ys -> UCons sing y (Flip2 ys)
+    {-# INLINE vUncons #-}
     vEmpty = Flip2 VS.empty
+    {-# INLINE vEmpty #-}
     vCons x (Flip2 xs) = Flip2 (VS.cons (I x) xs)
+    {-# INLINE vCons #-}
     vITraverse f (Flip2 xs) = Flip2 <$> VS.itraverse (\i (I x) -> I <$> f i x) xs
+    {-# INLINE vITraverse #-}
 
 instance Vec (Flip2 TCV.VecT I) where
     vHead _ = getI . TCV.head' . getFlip2
+    {-# INLINE vHead #-}
     vTail = Flip2 . TCV.tail' . getFlip2
+    {-# INLINE vTail #-}
     vGenA = \case
       SN n -> \f -> Flip2 <$> TCV.vgenA n (fmap I . f)
+    {-# INLINE vGenA #-}
     vIndex i = TCV.index' i . getFlip2
+    {-# INLINE vIndex #-}
     vUncons = \case
       SN TCN.Z_ -> \case
         Flip2 TCV.ØV -> UNil
       SN (TCN.S_ n) -> \case
         Flip2 (I x TCV.:* xs) -> UCons (SN n) x (Flip2 xs)
+    {-# INLINE vUncons #-}
     vEmpty = Flip2 TCV.ØV
+    {-# INLINE vEmpty #-}
     vCons x (Flip2 xs) = Flip2 (I x TCV.:* xs)
+    {-# INLINE vCons #-}
     vITraverse f (Flip2 xs) = Flip2 <$> TCV.itraverse (\i (I x) -> I <$> f i x) xs
+    {-# INLINE vITraverse #-}
 
 class Nesting (w :: k -> Type) (c :: j -> Constraint) (v :: k -> j -> j) where
     nesting :: w i -> c a :- c (v i a)
@@ -111,28 +142,31 @@ class Nesting1 (w :: k -> Type) (c :: j -> Constraint) (v :: k -> j) where
 
 instance Nesting w NFData (Flip2 VS.VectorT I) where
     nesting _ = Sub Wit
-instance Functor f => Nesting1 w Functor (Flip2 VS.VectorT f) where
+instance Functor f      => Nesting1 w    Functor      (Flip2 VS.VectorT f) where
     nesting1 _ = Wit
-instance Applicative f => Nesting1 Sing Applicative (Flip2 VS.VectorT f) where
+instance Applicative f  => Nesting1 Sing Applicative  (Flip2 VS.VectorT f) where
     nesting1 GT.SNat = Wit
-instance Foldable f => Nesting1 w Foldable (Flip2 VS.VectorT f) where
+instance Foldable f     => Nesting1 w    Foldable     (Flip2 VS.VectorT f) where
     nesting1 _ = Wit
-instance Traversable f => Nesting1 w Traversable (Flip2 VS.VectorT f) where
+instance Traversable f  => Nesting1 w    Traversable  (Flip2 VS.VectorT f) where
     nesting1 _ = Wit
+instance Distributive f => Nesting1 Sing Distributive (Flip2 VS.VectorT f) where
+    nesting1 GT.SNat = Wit
 
 
 instance Nesting w NFData (Flip2 TCV.VecT I) where
     nesting _ = Sub Wit
-instance Functor f => Nesting1 w Functor (Flip2 TCV.VecT f) where
+instance Functor f      => Nesting1 w    Functor      (Flip2 TCV.VecT f) where
     nesting1 _ = Wit
-instance Applicative f => Nesting1 Sing Applicative (Flip2 TCV.VecT f) where
+instance Applicative f  => Nesting1 Sing Applicative  (Flip2 TCV.VecT f) where
     nesting1 (SN n) = Wit \\ n
-instance Foldable f => Nesting1 w Foldable (Flip2 TCV.VecT f) where
+instance Foldable f     => Nesting1 w    Foldable     (Flip2 TCV.VecT f) where
     nesting1 _ = Wit
-instance Traversable f => Nesting1 w Traversable (Flip2 TCV.VecT f) where
+instance Traversable f  => Nesting1 w    Traversable  (Flip2 TCV.VecT f) where
     nesting1 _ = Wit
+instance Distributive f => Nesting1 Sing Distributive (Flip2 TCV.VecT f) where
+    nesting1 (SN n) = Wit \\ n
 
--- class Nesting1 (w :: k -> Type) (c :: j -> Constraint) (v :: k -> j) where
 nesting1Every
     :: forall p w c v as. Nesting1 w c v
     => p v
@@ -183,6 +217,7 @@ instance (SingI js, Nesting1 Sing Applicative v, Nesting1 Proxy Functor v) => Ap
           SNil     -> NØ x
           (s :: Sing k) `SCons` ss -> NS (pure (go ss))
                     \\ (nesting1 s :: Wit (Applicative (v k)))
+    {-# INLINE pure #-}
     (<*>) :: forall a b. Nested v js (a -> b) -> Nested v js a -> Nested v js b
     (<*>) = go sing
       where
@@ -213,6 +248,22 @@ instance (Nesting1 Proxy Functor v, Nesting1 Proxy Foldable v, Nesting1 Proxy Tr
             -> NS <$> (traverse . traverse) f xs
                  \\ (nesting1 Proxy :: Wit (Traversable (v j)))
 
+instance (Vec v, SingI js, Nesting1 Proxy Functor v) => Distributive (Nested v js) where
+    distribute
+        :: forall f a. Functor f
+        => f (Nested v js a)
+        -> Nested v js (f a)
+    distribute xs = genNested sing $ \i -> indexNested i <$> xs
+    {-# INLINE distribute #-}
+    -- distribute = flip go sing
+    --   where
+    --     go  :: f (Nested v ks a)
+    --         -> Sing ks
+    --         -> Nested v ks (f a)
+    --     go xs = \case
+    --       SNil         -> NØ $ unScalar <$> xs
+    --       s `SCons` ss -> NS . vGen s $ \i ->
+    --                         go (fmap (indexNested' (i :< Ø)) xs) ss
 
 nHead
     :: forall v p j js a. Vec v
@@ -221,6 +272,7 @@ nHead
     -> Nested v js a
 nHead p = \case
   NS xs -> vHead p xs
+{-# INLINE nHead #-}
 
 nTail
     :: Vec v
@@ -228,12 +280,21 @@ nTail
     -> Nested v (j ': js) a
 nTail = \case
   NS xs -> NS $ vTail xs
+{-# INLINE nTail #-}
 
 unScalar
     :: Nested v '[] a
     -> a
 unScalar = \case
   NØ x -> x
+{-# INLINE unScalar #-}
+
+unNest
+    :: Nested v (j ': js) a
+    -> v j (Nested v js a)
+unNest = \case
+  NS xs -> xs
+{-# INLINE unNest #-}
 
 unVector
     :: Functor (v j)
@@ -241,65 +302,70 @@ unVector
     -> v j a
 unVector = \case
     NS xs -> unScalar <$> xs
+{-# INLINE unVector #-}
 
 nVector
     :: Functor (v j)
     => v j a
     -> Nested v '[j] a
 nVector = NS . fmap NØ
+{-# INLINE nVector #-}
 
--- genNestedVec
---     :: Vec (v :: k -> Type -> Type)
---     => Sing ns
---     -> (Prod (IndexN k) ns -> a)
---     -> Nested v ns a
--- genNestedVec = \case
---     SNil         -> \f -> NØ (f Ø)
---     s `SCons` ss -> \f -> NS $ vGen s (\i -> genNestedVec ss (f . (i :<)))
-
-genNestedVec
+genNested
     :: Vec (v :: k -> Type -> Type)
     => Sing ns
     -> (Prod (IndexN k) ns -> a)
     -> Nested v ns a
-genNestedVec s f = getI $ genNestedVecA s (I . f)
+genNested s f = getI $ genNestedA s (I . f)
+{-# INLINE genNested #-}
 
-genNestedVecA
+genNestedA
     :: (Vec (v :: k -> Type -> Type), Applicative f)
     => Sing ns
     -> (Prod (IndexN k) ns -> f a)
     -> f (Nested v ns a)
-genNestedVecA = \case
+genNestedA = \case
     SNil         -> \f -> NØ <$> f Ø
-    s `SCons` ss -> \f -> NS <$> vGenA s (\i -> genNestedVecA ss (f . (i :<)))
+    s `SCons` ss -> \f -> NS <$> vGenA s (\i -> genNestedA ss (f . (i :<)))
 
-indexNestedVec
+indexNested
     :: Vec (v :: k -> Type -> Type)
     => Prod (IndexN k) ns
     -> Nested v ns a
     -> a
-indexNestedVec = \case
+indexNested = \case
     Ø -> \case
       NØ x  -> x
     i :< is -> \case
-      NS xs -> indexNestedVec is (vIndex i xs)
+      NS xs -> indexNested is (vIndex i xs)
 
-joinNestedVec
+indexNested'
+    :: Vec (v :: k -> Type -> Type)
+    => Prod (IndexN k) ms
+    -> Nested v (ms ++ ns) a
+    -> Nested v ns a
+indexNested' = \case
+    Ø -> id
+    i :< is -> \case
+      NS xs -> indexNested' is (vIndex i xs)
+
+joinNested
     :: forall v ns ms a. Nesting1 Proxy Functor v
     => Nested v ns (Nested v ms a)
     -> Nested v (ns ++ ms) a
-joinNestedVec = \case
+joinNested = \case
     NØ x  -> x
     NS (xs :: v j (Nested v js (Nested v ms a))) ->
-      NS $ fmap joinNestedVec xs
+      NS $ fmap joinNested xs
         \\ (nesting1 Proxy :: Wit (Functor (v j)))
 
-unjoinNestedVec
+unjoinNested
     :: Nesting1 Proxy Functor v
     => Length ns
     -> Nested v (ns ++ ms) a
     -> Nested v ns (Nested v ms a)
-unjoinNestedVec = mapNVecSlices id
+unjoinNested = mapNVecSlices id
+{-# INLINE unjoinNested #-}
 
 mapNVecSlices
     :: forall v ns ms a b. Nesting1 Proxy Functor v
@@ -313,66 +379,6 @@ mapNVecSlices f = \case
       NS (xs :: v j (Nested v js a)) ->
         NS $ mapNVecSlices f l <$> xs
           \\ (nesting1 Proxy :: Wit (Functor (v j)))
-
-reduceTrace
-    :: forall ns ms v a.
-     ( Num a
-     , SingI (Reverse ns ++ ms)
-     , Nesting1 Proxy Functor v
-     , Nesting1 Proxy Foldable v
-     , Nesting1 Sing  Applicative v
-     , Vec v
-     )
-    => Length ns
-    -> Length ms
-    -> Nested v ns (Nested v (Reverse ns ++ ms) a)
-    -> Nested v ms a
-reduceTrace lN _ = reduceTraceHelp (reverseSnocProd sN) (prodSing sM)
-                     \\ reverseReverse lN
-  where
-    slN :: SnocLength ns
-    slN = snocLength lN
-    sN :: Prod Sing (Reverse ns)
-    sM :: Prod Sing ms
-    (sN, sM) = splitProd (snocLengthReverse slN) (singProd sing)
-
-reduceTraceHelp
-    :: forall ns ms v a.
-     ( Num a
-     , Vec v
-     , Nesting1 Proxy Functor     v
-     , Nesting1 Proxy Foldable    v
-     , Nesting1 Sing  Applicative v
-     )
-    => SnocProd Sing ns
-    -> Sing ms
-    -> Nested v ns (Nested v (Reverse ns ++ ms) a)
-    -> Nested v ms a
-reduceTraceHelp = \case
-    ØS -> \_ -> \case
-      NØ y -> y
-    sNs' :& (sN :: Sing n) -> \sMs x ->
-      let lNs' = snocProdLength sNs'
-      in  reduceTraceHelp sNs' sMs (mapNVecSlices (f sMs sNs' sN) lNs' x)
-            \\ appendSnoc lNs' sN
-            \\ snocReverse lNs' sN
-  where
-    f   :: forall o os. ()
-        => Sing ms
-        -> SnocProd Sing os
-        -> Sing o
-        -> Nested v '[o] (Nested v ((o ': Reverse os) ++ ms) a)
-        -> Nested v (Reverse os ++ ms) a
-    f sm sp so = collapse . diagNV' so . joinNestedVec
-                    \\ prodSing (snocProdReverse sp) %:++ sm
-      where
-        collapse
-            :: SingI (Reverse os ++ ms)
-            => Nested v (o ': (Reverse os ++ ms)) a
-            -> Nested v (Reverse os ++ ms) a
-        collapse = \case
-          NS xs -> sum xs
-                     \\ (nesting1 Proxy :: Wit (Foldable (v o)))
 
 diagNV'
     :: forall v n ns a. (Vec v, Nesting1 Proxy Functor v)
@@ -399,22 +405,23 @@ diagNV s = \case
     UØ   -> diagNV' s
     US u -> diagNV s u . diagNV' s
 
-itraverseNestedVec
+itraverseNested
     :: forall k (v :: k -> Type -> Type) (ns :: [k]) a b f. (Applicative f, Vec v)
     => (Prod (IndexN k) ns -> a -> f b)
     -> Nested v ns a
     -> f (Nested v ns b)
-itraverseNestedVec f = \case
+itraverseNested f = \case
     NØ x  -> NØ <$> f Ø x
-    NS xs -> NS <$> vITraverse (\i -> itraverseNestedVec (\is -> f (i :< is))) xs
+    NS xs -> NS <$> vITraverse (\i -> itraverseNested (\is -> f (i :< is))) xs
 
     -- gmul    :: (SingI (ms ++ os), SingI (Reverse os ++ ns), SingI (ms ++ ns))
 gmul'
     :: forall ms os ns v a.
-     ( Nesting1 Proxy Functor     v
-     , Nesting1 Sing  Applicative v
-     , Nesting1 Proxy Foldable    v
-     , Nesting1 Proxy Traversable v
+     ( Nesting1 Proxy Functor      v
+     , Nesting1 Sing  Applicative  v
+     , Nesting1 Proxy Foldable     v
+     , Nesting1 Proxy Traversable  v
+     , Nesting1 Sing  Distributive v
      , SingI ns
      , SingI (Reverse os)
      , Num a
@@ -425,21 +432,22 @@ gmul'
     -> Nested v (ms         ++ os) a
     -> Nested v (Reverse os ++ ns) a
     -> Nested v (ms         ++ ns) a
-gmul' lM lO _ x y = joinNestedVec $ mapNVecSlices f lM x
+gmul' lM lO _ x y = joinNested $ mapNVecSlices f lM x
   where
     psO :: Prod Sing (Reverse os)
     psO = singProd (sing :: Sing (Reverse os))
     f   :: Nested v os a
         -> Nested v ns a
-    f z = squish lO (snocProd psO) z (unjoinNestedVec (TCL.reverse' lO) y)
+    f z = squish lO (snocProd psO) z (unjoinNested (TCL.reverse' lO) y)
 
 squish
     :: forall v os ns a.
      ( Num a
-     , Nesting1 Proxy Functor     v
-     , Nesting1 Sing  Applicative v
-     , Nesting1 Proxy Foldable    v
-     , Nesting1 Proxy Traversable v
+     , Nesting1 Proxy Functor      v
+     , Nesting1 Sing  Applicative  v
+     , Nesting1 Proxy Foldable     v
+     , Nesting1 Proxy Traversable  v
+     , Nesting1 Sing  Distributive v
      , SingI ns
      )
     => Length os
@@ -453,10 +461,10 @@ squish lO spO x y = (\\ reverseReverse lO)              $
 
 transpose
     :: forall v os a.
-     ( Nesting1 Proxy Functor     v
-     , Nesting1 Sing  Applicative v
-     , Nesting1 Proxy Foldable    v
-     , Nesting1 Proxy Traversable v
+     ( Nesting1 Proxy Functor      v
+     , Nesting1 Proxy Foldable     v
+     , Nesting1 Proxy Traversable  v
+     , Nesting1 Sing  Distributive v
      )
     => Sing os
     -> Nested v os a
@@ -465,10 +473,10 @@ transpose s = transposeHelp (snocProd (singProd s))
 
 transposeHelp
     :: forall v os a.
-     ( Nesting1 Proxy Functor     v
-     , Nesting1 Sing  Applicative v
-     , Nesting1 Proxy Foldable    v
-     , Nesting1 Proxy Traversable v
+     ( Nesting1 Proxy Functor      v
+     , Nesting1 Proxy Foldable     v
+     , Nesting1 Proxy Traversable  v
+     , Nesting1 Sing  Distributive v
      )
     => SnocProd Sing os
     -> Nested v os a
@@ -477,8 +485,8 @@ transposeHelp = \case
     ØS -> \case
       NØ x -> NØ x
     (sOs' :: SnocProd Sing os') :& (sO :: Sing o) ->
-      (\\ (nesting1 Proxy :: Wit (Functor     (v o)))) $
-      (\\ (nesting1 sO    :: Wit (Applicative (v o)))) $ \x ->
+      (\\ (nesting1 Proxy :: Wit (Functor      (v o)))) $
+      (\\ (nesting1 sO    :: Wit (Distributive (v o)))) $ \x ->
         let lOs'  :: Length os'
             lOs'  = snocProdLength sOs'
             x' :: Nested v os' (v o a)
@@ -486,12 +494,11 @@ transposeHelp = \case
                    \\ appendSnoc lOs' sO
             xT :: Nested v (Reverse os') (v o a)
             xT = transposeHelp sOs' x'
-            -- TODO: analyze sequenceA vs. distribute
             y :: v o (Nested v (Reverse os') a)
-            y = sequenceA xT
+            y = distribute xT
             y' :: Nested v '[o] (Nested v (Reverse os') a)
             y' = nVector y
-        in  joinNestedVec y'
+        in  joinNested y'
               \\ snocReverse lOs' sO
 
 
@@ -506,4 +513,12 @@ nIxRows = \case
     LS l -> \f -> \case
       NS (xs :: v j (Nested v js a)) ->
         fmap NS . vITraverse (\i -> nIxRows l (\is ys -> f (i :< is) ys)) $ xs
+
+liftNested
+    :: Distributive (Nested v ns)
+    => (TCV.Vec m (TCV.Vec n a -> a))
+    -> TCV.Vec n (Nested v ns a)
+    -> TCV.Vec m (Nested v ns a)
+liftNested f xs = fmap (\g -> TCV.liftVecD g xs) f
+{-# INLINE liftNested #-}
 

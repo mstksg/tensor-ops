@@ -23,6 +23,7 @@ module TensorOps.Backend.NTensor
 
 import           Control.DeepSeq
 import           Control.Monad.Primitive
+import           Data.Distributive
 import           Data.Kind
 import           Data.Nested
 import           Data.Proxy
@@ -60,20 +61,12 @@ deriving instance (NFData a, Nesting Proxy NFData v) => NFData (NTensor v a ns)
 instance (NFData a, Nesting Proxy NFData v) => Nesting1 w NFData (NTensor v a) where
     nesting1 _ = Wit
 
-liftNT
-    :: Applicative (Nested v o)
-    => (TCV.Vec m (TCV.Vec n a -> a))
-    -> TCV.Vec n (Nested v o a)
-    -> TCV.Vec m (Nested v o a)
-liftNT f xs = fmap (\g -> TCV.liftVec g xs) f
-{-# INLINE liftNT #-}
-
 genNTensor
     :: forall k (v :: k -> Type -> Type) (ns :: [k]) (a :: Type). Vec v
     => Sing ns
     -> (Prod (IndexN k) ns -> a)
     -> NTensor v a ns
-genNTensor s f = NTensor $ genNestedVec s f
+genNTensor s f = NTensor $ genNested s f
 {-# INLINE genNTensor #-}
 
 genNTensorA
@@ -81,7 +74,7 @@ genNTensorA
     => Sing ns
     -> (Prod (IndexN k) ns -> f a)
     -> f (NTensor v a ns)
-genNTensorA s f = NTensor <$> genNestedVecA s f
+genNTensorA s f = NTensor <$> genNestedA s f
 {-# INLINE genNTensorA #-}
 
 indexNTensor
@@ -89,7 +82,7 @@ indexNTensor
     => Prod (IndexN k) ns
     -> NTensor v a ns
     -> a
-indexNTensor i = indexNestedVec i . getNVec
+indexNTensor i = indexNested i . getNVec
 {-# INLINE indexNTensor #-}
 
 overNVec2
@@ -127,21 +120,21 @@ overNVec f = getI . ntNVec (I . f)
 instance
       ( Vec (v :: k -> Type -> Type)
       , a ~ Double
-      , Nesting1 Proxy Functor v
-      , Nesting1 Sing Applicative v
-      , Nesting1 Proxy Foldable v
-      , Nesting1 Proxy Traversable v
+      , Nesting1 Proxy Functor      v
+      , Nesting1 Sing  Applicative  v
+      , Nesting1 Proxy Foldable     v
+      , Nesting1 Proxy Traversable  v
+      , Nesting1 Sing  Distributive v
       , Eq1 (IndexN k)
       ) => Tensor (NTensor v a) where
     type ElemT  (NTensor v a) = a
-    -- type IndexT (NTensor (v :: k -> Type -> Type) a) = Prod (IndexN k)
 
     liftT
         :: forall (n :: TCN.N) (m :: TCN.N) (o :: [k]). SingI o
         => (TCV.Vec m (TCV.Vec n a -> a))
         -> TCV.Vec n (NTensor v a o)
         -> TCV.Vec m (NTensor v a o)
-    liftT f = fmap NTensor . liftNT f . fmap getNVec
+    liftT f = fmap NTensor . liftNested f . fmap getNVec
     {-# INLINE liftT #-}
 
     transp
@@ -215,7 +208,7 @@ instance
         -> (Prod (IndexN k) ms -> NTensor v a ns -> f (NTensor v a os))
         -> NTensor v a (ms ++ ns)
         -> f (NTensor v a (ms ++ os))
-    ixRows l f = ntNVec $ fmap joinNestedVec . nIxRows l (\i -> nvecNT (f i))
+    ixRows l f = ntNVec $ fmap joinNested . nIxRows l (\i -> nvecNT (f i))
 
 
 type LTensor = NTensor (Flip2 TCV.VecT   I) Double

@@ -23,6 +23,7 @@ import           Data.Kind
 import           Data.Proxy
 import           Data.Singletons
 import           Data.Singletons.TypeLits
+import           Data.Distributive
 import           Data.Type.Combinator
 import           GHC.Generics
 import           GHC.TypeLits
@@ -43,6 +44,9 @@ deriving instance Show (f a)    => Show (VectorT n f a)
 deriving instance Functor f     => Functor (VectorT n f)
 deriving instance Traversable f => Traversable (VectorT n f)
 deriving instance Foldable f    => Foldable (VectorT n f)
+
+instance (KnownNat n, Distributive f) => Distributive (VectorT n f) where
+    distribute xs = generate $ \i -> distribute $ fmap (! i) xs
 
 instance NFData (f a) => NFData (VectorT n f a)
 

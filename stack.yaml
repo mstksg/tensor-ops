@@ -37,20 +37,12 @@ resolver: lts-7.2
 # will not be run. This is useful for tweaking upstream packages.
 packages:
 - '.'
-# - location:
-#     git: https://github.com/mstksg/type-combinators-quote
-#     commit: e96e3fd2b1f084bfe5d97f7ff45a60f2d4988b63
-#   extra-dep: true
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps:
 - type-combinators-0.2.4.3
 - finite-typelits-0.1.0.0
-# - base-4.9.0.0
-# - ghc-prim-0.5.0.0
-# - integer-gmp-1.0.0.1
-# - template-haskell-2.11.0.0
 
 # Override default flag values for local packages and extra-deps
 flags: {}
