@@ -183,7 +183,7 @@ sOnly :: Sing a -> Sing '[a]
 instance forall k (a :: k). Type.Class.Witness.Witness Type.Family.Constraint.ØC (Data.Singletons.SingI a) (Data.Singletons.Sing a)
 instance Type.Class.Known.Known Data.Type.Nat.Nat a => Data.Singletons.SingI a
 
-module Type.NatKind
+module TensorOps.NatKind
 class NatKind k where type FromNat (n :: Nat) :: k type Succ (n :: k) :: k type IndexN k :: k -> Type where {
     type family FromNat (n :: Nat) :: k;
     type family Succ (n :: k) :: k;
@@ -193,8 +193,8 @@ sFromNat :: NatKind k => Sing (n :: Nat) -> Sing (FromNat n :: k)
 sSucc :: NatKind k => Sing (n :: k) -> Sing (Succ n :: k)
 someNatKind :: NatKind k => Integer -> SomeSing k
 withNatKind :: NatKind k => Integer -> (forall (n :: k). Sing n -> r) -> r
-instance Type.NatKind.NatKind Type.Family.Nat.N
-instance Type.NatKind.NatKind GHC.Types.Nat
+instance TensorOps.NatKind.NatKind Type.Family.Nat.N
+instance TensorOps.NatKind.NatKind GHC.Types.Nat
 
 module Data.Nested
 class NatKind k => Vec (v :: k -> Type -> Type)
@@ -298,7 +298,7 @@ type VTensor = NTensor (Flip2 VectorT I) Double
 instance forall k (v :: k -> GHC.Types.Type -> GHC.Types.Type) a (ns :: [k]). GHC.Generics.Generic (TensorOps.Backend.NTensor.NTensor v a ns)
 instance forall a k (v :: k -> * -> *) (ns :: [k]). (Control.DeepSeq.NFData a, Data.Nested.Nesting Data.Proxy.Proxy Control.DeepSeq.NFData v) => Control.DeepSeq.NFData (TensorOps.Backend.NTensor.NTensor v a ns)
 instance forall k a (v :: k -> * -> *) (w :: [k] -> GHC.Types.Type). (Control.DeepSeq.NFData a, Data.Nested.Nesting Data.Proxy.Proxy Control.DeepSeq.NFData v) => Data.Nested.Nesting1 w Control.DeepSeq.NFData (TensorOps.Backend.NTensor.NTensor v a)
-instance forall k (k1 :: k) k2 (v :: k2 -> GHC.Types.Type -> GHC.Types.Type) a. (Data.Nested.Vec v, a ~ GHC.Types.Double, Data.Nested.Nesting1 Data.Proxy.Proxy GHC.Base.Functor v, Data.Nested.Nesting1 Data.Singletons.Sing GHC.Base.Applicative v, Data.Nested.Nesting1 Data.Proxy.Proxy Data.Foldable.Foldable v, Data.Nested.Nesting1 Data.Proxy.Proxy Data.Traversable.Traversable v, Data.Nested.Nesting1 Data.Singletons.Sing Data.Distributive.Distributive v, Type.Class.Higher.Eq1 (Type.NatKind.IndexN k2)) => TensorOps.Types.Tensor (TensorOps.Backend.NTensor.NTensor v a)
+instance forall k (k1 :: k) k2 (v :: k2 -> GHC.Types.Type -> GHC.Types.Type) a. (Data.Nested.Vec v, a ~ GHC.Types.Double, Data.Nested.Nesting1 Data.Proxy.Proxy GHC.Base.Functor v, Data.Nested.Nesting1 Data.Singletons.Sing GHC.Base.Applicative v, Data.Nested.Nesting1 Data.Proxy.Proxy Data.Foldable.Foldable v, Data.Nested.Nesting1 Data.Proxy.Proxy Data.Traversable.Traversable v, Data.Nested.Nesting1 Data.Singletons.Sing Data.Distributive.Distributive v, Type.Class.Higher.Eq1 (TensorOps.NatKind.IndexN k2)) => TensorOps.Types.Tensor (TensorOps.Backend.NTensor.NTensor v a)
 
 module TensorOps.Run
 runTOp :: forall (ns :: [[k]]) (ms :: [[k]]) (t :: [k] -> *). (Tensor t, Floating (ElemT t)) => Sing ns -> Sing ms -> TOp ns ms -> Prod t ns -> Prod t ms
