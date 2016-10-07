@@ -9,7 +9,6 @@
 
 module Data.Type.Length.Util where
 
--- import           Data.Type.Equality
 import           Data.Kind
 import           Data.Proxy
 import           Data.Type.Length

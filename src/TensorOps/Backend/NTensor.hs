@@ -42,17 +42,13 @@ import           System.Random.MWC
 import           TensorOps.Types
 import           Type.Class.Higher
 import           Type.Class.Higher.Util
-import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
-import           Type.Family.List.Util
 import           Type.NatKind
-import qualified Data.Type.Nat                       as TCN
 import qualified Data.Type.Vector                    as TCV
 import qualified Data.Type.Vector.Util               as TCV
 import qualified Data.Vector.Sized                   as VS
 import qualified Type.Family.Nat                     as TCN
-import qualified Type.Family.Nat.Util                as TCN
 
 newtype NTensor :: (k -> Type -> Type) -> Type -> [k] -> Type where
     NTensor
@@ -64,13 +60,13 @@ deriving instance (NFData a, Nesting Proxy NFData v) => NFData (NTensor v a ns)
 instance (NFData a, Nesting Proxy NFData v) => Nesting1 w NFData (NTensor v a) where
     nesting1 _ = Wit
 
-liftLT
-    :: (Applicative (Nested v o), Known TCN.Nat m)
+liftNT
+    :: Applicative (Nested v o)
     => (TCV.Vec m (TCV.Vec n a -> a))
     -> TCV.Vec n (Nested v o a)
     -> TCV.Vec m (Nested v o a)
-liftLT f xs = fmap (\g -> TCV.liftVec g xs) f
-{-# INLINE liftLT #-}
+liftNT f xs = fmap (\g -> TCV.liftVec g xs) f
+{-# INLINE liftNT #-}
 
 genNTensor
     :: forall k (v :: k -> Type -> Type) (ns :: [k]) (a :: Type). Vec v
@@ -97,10 +93,10 @@ indexNTensor i = indexNestedVec i . getNVec
 {-# INLINE indexNTensor #-}
 
 overNVec2
-    :: (Nested v ns a -> Nested v ms a -> Nested v os a)
+    :: (Nested v ns a -> Nested w ms b -> Nested u os c)
     -> NTensor v a ns
-    -> NTensor v a ms
-    -> NTensor v a os
+    -> NTensor w b ms
+    -> NTensor u c os
 overNVec2 f x y = NTensor $ f (getNVec x) (getNVec y)
 {-# INLINE overNVec2 #-}
 
@@ -141,29 +137,22 @@ instance
     -- type IndexT (NTensor (v :: k -> Type -> Type) a) = Prod (IndexN k)
 
     liftT
-        :: forall (n :: TCN.N) (m :: TCN.N) (o :: [k]). (SingI o, Known TCN.Nat m)
+        :: forall (n :: TCN.N) (m :: TCN.N) (o :: [k]). SingI o
         => (TCV.Vec m (TCV.Vec n a -> a))
         -> TCV.Vec n (NTensor v a o)
         -> TCV.Vec m (NTensor v a o)
-    liftT f = fmap NTensor . liftLT f . fmap getNVec
+    liftT f = fmap NTensor . liftNT f . fmap getNVec
     {-# INLINE liftT #-}
 
-    -- TODO: this is an awful implementation
     transp
-        :: forall ns. (SingI ns, SingI (Reverse ns))
+        :: forall ns. SingI ns
         => NTensor v a ns
         -> NTensor v a (Reverse ns)
     transp = overNVec (transpose sing)
     {-# INLINE transp #-}
 
-    -- TODO: Decently inefficient because it multiplies everything and then
-    -- sums only the diagonal.
     gmul
-        :: forall ms os ns.
-         ( SingI (ms ++ os)
-         , SingI (Reverse os ++ ns)
-         , SingI (ms ++ ns)
-         )
+        :: forall ms os ns. SingI (Reverse os ++ ns)
         => Length ms
         -> Length os
         -> Length ns
@@ -171,13 +160,12 @@ instance
         -> NTensor v a (Reverse os ++ ns)
         -> NTensor v a (ms         ++ ns)
     gmul lM lO lN = overNVec2 (gmul' lM lO lN)
-                      \\ sOr
+                      \\ sO'
                       \\ sN
       where
-        lO' = TCL.reverse' lO
-        sOr :: Sing (Reverse os)
+        sO' :: Sing (Reverse os)
         sN  :: Sing ns
-        (sOr, sN) = splitSing (TCL.reverse' lO)
+        (sO', sN) = splitSing (TCL.reverse' lO)
                               (sing :: Sing (Reverse os ++ ns))
 
     diag
@@ -222,7 +210,7 @@ instance
     {-# INLINE (!) #-}
 
     ixRows
-        :: (Applicative f, SingI ns, SingI os, SingI (ms ++ ns), SingI (ms ++ os))
+        :: Applicative f
         => Length ms
         -> (Prod (IndexN k) ms -> NTensor v a ns -> f (NTensor v a os))
         -> NTensor v a (ms ++ ns)

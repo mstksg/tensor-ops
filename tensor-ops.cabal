@@ -28,7 +28,6 @@ library
                        Data.Type.Vector.Util
                        Data.Vector.Sized
                        GHC.TypeLits.Util
-                       Orphans
                        TensorOps.Backend.NTensor
                        TensorOps.Gradient
                        TensorOps.Run

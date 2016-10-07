@@ -12,7 +12,6 @@
 
 module Data.Type.Product.Util where
 
--- import           Data.Singletons.Prelude.List hiding (Length)
 import           Control.DeepSeq
 import           Data.Bifunctor
 import           Data.Functor.Identity
@@ -22,16 +21,16 @@ import           Data.Type.Conjunction
 import           Data.Type.Equality
 import           Data.Type.Index
 import           Data.Type.Length
-import           Data.Type.Product                      as TCP
+import           Data.Type.Product     as TCP
 import           Data.Type.Uniform
 import           Data.Type.Vector
-import           Prelude hiding                         (replicate)
+import           Prelude hiding        (replicate)
 import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
-import qualified Data.Type.Length.Util                  as TCL
+import qualified Data.Type.Length.Util as TCL
 
 instance Every NFData (f <$> as) => NFData (Prod f as) where
     rnf = \case

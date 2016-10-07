@@ -11,7 +11,6 @@
 
 module Data.Type.Uniform where
 
--- import           Data.Singletons.Prelude.List ((:++))
 import           Data.Kind
 import           Data.Type.Length
 import           Data.Type.Nat

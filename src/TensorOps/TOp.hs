@@ -10,9 +10,6 @@
 
 module TensorOps.TOp where
 
--- import           Data.Type.Equality
--- import           Type.Class.Known
--- import qualified Control.Foldl          as F
 import           Data.Proxy
 import           Data.Type.Combinator
 import           Data.Type.Index

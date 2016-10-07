@@ -8,7 +8,6 @@
 
 module Data.Type.Vector.Util where
 
--- import           Data.Type.Combinator.Util ()
 import           Control.DeepSeq
 import           Data.Bifunctor
 import           Data.Distributive

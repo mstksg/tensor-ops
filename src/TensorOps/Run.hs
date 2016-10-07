@@ -9,19 +9,9 @@
 
 module TensorOps.Run where
 
--- import           Control.Arrow                       ((&&&))
--- import           Data.Bifunctor
--- import           Data.Functor.Identity
--- import           Data.Singletons
--- import           Data.Singletons.Prelude.List hiding (Length)
--- import           Data.Type.Length
--- import           TensorOps.Tensor
--- import           Type.Class.Known
--- import           Type.Family.List
--- import           Type.Family.List.Util
 import           Data.Singletons
 import           Data.Type.Combinator
-import           Data.Type.Product hiding               (append')
+import           Data.Type.Product hiding (append')
 import           Data.Type.Product.Util
 import           Data.Type.Sing
 import           Data.Type.Uniform
@@ -45,7 +35,7 @@ runTOp sNs sMs = (\\ witSings sNs) $
                         US _ -> vecToProd getI uMs . liftT (getVF <$> f) . prodToVec I uNs
                                   \\ uniformLength uMs
     GMul lM lO lN  -> \case
-      x :< y :< Ø  -> only (gmul lM lO lN x y)
+      x :< y :< Ø -> only (gmul lM lO lN x y)
     Transp _       -> only . transp . head'
     Shuffle i      -> select i
     -- Fold _ f       -> only . foldT f     . head'

@@ -12,14 +12,6 @@
 
 module TensorOps.Tensor where
 
--- import           Data.Reflection
--- import           Data.Singletons.Prelude.List hiding (Length)
--- import           Data.Type.Index
--- import           Data.Type.Product as TCP hiding     (toList)
--- import           Data.Type.Product.Util
--- import           Data.Type.Uniform
--- import           Type.Family.Nat.Util
--- import qualified Numeric.AD.Internal.Reverse         as AD
 import           Control.Applicative
 import           Control.Monad.Trans.State.Strict
 import           Control.Monad.Trans.Writer.Strict
@@ -32,8 +24,6 @@ import           Data.Singletons
 import           Data.Type.Combinator
 import           Data.Type.Fin
 import           Data.Type.Length
-import           Data.Type.Length.Util
-import           Data.Type.Nat
 import           Data.Type.Product
 import           Data.Type.Sing
 import           Data.Type.Vector                       as TCV
@@ -45,7 +35,6 @@ import           Type.Class.Known
 import           Type.Class.Witness hiding              (inner, outer)
 import           Type.Family.List
 import           Type.Family.List.Util
-import           Type.Family.Nat
 import           Type.NatKind
 
 konst
@@ -70,7 +59,7 @@ konst x = generate (\_ -> x)
 -- {-# INLINE konstN #-}
 
 map
-    :: forall k (o :: [k]) (t :: [k] -> Type). (Floating (ElemT t), SingI o, Tensor t)
+    :: forall k (o :: [k]) (t :: [k] -> Type). (SingI o, Tensor t)
     => (ElemT t -> ElemT t)
     -> t o
     -> t o
@@ -78,7 +67,7 @@ map f = getI . TCV.head' . liftT ((f . getI . TCV.head') :+ ØV) . (:+ ØV)
 {-# INLINE map #-}
 
 zip
-    :: (Floating (ElemT t), SingI o, Tensor t)
+    :: (SingI o, Tensor t)
     => (Vec n (ElemT t) -> ElemT t)
     -> Vec n (t o)
     -> t o
@@ -86,7 +75,7 @@ zip f = getI . TCV.head' . liftT (f :+ ØV)
 {-# INLINE zip #-}
 
 zip2
-    :: (Floating (ElemT t), SingI o, Tensor t)
+    :: (SingI o, Tensor t)
     => (ElemT t -> ElemT t -> ElemT t)
     -> t o
     -> t o
@@ -95,7 +84,7 @@ zip2 f x y = zip (\case I x' :* I y' :* ØV -> f x' y') (x :+ y :+ ØV)
 {-# INLINE zip2 #-}
 
 zip3
-    :: (Floating (ElemT t), SingI o, Tensor t)
+    :: (SingI o, Tensor t)
     => (ElemT t -> ElemT t -> ElemT t -> ElemT t)
     -> t o
     -> t o

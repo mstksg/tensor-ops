@@ -20,24 +20,13 @@
 
 module TensorOps.Types where
 
--- import           Data.Singletons.Prelude.List hiding (Length)
--- import           Data.Type.Equality
--- import           Data.Type.Length.Util               as TCL
--- import           Data.Type.Subset
--- import           GHC.TypeLits
--- import           Unsafe.Coerce
 import           Control.Category
 import           Control.Monad.Primitive
 import           Data.Finite
 import           Data.Kind
-import           Data.Maybe
 import           Data.Singletons
-import           Data.Singletons.Prelude.Num
-import           Data.Type.Fin
 import           Data.Type.Index
 import           Data.Type.Length                       as TCL
-import           Data.Type.Nat
-import           Data.Type.Nat.Util
 import           Data.Type.Product
 import           Data.Type.Sing
 import           Data.Type.Uniform
@@ -46,18 +35,11 @@ import           Prelude hiding                         ((.), id)
 import           Statistics.Distribution
 import           System.Random.MWC
 import           Type.Class.Higher
-import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
-import           Type.Family.Nat.Util
 import           Type.NatKind
-import           Unsafe.Coerce
-import qualified Control.Foldl                          as F
-import qualified Data.Singletons.TypeLits               as GT
-import qualified Data.Singletons.TypeLits               as GT
-import qualified GHC.TypeLits                           as GT
 
 
 class NatKind k => Tensor (t :: [k] -> Type) where
@@ -66,34 +48,26 @@ class NatKind k => Tensor (t :: [k] -> Type) where
     -- type IndexT (t :: [k] -> Type) = Prod (IndexN k)
 
     -- TODO: can we detach Vec from liftT ?
-    liftT   :: (SingI o, Floating (ElemT t), Known Nat m)
+    liftT   :: SingI o
             -- => (Vec n (ElemT t) -> Vec m (ElemT t))
             => (Vec m (Vec n (ElemT t) -> ElemT t))
             -> Vec n (t o)
             -> Vec m (t o)
-    gmul    :: (SingI (ms ++ os), SingI (Reverse os ++ ns), SingI (ms ++ ns))
+    gmul    :: SingI (Reverse os ++ ns)
             => Length ms
             -> Length os
             -> Length ns
             -> t (ms         ++ os)
             -> t (Reverse os ++ ns)
             -> t (ms         ++ ns)
-    transp  :: (SingI ns, SingI (Reverse ns))
+    transp  :: SingI ns
             => t ns
             -> t (Reverse ns)
-    -- foldT   :: (RankConstr t (n ': ns), RankConstr t ns)
-    --         => F.Fold (ElemT t) (ElemT t)
-    --         -> t (n ': ns)
-    --         -> t ns
-    -- foldTGrad :: RankConstr t (n ': ns)
-    --           => (forall a. Floating a => F.Fold a a)
-    --           -> t (n ': ns)
-    --           -> t (n ': ns)
-    diag    :: (SingI '[n], SingI ns)
+    diag    :: SingI ns
             => Uniform n ns
             -> t '[n]
             -> t ns
-    getDiag :: (SingI ns, SingI '[n])
+    getDiag :: SingI n
             => Uniform n ns
             -> t (n ': n ': ns)
             -> t '[n]
@@ -105,7 +79,7 @@ class NatKind k => Tensor (t :: [k] -> Type) where
               => (Prod (IndexN k) ns -> f (ElemT t))
               -> f (t ns)
     ixRows
-        :: (Applicative f, SingI ns, SingI os, SingI (ms ++ ns), SingI (ms ++ os))
+        :: Applicative f
         => Length ms
         -> (Prod (IndexN k) ms -> t ns -> f (t os))
         -> t (ms ++ ns)
