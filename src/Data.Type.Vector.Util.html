@@ -1,0 +1,131 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds            #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE FlexibleContexts     #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE GADTs                #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase           #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE TupleSections        #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators        #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# OPTIONS_GHC -fno-warn-orphans #-}</span><span>
+</span><a name="line-8"></a><span>
+</span><a name="line-9"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-10"></a><span>
+</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">DeepSeq</span><span>
+</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Bifunctor</span><span>
+</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Distributive</span><span>
+</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Monoid</span><span>
+</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
+</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Fin</span><span>
+</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>
+</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Known</span><span>
+</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-21"></a><span>
+</span><a name="line-22"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Known</span><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><a href="#local-1627524729"><span class="hs-identifier hs-type">n</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Distributive</span><span> </span><a href="#local-1627524730"><span class="hs-identifier hs-type">f</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">Distributive</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">VecT</span><span> </span><a href="#local-1627524729"><span class="hs-identifier hs-type">n</span></a><span> </span><a href="#local-1627524730"><span class="hs-identifier hs-type">f</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-23"></a><span>    </span><a name="local-1912613826"><span class="hs-identifier">distribute</span></a><span> </span><a name="local-1627524731"><a href="#local-1627524731"><span class="hs-identifier">xs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">vgen_</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-1627524732"><a href="#local-1627524732"><span class="hs-identifier">i</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">distribute</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">index</span><span> </span><a href="#local-1627524732"><span class="hs-identifier hs-var">i</span></a><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="#local-1627524731"><span class="hs-identifier hs-var">xs</span></a><span>
+</span><a name="line-24"></a><span>
+</span><a name="line-25"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">NFData</span><span> </span><span class="hs-special">(</span><a href="#local-1627524724"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-1627524725"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">NFData</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">VecT</span><span> </span><a href="#local-1627524726"><span class="hs-identifier hs-type">n</span></a><span> </span><a href="#local-1627524724"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-1627524725"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-26"></a><span>    </span><a name="local-1912613806"><span class="hs-identifier">rnf</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-keyword">case</span><span>
+</span><a name="line-27"></a><span>      </span><span class="hs-identifier hs-var">&#216;V</span><span>      </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a name="line-28"></a><span>      </span><a name="local-1627524727"><a href="#local-1627524727"><span class="hs-identifier">x</span></a></a><span> </span><span class="hs-operator hs-var">:*</span><span> </span><a name="local-1627524728"><a href="#local-1627524728"><span class="hs-identifier">xs</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627524727"><span class="hs-identifier hs-var">x</span></a><span> </span><span class="hs-special">`</span><span class="hs-identifier hs-var">deepseq</span><span class="hs-special">`</span><span> </span><a href="#local-1627524728"><span class="hs-identifier hs-var">xs</span></a><span> </span><span class="hs-special">`</span><span class="hs-identifier hs-var">deepseq</span><span class="hs-special">`</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a name="line-29"></a><span>
+</span><a name="line-30"></a><span class="hs-identifier">splitVec</span><span>
+</span><a name="line-31"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><a href="#local-1627524697"><span class="hs-identifier hs-type">n</span></a><span>
+</span><a name="line-32"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">VecT</span><span> </span><span class="hs-special">(</span><a href="#local-1627524697"><span class="hs-identifier hs-type">n</span></a><span> </span><span class="hs-operator">+</span><span> </span><a href="#local-1627524698"><span class="hs-identifier hs-type">m</span></a><span class="hs-special">)</span><span> </span><a href="#local-1627524699"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-1627524700"><span class="hs-identifier hs-type">a</span></a><span>
+</span><a name="line-33"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">VecT</span><span> </span><a href="#local-1627524697"><span class="hs-identifier hs-type">n</span></a><span> </span><a href="#local-1627524699"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-1627524700"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">VecT</span><span> </span><a href="#local-1627524698"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="#local-1627524699"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-1627524700"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span>
+</span><a name="line-34"></a><a name="splitVec"><a href="Data.Type.Vector.Util.html#splitVec"><span class="hs-identifier">splitVec</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-keyword">case</span><span>
+</span><a name="line-35"></a><span>    </span><span class="hs-identifier hs-var">Z_</span><span>   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">&#216;V</span><span class="hs-special">,</span><span class="hs-special">)</span><span>
+</span><a name="line-36"></a><span>    </span><span class="hs-identifier hs-var">S_</span><span> </span><a name="local-1627524701"><a href="#local-1627524701"><span class="hs-identifier">n</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-glyph">\</span><span class="hs-keyword">case</span><span>
+</span><a name="line-37"></a><span>      </span><a name="local-1627524702"><a href="#local-1627524702"><span class="hs-identifier">x</span></a></a><span> </span><span class="hs-operator hs-var">:*</span><span> </span><a name="local-1627524703"><a href="#local-1627524703"><span class="hs-identifier">xs</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">first</span><span> </span><span class="hs-special">(</span><a href="#local-1627524702"><span class="hs-identifier hs-var">x</span></a><span> </span><span class="hs-operator hs-var">:*</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Data.Type.Vector.Util.html#splitVec"><span class="hs-identifier hs-var">splitVec</span></a><span> </span><a href="#local-1627524701"><span class="hs-identifier hs-var">n</span></a><span> </span><a href="#local-1627524703"><span class="hs-identifier hs-var">xs</span></a><span class="hs-special">)</span><span>
+</span><a name="line-38"></a><span class="hs-pragma">{-# INLINE splitVec #-}</span><span>
+</span><a name="line-39"></a><span>
+</span><a name="line-40"></a><span class="hs-identifier">zipVecs</span><span>
+</span><a name="line-41"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Traversable</span><span> </span><a href="#local-1627524692"><span class="hs-identifier hs-type">g</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Applicative</span><span> </span><a href="#local-1627524692"><span class="hs-identifier hs-type">g</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Known</span><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><a href="#local-1627524693"><span class="hs-identifier hs-type">n</span></a><span class="hs-special">)</span><span>
+</span><a name="line-42"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">VecT</span><span> </span><a href="#local-1627524694"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="#local-1627524692"><span class="hs-identifier hs-type">g</span></a><span> </span><a href="#local-1627524695"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627524696"><span class="hs-identifier hs-type">b</span></a><span class="hs-special">)</span><span>
+</span><a name="line-43"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">VecT</span><span> </span><a href="#local-1627524694"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="#local-1627524692"><span class="hs-identifier hs-type">g</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">VecT</span><span> </span><a href="#local-1627524693"><span class="hs-identifier hs-type">n</span></a><span> </span><a href="#local-1627524692"><span class="hs-identifier hs-type">g</span></a><span> </span><a href="#local-1627524695"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span>
+</span><a name="line-44"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">VecT</span><span> </span><a href="#local-1627524693"><span class="hs-identifier hs-type">n</span></a><span> </span><a href="#local-1627524692"><span class="hs-identifier hs-type">g</span></a><span> </span><a href="#local-1627524696"><span class="hs-identifier hs-type">b</span></a><span>
+</span><a name="line-45"></a><a name="zipVecs"><a href="Data.Type.Vector.Util.html#zipVecs"><span class="hs-identifier">zipVecs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Data.Type.Vector.Util.html#liftVec"><span class="hs-identifier hs-var">liftVec</span></a><span>
+</span><a name="line-46"></a><span class="hs-pragma">{-# INLINE zipVecs #-}</span><span>
+</span><a name="line-47"></a><span>
+</span><a name="line-48"></a><span class="hs-identifier">liftVec</span><span>
+</span><a name="line-49"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Applicative</span><span> </span><a href="#local-1627524687"><span class="hs-identifier hs-type">f</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Traversable</span><span> </span><a href="#local-1627524688"><span class="hs-identifier hs-type">g</span></a><span class="hs-special">)</span><span>
+</span><a name="line-50"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">VecT</span><span> </span><a href="#local-1627524689"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="#local-1627524688"><span class="hs-identifier hs-type">g</span></a><span> </span><a href="#local-1627524690"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627524691"><span class="hs-identifier hs-type">b</span></a><span class="hs-special">)</span><span>
+</span><a name="line-51"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">VecT</span><span> </span><a href="#local-1627524689"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="#local-1627524688"><span class="hs-identifier hs-type">g</span></a><span> </span><span class="hs-special">(</span><a href="#local-1627524687"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-1627524690"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span>
+</span><a name="line-52"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627524687"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-1627524691"><span class="hs-identifier hs-type">b</span></a><span>
+</span><a name="line-53"></a><a name="liftVec"><a href="Data.Type.Vector.Util.html#liftVec"><span class="hs-identifier">liftVec</span></a></a><span> </span><a name="local-1627524704"><a href="#local-1627524704"><span class="hs-identifier">f</span></a></a><span> </span><a name="local-1627524705"><a href="#local-1627524705"><span class="hs-identifier">xs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-1627524704"><span class="hs-identifier hs-var">f</span></a><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><span class="hs-identifier hs-var">sequenceA</span><span> </span><a href="#local-1627524705"><span class="hs-identifier hs-var">xs</span></a><span>
+</span><a name="line-54"></a><span class="hs-pragma">{-# INLINE liftVec #-}</span><span>
+</span><a name="line-55"></a><span>
+</span><a name="line-56"></a><span class="hs-identifier">zipVecsD</span><span>
+</span><a name="line-57"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Distributive</span><span> </span><a href="#local-1627524682"><span class="hs-identifier hs-type">g</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Known</span><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><a href="#local-1627524683"><span class="hs-identifier hs-type">n</span></a><span class="hs-special">)</span><span>
+</span><a name="line-58"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">VecT</span><span> </span><a href="#local-1627524684"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="#local-1627524682"><span class="hs-identifier hs-type">g</span></a><span> </span><a href="#local-1627524685"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627524686"><span class="hs-identifier hs-type">b</span></a><span class="hs-special">)</span><span>
+</span><a name="line-59"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">VecT</span><span> </span><a href="#local-1627524684"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="#local-1627524682"><span class="hs-identifier hs-type">g</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">VecT</span><span> </span><a href="#local-1627524683"><span class="hs-identifier hs-type">n</span></a><span> </span><a href="#local-1627524682"><span class="hs-identifier hs-type">g</span></a><span> </span><a href="#local-1627524685"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span>
+</span><a name="line-60"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">VecT</span><span> </span><a href="#local-1627524683"><span class="hs-identifier hs-type">n</span></a><span> </span><a href="#local-1627524682"><span class="hs-identifier hs-type">g</span></a><span> </span><a href="#local-1627524686"><span class="hs-identifier hs-type">b</span></a><span>
+</span><a name="line-61"></a><a name="zipVecsD"><a href="Data.Type.Vector.Util.html#zipVecsD"><span class="hs-identifier">zipVecsD</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Data.Type.Vector.Util.html#liftVecD"><span class="hs-identifier hs-var">liftVecD</span></a><span>
+</span><a name="line-62"></a><span class="hs-pragma">{-# INLINE zipVecsD #-}</span><span>
+</span><a name="line-63"></a><span>
+</span><a name="line-64"></a><span class="hs-identifier">liftVecD</span><span>
+</span><a name="line-65"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Distributive</span><span> </span><a href="#local-1627524677"><span class="hs-identifier hs-type">f</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Distributive</span><span> </span><a href="#local-1627524678"><span class="hs-identifier hs-type">g</span></a><span class="hs-special">)</span><span>
+</span><a name="line-66"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">VecT</span><span> </span><a href="#local-1627524679"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="#local-1627524678"><span class="hs-identifier hs-type">g</span></a><span> </span><a href="#local-1627524680"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627524681"><span class="hs-identifier hs-type">b</span></a><span class="hs-special">)</span><span>
+</span><a name="line-67"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">VecT</span><span> </span><a href="#local-1627524679"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="#local-1627524678"><span class="hs-identifier hs-type">g</span></a><span> </span><span class="hs-special">(</span><a href="#local-1627524677"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-1627524680"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span>
+</span><a name="line-68"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627524677"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-1627524681"><span class="hs-identifier hs-type">b</span></a><span>
+</span><a name="line-69"></a><a name="liftVecD"><a href="Data.Type.Vector.Util.html#liftVecD"><span class="hs-identifier">liftVecD</span></a></a><span> </span><a name="local-1627524706"><a href="#local-1627524706"><span class="hs-identifier">f</span></a></a><span> </span><a name="local-1627524707"><a href="#local-1627524707"><span class="hs-identifier">xs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-1627524706"><span class="hs-identifier hs-var">f</span></a><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><span class="hs-identifier hs-var">distribute</span><span> </span><a href="#local-1627524707"><span class="hs-identifier hs-var">xs</span></a><span>
+</span><a name="line-70"></a><span class="hs-pragma">{-# INLINE liftVecD #-}</span><span>
+</span><a name="line-71"></a><span>
+</span><a name="line-72"></a><span class="hs-identifier">curryV</span><span>
+</span><a name="line-73"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">VecT</span><span> </span><span class="hs-special">(</span><span class="hs-char">'S n) f a -&gt; b)
+    -&gt; f a
+    -&gt; VecT n f a
+    -&gt; b
+curryV f x xs = f (x :* xs)
+{-# INLINE curryV #-}
+
+uncurryV
+    :: (f a -&gt; VecT n f a -&gt; b)
+    -&gt; VecT ('S n) f a
+    -&gt; b
+uncurryV f = \case
+    x :* xs -&gt; f x xs
+{-# INLINE uncurryV #-}
+
+append'
+    :: VecT n f a
+    -&gt; VecT m f a
+    -&gt; VecT (n + m) f a
+append' = \case
+    &#216;V -&gt; id
+    x :* xs -&gt; (x :*) . append' xs
+{-# INLINE append' #-}
+
+vecFunc
+    :: Known Nat n
+    =&gt; (a -&gt; Vec n b)
+    -&gt; Vec n (a -&gt; b)
+vecFunc f = vgen_ (\i -&gt; I $ index' i . f)
+{-# INLINE vecFunc #-}
+
+unVecFunc
+    :: Vec n (a -&gt; b)
+    -&gt; a
+    -&gt; Vec n b
+unVecFunc xs x = fmap ($ x) xs
+{-# INLINE unVecFunc #-}
+
+vgenA
+    :: Applicative g
+    =&gt; Nat n
+    -&gt; (Fin n -&gt; g (f a))
+    -&gt; g (VecT n f a)
+vgenA = \case
+  Z_   -&gt; \_ -&gt; pure &#216;V
+  S_ n -&gt; \f -&gt; (:*) &lt;$&gt; f FZ &lt;*&gt; vgenA n (f . FS)
+{-# INLINE vgenA #-}
+
+uniformVec
+    :: Eq (f a)
+    =&gt; VecT m f a
+    -&gt; Maybe (f a)
+uniformVec = \case
+    &#216;V      -&gt; Nothing
+    x :* xs | getAll (vfoldMap (All . (== x)) xs) -&gt; Just x
+            | otherwise                           -&gt; Nothing
+{-# INLINE uniformVec #-}
+
+</span></pre></body></html>

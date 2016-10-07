@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds            #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE GADTs                #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase           #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE PolyKinds            #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies         #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators        #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><a name="line-8"></a><span>
+</span><a name="line-9"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-10"></a><span>
+</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Equality</span><span>
+</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>
+</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
+</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-15"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>       </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">GT</span><span>
+</span><a name="line-16"></a><span>
+</span><a name="line-17"></a><span class="hs-identifier">appendLengths</span><span>
+</span><a name="line-18"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><a href="#local-1627430715"><span class="hs-identifier hs-type">n</span></a><span>
+</span><a name="line-19"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><a href="#local-1627430716"><span class="hs-identifier hs-type">m</span></a><span>
+</span><a name="line-20"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Len</span><span> </span><span class="hs-special">(</span><a href="#local-1627430715"><span class="hs-identifier hs-type">n</span></a><span> </span><span class="hs-operator">++</span><span> </span><a href="#local-1627430716"><span class="hs-identifier hs-type">m</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator">:~:</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Len</span><span> </span><a href="#local-1627430715"><span class="hs-identifier hs-type">n</span></a><span> </span><span class="hs-operator">+</span><span> </span><span class="hs-identifier hs-type">Len</span><span> </span><a href="#local-1627430716"><span class="hs-identifier hs-type">m</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-21"></a><a name="appendLengths"><a href="Type.Family.Nat.Util.html#appendLengths"><span class="hs-identifier">appendLengths</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-keyword">case</span><span>
+</span><a name="line-22"></a><span>    </span><span class="hs-identifier hs-var">LZ</span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-glyph">\</span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">Refl</span><span>
+</span><a name="line-23"></a><span>    </span><span class="hs-identifier hs-var">LS</span><span> </span><a name="local-1627430717"><a href="#local-1627430717"><span class="hs-identifier">lN</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">apply</span><span> </span><span class="hs-identifier hs-var">Refl</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Type.Family.Nat.Util.html#appendLengths"><span class="hs-identifier hs-var">appendLengths</span></a><span> </span><a href="#local-1627430717"><span class="hs-identifier hs-var">lN</span></a><span>
+</span><a name="line-24"></a><span>
+</span><a name="line-25"></a><span class="hs-keyword">type</span><span> </span><span class="hs-keyword">family</span><span> </span><a name="NatNat"><a href="Type.Family.Nat.Util.html#NatNat"><span class="hs-identifier">NatNat</span></a></a><span> </span><span class="hs-special">(</span><a name="local-1627430712"><a href="#local-1627430712"><span class="hs-identifier">n</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">GT</span><span class="hs-operator hs-type">.</span><span class="hs-identifier hs-type">Nat</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><a name="local-1627430713"><a href="#local-1627430713"><span class="hs-identifier">m</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">N</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-26"></a><span>    </span><span class="hs-identifier">NatNat</span><span> </span><span class="hs-number">0</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-char">'Z
+    NatNat n = 'S (NatNat (n GT.- 1))
+
+-- instance PNum ('Proxy :: Proxy N) where
+--     type x :+ y = x + y
+--     type x :* y = x * y
+--     type Signum x = N1
+--     type FromInteger x = NatNat x
+
+
+-- type family (x :: N) - (y :: N) where
+
+</span></pre></body></html>

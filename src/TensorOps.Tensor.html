@@ -1,0 +1,252 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds           #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE FlexibleContexts    #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE GADTs               #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase          #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE PolyKinds           #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE RankNTypes          #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications    #-}</span><span>
+</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE TypeInType          #-}</span><span>
+</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators       #-}</span><span>
+</span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE ViewPatterns        #-}</span><span>
+</span><a name="line-12"></a><span>
+</span><a name="line-13"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Tensor</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-14"></a><span>
+</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Applicative</span><span>
+</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span class="hs-operator">.</span><span class="hs-identifier">Trans</span><span class="hs-operator">.</span><span class="hs-identifier">State</span><span class="hs-operator">.</span><span class="hs-identifier">Strict</span><span>
+</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span class="hs-operator">.</span><span class="hs-identifier">Trans</span><span class="hs-operator">.</span><span class="hs-identifier">Writer</span><span class="hs-operator">.</span><span class="hs-identifier">Strict</span><span>
+</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Functor</span><span>
+</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
+</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span> </span><span class="hs-keyword">hiding</span><span>                  </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-var">\\</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">zip</span><span class="hs-special">)</span><span>
+</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Monoid</span><span>
+</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Proxy</span><span>
+</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
+</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
+</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Fin</span><span>
+</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>
+</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span>
+</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Sing.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Sing</span></a><span>
+</span><a name="line-29"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>                  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
+</span><a name="line-30"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Vector.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>             </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
+</span><a name="line-31"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">AD</span><span>
+</span><a name="line-32"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Prelude</span><span> </span><span class="hs-keyword">hiding</span><span>                    </span><span class="hs-special">(</span><span class="hs-identifier hs-var">zip</span><span class="hs-special">)</span><span>
+</span><a name="line-33"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Types.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span></a><span>
+</span><a name="line-34"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Known</span><span>
+</span><a name="line-35"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span> </span><span class="hs-keyword">hiding</span><span>         </span><span class="hs-special">(</span><span class="hs-identifier hs-var">inner</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">outer</span><span class="hs-special">)</span><span>
+</span><a name="line-36"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
+</span><a name="line-37"></a><span class="hs-keyword">import</span><span>           </span><a href="Type.Family.List.Util.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-38"></a><span class="hs-keyword">import</span><span>           </span><a href="Type.NatKind.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">NatKind</span></a><span>
+</span><a name="line-39"></a><span>
+</span><a name="line-40"></a><span class="hs-identifier">konst</span><span>
+</span><a name="line-41"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#Tensor"><span class="hs-identifier hs-type">Tensor</span></a><span> </span><a href="#local-1627630628"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">SingI</span><span> </span><a href="#local-1627630629"><span class="hs-identifier hs-type">n</span></a><span class="hs-special">)</span><span>
+</span><a name="line-42"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627630628"><span class="hs-identifier hs-type">t</span></a><span>
+</span><a name="line-43"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627630628"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627630629"><span class="hs-identifier hs-type">n</span></a><span>
+</span><a name="line-44"></a><a name="konst"><a href="TensorOps.Tensor.html#konst"><span class="hs-identifier">konst</span></a></a><span> </span><a name="local-1627630630"><a href="#local-1627630630"><span class="hs-identifier">x</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="TensorOps.Tensor.html#generate"><span class="hs-identifier hs-var">generate</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627630630"><span class="hs-identifier hs-var">x</span></a><span class="hs-special">)</span><span>
+</span><a name="line-45"></a><span class="hs-pragma">{-# INLINE konst #-}</span><span>
+</span><a name="line-46"></a><span>
+</span><a name="line-47"></a><span class="hs-comment">-- konst</span><span>
+</span><a name="line-48"></a><span class="hs-comment">--     :: (Tensor t, Floating (ElemT t), SingI n)</span><span>
+</span><a name="line-49"></a><span class="hs-comment">--     =&gt; ElemT t</span><span>
+</span><a name="line-50"></a><span class="hs-comment">--     -&gt; t n</span><span>
+</span><a name="line-51"></a><span class="hs-comment">-- konst = getI . TCV.head' . konstN @('S 'Z)</span><span>
+</span><a name="line-52"></a><span class="hs-comment">-- {-# INLINE konst #-}</span><span>
+</span><a name="line-53"></a><span>
+</span><a name="line-54"></a><span class="hs-comment">-- konstN</span><span>
+</span><a name="line-55"></a><span class="hs-comment">--     :: forall n o t. (Tensor t, Floating (ElemT t), SingI o, Known Nat n)</span><span>
+</span><a name="line-56"></a><span class="hs-comment">--     =&gt; ElemT t</span><span>
+</span><a name="line-57"></a><span class="hs-comment">--     -&gt; Vec n (t o)</span><span>
+</span><a name="line-58"></a><span class="hs-comment">-- konstN x = liftT (vrep (I (\&#216;V -&gt; x))) &#216;V</span><span>
+</span><a name="line-59"></a><span class="hs-comment">-- {-# INLINE konstN #-}</span><span>
+</span><a name="line-60"></a><span>
+</span><a name="line-61"></a><span class="hs-identifier">map</span><span>
+</span><a name="line-62"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-1627630625"><a href="#local-1627630625"><span class="hs-identifier">k</span></a></a><span> </span><span class="hs-special">(</span><a name="local-1627630626"><a href="#local-1627630626"><span class="hs-identifier">o</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><a href="#local-1627630625"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a name="local-1627630627"><a href="#local-1627630627"><span class="hs-identifier">t</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><a href="#local-1627630625"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span class="hs-special">)</span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">SingI</span><span> </span><a href="#local-1627630626"><span class="hs-identifier hs-type">o</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.Types.html#Tensor"><span class="hs-identifier hs-type">Tensor</span></a><span> </span><a href="#local-1627630627"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span>
+</span><a name="line-63"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627630627"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627630627"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span>
+</span><a name="line-64"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627630627"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627630626"><span class="hs-identifier hs-type">o</span></a><span>
+</span><a name="line-65"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627630627"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627630626"><span class="hs-identifier hs-type">o</span></a><span>
+</span><a name="line-66"></a><a name="map"><a href="TensorOps.Tensor.html#map"><span class="hs-identifier">map</span></a></a><span> </span><a name="local-1627630631"><a href="#local-1627630631"><span class="hs-identifier">f</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier">getI</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">TCV</span><span class="hs-operator hs-var">.</span><span class="hs-identifier hs-var">head'</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="TensorOps.Types.html#liftT"><span class="hs-identifier hs-var">liftT</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><a href="#local-1627630631"><span class="hs-identifier hs-var">f</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">getI</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">TCV</span><span class="hs-operator hs-var">.</span><span class="hs-identifier hs-var">head'</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">:+</span><span> </span><span class="hs-identifier hs-var">&#216;V</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-special">(</span><span class="hs-operator hs-var">:+</span><span> </span><span class="hs-identifier hs-var">&#216;V</span><span class="hs-special">)</span><span>
+</span><a name="line-67"></a><span class="hs-pragma">{-# INLINE map #-}</span><span>
+</span><a name="line-68"></a><span>
+</span><a name="line-69"></a><span class="hs-identifier">zip</span><span>
+</span><a name="line-70"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">SingI</span><span> </span><a href="#local-1627630622"><span class="hs-identifier hs-type">o</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.Types.html#Tensor"><span class="hs-identifier hs-type">Tensor</span></a><span> </span><a href="#local-1627630623"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span>
+</span><a name="line-71"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Vec</span><span> </span><a href="#local-1627630624"><span class="hs-identifier hs-type">n</span></a><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627630623"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627630623"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span>
+</span><a name="line-72"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Vec</span><span> </span><a href="#local-1627630624"><span class="hs-identifier hs-type">n</span></a><span> </span><span class="hs-special">(</span><a href="#local-1627630623"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627630622"><span class="hs-identifier hs-type">o</span></a><span class="hs-special">)</span><span>
+</span><a name="line-73"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627630623"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627630622"><span class="hs-identifier hs-type">o</span></a><span>
+</span><a name="line-74"></a><a name="zip"><a href="TensorOps.Tensor.html#zip"><span class="hs-identifier">zip</span></a></a><span> </span><a name="local-1627630632"><a href="#local-1627630632"><span class="hs-identifier">f</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier">getI</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">TCV</span><span class="hs-operator hs-var">.</span><span class="hs-identifier hs-var">head'</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="TensorOps.Types.html#liftT"><span class="hs-identifier hs-var">liftT</span></a><span> </span><span class="hs-special">(</span><a href="#local-1627630632"><span class="hs-identifier hs-var">f</span></a><span> </span><span class="hs-operator hs-var">:+</span><span> </span><span class="hs-identifier hs-var">&#216;V</span><span class="hs-special">)</span><span>
+</span><a name="line-75"></a><span class="hs-pragma">{-# INLINE zip #-}</span><span>
+</span><a name="line-76"></a><span>
+</span><a name="line-77"></a><span class="hs-identifier">zip2</span><span>
+</span><a name="line-78"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">SingI</span><span> </span><a href="#local-1627630620"><span class="hs-identifier hs-type">o</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.Types.html#Tensor"><span class="hs-identifier hs-type">Tensor</span></a><span> </span><a href="#local-1627630621"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span>
+</span><a name="line-79"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627630621"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627630621"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627630621"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span>
+</span><a name="line-80"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627630621"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627630620"><span class="hs-identifier hs-type">o</span></a><span>
+</span><a name="line-81"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627630621"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627630620"><span class="hs-identifier hs-type">o</span></a><span>
+</span><a name="line-82"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627630621"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627630620"><span class="hs-identifier hs-type">o</span></a><span>
+</span><a name="line-83"></a><a name="zip2"><a href="TensorOps.Tensor.html#zip2"><span class="hs-identifier">zip2</span></a></a><span> </span><a name="local-1627630633"><a href="#local-1627630633"><span class="hs-identifier">f</span></a></a><span> </span><a name="local-1627630634"><a href="#local-1627630634"><span class="hs-identifier">x</span></a></a><span> </span><a name="local-1627630635"><a href="#local-1627630635"><span class="hs-identifier">y</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="TensorOps.Tensor.html#zip"><span class="hs-identifier hs-var">zip</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-keyword">case</span><span> </span><span class="hs-identifier hs-var">I</span><span> </span><a name="local-1627630636"><a href="#local-1627630636"><span class="hs-identifier">x'</span></a></a><span> </span><span class="hs-operator hs-var">:*</span><span> </span><span class="hs-identifier hs-var">I</span><span> </span><a name="local-1627630637"><a href="#local-1627630637"><span class="hs-identifier">y'</span></a></a><span> </span><span class="hs-operator hs-var">:*</span><span> </span><span class="hs-identifier hs-var">&#216;V</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627630633"><span class="hs-identifier hs-var">f</span></a><span> </span><a href="#local-1627630636"><span class="hs-identifier hs-var">x'</span></a><span> </span><a href="#local-1627630637"><span class="hs-identifier hs-var">y'</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="#local-1627630634"><span class="hs-identifier hs-var">x</span></a><span> </span><span class="hs-operator hs-var">:+</span><span> </span><a href="#local-1627630635"><span class="hs-identifier hs-var">y</span></a><span> </span><span class="hs-operator hs-var">:+</span><span> </span><span class="hs-identifier hs-var">&#216;V</span><span class="hs-special">)</span><span>
+</span><a name="line-84"></a><span class="hs-pragma">{-# INLINE zip2 #-}</span><span>
+</span><a name="line-85"></a><span>
+</span><a name="line-86"></a><span class="hs-identifier">zip3</span><span>
+</span><a name="line-87"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">SingI</span><span> </span><a href="#local-1627630618"><span class="hs-identifier hs-type">o</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.Types.html#Tensor"><span class="hs-identifier hs-type">Tensor</span></a><span> </span><a href="#local-1627630619"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span>
+</span><a name="line-88"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627630619"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627630619"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627630619"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627630619"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span>
+</span><a name="line-89"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627630619"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627630618"><span class="hs-identifier hs-type">o</span></a><span>
+</span><a name="line-90"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627630619"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627630618"><span class="hs-identifier hs-type">o</span></a><span>
+</span><a name="line-91"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627630619"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627630618"><span class="hs-identifier hs-type">o</span></a><span>
+</span><a name="line-92"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627630619"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627630618"><span class="hs-identifier hs-type">o</span></a><span>
+</span><a name="line-93"></a><a name="zip3"><a href="TensorOps.Tensor.html#zip3"><span class="hs-identifier">zip3</span></a></a><span> </span><a name="local-1627630638"><a href="#local-1627630638"><span class="hs-identifier">f</span></a></a><span> </span><a name="local-1627630639"><a href="#local-1627630639"><span class="hs-identifier">x</span></a></a><span> </span><a name="local-1627630640"><a href="#local-1627630640"><span class="hs-identifier">y</span></a></a><span> </span><a name="local-1627630641"><a href="#local-1627630641"><span class="hs-identifier">z</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="TensorOps.Tensor.html#zip"><span class="hs-identifier hs-var">zip</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-keyword">case</span><span> </span><span class="hs-identifier hs-var">I</span><span> </span><a name="local-1627630642"><a href="#local-1627630642"><span class="hs-identifier">x'</span></a></a><span> </span><span class="hs-operator hs-var">:*</span><span> </span><span class="hs-identifier hs-var">I</span><span> </span><a name="local-1627630643"><a href="#local-1627630643"><span class="hs-identifier">y'</span></a></a><span> </span><span class="hs-operator hs-var">:*</span><span> </span><span class="hs-identifier hs-var">I</span><span> </span><a name="local-1627630644"><a href="#local-1627630644"><span class="hs-identifier">z'</span></a></a><span> </span><span class="hs-operator hs-var">:*</span><span> </span><span class="hs-identifier hs-var">&#216;V</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627630638"><span class="hs-identifier hs-var">f</span></a><span> </span><a href="#local-1627630642"><span class="hs-identifier hs-var">x'</span></a><span> </span><a href="#local-1627630643"><span class="hs-identifier hs-var">y'</span></a><span> </span><a href="#local-1627630644"><span class="hs-identifier hs-var">z'</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="#local-1627630639"><span class="hs-identifier hs-var">x</span></a><span> </span><span class="hs-operator hs-var">:+</span><span> </span><a href="#local-1627630640"><span class="hs-identifier hs-var">y</span></a><span> </span><span class="hs-operator hs-var">:+</span><span> </span><a href="#local-1627630641"><span class="hs-identifier hs-var">z</span></a><span> </span><span class="hs-operator hs-var">:+</span><span> </span><span class="hs-identifier hs-var">&#216;V</span><span class="hs-special">)</span><span>
+</span><a name="line-94"></a><span class="hs-pragma">{-# INLINE zip3 #-}</span><span>
+</span><a name="line-95"></a><span>
+</span><a name="line-96"></a><span class="hs-comment">-- replicate</span><span>
+</span><a name="line-97"></a><span class="hs-comment">--     :: (Tensor t, Floating (ElemT t), SingI o, Known Nat n)</span><span>
+</span><a name="line-98"></a><span class="hs-comment">--     =&gt; t o</span><span>
+</span><a name="line-99"></a><span class="hs-comment">--     -&gt; Vec n (t o)</span><span>
+</span><a name="line-100"></a><span class="hs-comment">-- replicate = vrep</span><span>
+</span><a name="line-101"></a><span class="hs-comment">-- -- replicate x = liftT (\(x' :* &#216;V) -&gt; vrep x') (x :+ &#216;V)</span><span>
+</span><a name="line-102"></a><span>
+</span><a name="line-103"></a><span class="hs-comment">-- problem: shouldn't need Sing o if n or m is zero</span><span>
+</span><a name="line-104"></a><span class="hs-identifier">gradLift</span><span>
+</span><a name="line-105"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-1627630614"><a href="#local-1627630614"><span class="hs-identifier">o</span></a></a><span> </span><a name="local-1627630615"><a href="#local-1627630615"><span class="hs-identifier">n</span></a></a><span> </span><a name="local-1627630616"><a href="#local-1627630616"><span class="hs-identifier">m</span></a></a><span> </span><a name="local-1627630617"><a href="#local-1627630617"><span class="hs-identifier">t</span></a></a><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#Tensor"><span class="hs-identifier hs-type">Tensor</span></a><span> </span><a href="#local-1627630617"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Floating</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627630617"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">SingI</span><span> </span><a href="#local-1627630614"><span class="hs-identifier hs-type">o</span></a><span class="hs-special">)</span><span>
+</span><a name="line-106"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">Vec</span><span> </span><a href="#local-1627630616"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#VFunc"><span class="hs-identifier hs-type">VFunc</span></a><span> </span><a href="#local-1627630615"><span class="hs-identifier hs-type">n</span></a><span class="hs-special">)</span><span>
+</span><a name="line-107"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Vec</span><span> </span><a href="#local-1627630615"><span class="hs-identifier hs-type">n</span></a><span> </span><span class="hs-special">(</span><a href="#local-1627630617"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627630614"><span class="hs-identifier hs-type">o</span></a><span class="hs-special">)</span><span>    </span><span class="hs-comment">-- ^ inputs</span><span>
+</span><a name="line-108"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Vec</span><span> </span><a href="#local-1627630616"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-special">(</span><a href="#local-1627630617"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627630614"><span class="hs-identifier hs-type">o</span></a><span class="hs-special">)</span><span>    </span><span class="hs-comment">-- ^ d target / d outputs</span><span>
+</span><a name="line-109"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Vec</span><span> </span><a href="#local-1627630615"><span class="hs-identifier hs-type">n</span></a><span> </span><span class="hs-special">(</span><a href="#local-1627630617"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627630614"><span class="hs-identifier hs-type">o</span></a><span class="hs-special">)</span><span>    </span><span class="hs-comment">-- ^ d target / d inputs</span><span>
+</span><a name="line-110"></a><a name="gradLift"><a href="TensorOps.Tensor.html#gradLift"><span class="hs-identifier">gradLift</span></a></a><span> </span><a name="local-1627630645"><a href="#local-1627630645"><span class="hs-identifier">fs</span></a></a><span> </span><a name="local-1627630646"><a href="#local-1627630646"><span class="hs-identifier">xs</span></a></a><span> </span><a name="local-1627630647"><a href="#local-1627630647"><span class="hs-identifier">dtdys</span></a></a><span> </span><span class="hs-glyph">=</span><span>
+</span><a name="line-111"></a><span>    </span><a href="TensorOps.Types.html#liftT"><span class="hs-identifier hs-var">liftT</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">vgen_</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><a name="local-1627630674"><a href="#local-1627630674"><span class="hs-identifier">i</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">I</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">uncurry</span><span> </span><span class="hs-special">(</span><a href="#local-1627630648"><span class="hs-identifier hs-var">go</span></a><span> </span><a href="#local-1627630674"><span class="hs-identifier hs-var">i</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Data.Type.Vector.Util.html#splitVec"><span class="hs-identifier hs-var">splitVec</span></a><span> </span><span class="hs-identifier hs-var">known</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-112"></a><span>          </span><span class="hs-special">(</span><a href="#local-1627630646"><span class="hs-identifier hs-var">xs</span></a><span> </span><span class="hs-special">`</span><a href="Data.Type.Vector.Util.html#append%27"><span class="hs-identifier hs-var">TCV</span><span class="hs-operator hs-var">.</span><span class="hs-identifier hs-var">append'</span></a><span class="hs-special">`</span><span> </span><a href="#local-1627630647"><span class="hs-identifier hs-var">dtdys</span></a><span class="hs-special">)</span><span>
+</span><a name="line-113"></a><span>      </span><span class="hs-operator hs-var">\\</span><span> </span><a href="#local-1627630646"><span class="hs-identifier hs-var">xs</span></a><span>
+</span><a name="line-114"></a><span>  </span><span class="hs-keyword">where</span><span>
+</span><a name="line-115"></a><span>    </span><span class="hs-identifier">go</span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Fin</span><span> </span><a href="#local-1627630615"><span class="hs-identifier hs-type">n</span></a><span>
+</span><a name="line-116"></a><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Vec</span><span> </span><a href="#local-1627630615"><span class="hs-identifier hs-type">n</span></a><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627630617"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span>
+</span><a name="line-117"></a><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Vec</span><span> </span><a href="#local-1627630616"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627630617"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span>
+</span><a name="line-118"></a><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627630617"><span class="hs-identifier hs-type">t</span></a><span>
+</span><a name="line-119"></a><span>    </span><a name="local-1627630648"><a href="#local-1627630648"><span class="hs-identifier">go</span></a></a><span> </span><a name="local-1627630649"><a href="#local-1627630649"><span class="hs-identifier">i</span></a></a><span> </span><a name="local-1627630650"><a href="#local-1627630650"><span class="hs-identifier">x</span></a></a><span> </span><a name="local-1627630651"><a href="#local-1627630651"><span class="hs-identifier">dtdy</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">sum</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">vap</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">liftA2</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><a name="local-1627630652"><a href="#local-1627630652"><span class="hs-identifier">d</span></a></a><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#VF"><span class="hs-identifier hs-var">VF</span></a><span> </span><a name="local-1627630653"><a href="#local-1627630653"><span class="hs-identifier">f</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627630652"><span class="hs-identifier hs-var">d</span></a><span> </span><span class="hs-operator hs-var">*</span><span> </span><span class="hs-identifier hs-var">index'</span><span> </span><a href="#local-1627630649"><span class="hs-identifier hs-var">i</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">grad</span><span> </span><a href="#local-1627630653"><span class="hs-identifier hs-var">f</span></a><span> </span><a href="#local-1627630650"><span class="hs-identifier hs-var">x</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><a href="#local-1627630651"><span class="hs-identifier hs-var">dtdy</span></a><span> </span><a href="#local-1627630645"><span class="hs-identifier hs-var">fs</span></a><span>
+</span><a name="line-120"></a><span>    </span><span class="hs-pragma">{-# INLINE go #-}</span><span>
+</span><a name="line-121"></a><span class="hs-pragma">{-# INLINE gradLift #-}</span><span>
+</span><a name="line-122"></a><span class="hs-comment">-- TODO: having to use index' is the downside of the special new form for</span><span>
+</span><a name="line-123"></a><span class="hs-comment">-- lifted functions.  but i guess it's just as bad as before because the</span><span>
+</span><a name="line-124"></a><span class="hs-comment">-- implementation of liftT would have index''d everything anyways.</span><span>
+</span><a name="line-125"></a><span>
+</span><a name="line-126"></a><span class="hs-identifier">inner</span><span>
+</span><a name="line-127"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-1627630610"><a href="#local-1627630610"><span class="hs-identifier">t</span></a></a><span> </span><a name="local-1627630611"><a href="#local-1627630611"><span class="hs-identifier">ms</span></a></a><span> </span><a name="local-1627630612"><a href="#local-1627630612"><span class="hs-identifier">ns</span></a></a><span> </span><a name="local-1627630613"><a href="#local-1627630613"><span class="hs-identifier">o</span></a></a><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#Tensor"><span class="hs-identifier hs-type">Tensor</span></a><span> </span><a href="#local-1627630610"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">SingI</span><span> </span><span class="hs-special">(</span><a href="#local-1627630613"><span class="hs-identifier hs-type">o</span></a><span> </span><span class="hs-char">': ns))
+    =&gt; Length ms
+    -&gt; Length ns
+    -&gt; t (ms &gt;: o)
+    -&gt; t (o ': ns)
+    -&gt; t (ms ++ ns)
+inner lM lN x = gmul lM (LS LZ) lN x
+                    \\ appendSnoc lM (Proxy @o)
+
+outer
+    :: (Tensor t, SingI ns)
+    =&gt; Length ms
+    -&gt; Length ns
+    -&gt; t ms
+    -&gt; t ns
+    -&gt; t (ms ++ ns)
+outer lM lN x = gmul lM LZ lN x
+                    \\ appendNil lM
+
+outerV
+    :: (Tensor t, SingI '[n])
+    =&gt; t '[m]
+    -&gt; t '[n]
+    -&gt; t '[m,n]
+outerV = outer (LS LZ) (LS LZ)
+
+dot
+    :: forall (t :: [k] -&gt; Type) (m :: k). (Tensor t, SingI '[m])
+    =&gt; t '[m]
+    -&gt; t '[m]
+    -&gt; t '[]
+dot = inner LZ LZ
+
+matVec
+    :: (Tensor t, SingI '[n])
+    =&gt; t '[m, n]
+    -&gt; t '[n]
+    -&gt; t '[m]
+matVec = inner (LS LZ) LZ
+
+vecMat
+    :: (Tensor t, SingI '[m,n])
+    =&gt; t '[m]
+    -&gt; t '[m,n]
+    -&gt; t '[n]
+vecMat = inner LZ (LS LZ)
+
+matMat
+    :: (Tensor t, SingI '[n,o])
+    =&gt; t '[m,n]
+    -&gt; t '[n,o]
+    -&gt; t '[m,o]
+matMat = inner (LS LZ) (LS LZ)
+
+fromList
+    :: (Tensor t, SingI ns)
+    =&gt; [ElemT t]
+    -&gt; Maybe (t ns)
+fromList = evalStateT . generateA $ \_ -&gt; StateT uncons
+
+generate
+    :: forall k (t :: [k] -&gt; Type) ns. (Tensor t, SingI ns)
+    =&gt; (Prod (IndexN k) ns -&gt; ElemT t)
+    -&gt; t ns
+generate = getI . generateA . fmap I
+
+rows
+    :: (Tensor t, Applicative f)
+    =&gt; Length ms
+    -&gt; (t ns -&gt; f (t os))
+    -&gt; t (ms ++ ns)
+    -&gt; f (t (ms ++ os))
+rows l f = ixRows l (\_ -&gt; f)
+
+toRows
+    :: Tensor t
+    =&gt; t (n ': ns)
+    -&gt; [t ns]
+toRows = ($[])
+       . appEndo
+       . execWriter
+       . rows (LS LZ) (\xs -&gt; tell (Endo (xs:)) $&gt; xs)
+
+ixElems
+    :: forall k f (t :: [k] -&gt; Type) ns. (Applicative f, Tensor t, SingI ns)
+    =&gt; (Prod (IndexN k) ns -&gt; ElemT t -&gt; f (ElemT t))
+    -&gt; t ns
+    -&gt; f (t ns)
+ixElems f = (\\ appendNil l) $
+    ixRows l $ \i x -&gt;
+      konst &lt;$&gt; f i (unScalar (x :: t '[])) :: f (t '[])
+  where
+    l :: Length ns
+    l = singLength sing
+
+elems
+    :: (Applicative f, Tensor t, SingI ns)
+    =&gt; (ElemT t -&gt; f (ElemT t))
+    -&gt; t ns
+    -&gt; f (t ns)
+elems f = ixElems (\_ x -&gt; f x)
+
+itoList
+    :: forall k (t :: [k] -&gt; Type) ns. (Tensor t, SingI ns)
+    =&gt; t ns
+    -&gt; [(Prod (IndexN k) ns, ElemT t)]
+itoList = ($ [])
+        . appEndo
+        . execWriter
+        . ixElems (\i x -&gt; tell (Endo ((i,x):)) $&gt; x)
+
+toList
+    :: (Tensor t, SingI ns)
+    =&gt; t ns
+    -&gt; [ElemT t]
+toList = ($[])
+       . appEndo
+       . execWriter
+       . elems (\x -&gt; tell (Endo (x:)) $&gt; x)
+
+unScalar
+    :: forall t. Tensor t
+    =&gt; t '[]
+    -&gt; ElemT t
+unScalar = (! &#216;)
+</span></pre></body></html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds           #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE GADTs               #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase          #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE PolyKinds           #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications    #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE TypeInType          #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators       #-}</span><span>
+</span><a name="line-9"></a><span>
+</span><a name="line-10"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-11"></a><span>
+</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
+</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Proxy</span><span>
+</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>
+</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
+</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
+</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><a href="Type.Family.List.Util.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Unsafe</span><span class="hs-operator">.</span><span class="hs-identifier">Coerce</span><span>
+</span><a name="line-19"></a><span>
+</span><a name="line-20"></a><span class="hs-identifier">append'</span><span>
+</span><a name="line-21"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><a href="#local-1627539242"><span class="hs-identifier hs-type">ns</span></a><span>
+</span><a name="line-22"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><a href="#local-1627539243"><span class="hs-identifier hs-type">ms</span></a><span>
+</span><a name="line-23"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><span class="hs-special">(</span><a href="#local-1627539242"><span class="hs-identifier hs-type">ns</span></a><span> </span><span class="hs-operator">++</span><span> </span><a href="#local-1627539243"><span class="hs-identifier hs-type">ms</span></a><span class="hs-special">)</span><span>
+</span><a name="line-24"></a><a name="append%27"><a href="Data.Type.Length.Util.html#append%27"><span class="hs-identifier">append'</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-keyword">case</span><span>
+</span><a name="line-25"></a><span>    </span><span class="hs-identifier hs-var">LZ</span><span>   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">id</span><span>
+</span><a name="line-26"></a><span>    </span><span class="hs-identifier hs-var">LS</span><span> </span><a name="local-1627539244"><a href="#local-1627539244"><span class="hs-identifier">l</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">LS</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Data.Type.Length.Util.html#append%27"><span class="hs-identifier hs-var">append'</span></a><span> </span><a href="#local-1627539244"><span class="hs-identifier hs-var">l</span></a><span>
+</span><a name="line-27"></a><span>
+</span><a name="line-28"></a><span class="hs-comment">-- TODO: could PROBABLY just be unsafeCoerce?</span><span>
+</span><a name="line-29"></a><span class="hs-comment">-- also, make the product reverse' efficient.</span><span>
+</span><a name="line-30"></a><span class="hs-identifier">reverse'</span><span>
+</span><a name="line-31"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-1627539241"><a href="#local-1627539241"><span class="hs-identifier">ns</span></a></a><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a name="line-32"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><a href="#local-1627539241"><span class="hs-identifier hs-type">ns</span></a><span>
+</span><a name="line-33"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Reverse</span><span> </span><a href="#local-1627539241"><span class="hs-identifier hs-type">ns</span></a><span class="hs-special">)</span><span>
+</span><a name="line-34"></a><a name="reverse%27"><a href="Data.Type.Length.Util.html#reverse%27"><span class="hs-identifier">reverse'</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">unsafeCoerce</span><span>
+</span><a name="line-35"></a><span class="hs-comment">-- reverse' = \case</span><span>
+</span><a name="line-36"></a><span class="hs-comment">--     LZ   -&gt; LZ</span><span>
+</span><a name="line-37"></a><span class="hs-comment">--     LS l -&gt; reverse' l &gt;: (Proxy @(Head ns))</span><span>
+</span><a name="line-38"></a><span>
+</span><a name="line-39"></a><span class="hs-special">(</span><span class="hs-operator">&gt;:</span><span class="hs-special">)</span><span>
+</span><a name="line-40"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><a href="#local-1627539239"><span class="hs-identifier hs-type">ns</span></a><span>
+</span><a name="line-41"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Proxy</span><span> </span><a href="#local-1627539240"><span class="hs-identifier hs-type">n</span></a><span>
+</span><a name="line-42"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><span class="hs-special">(</span><a href="#local-1627539239"><span class="hs-identifier hs-type">ns</span></a><span> </span><span class="hs-operator">&gt;:</span><span> </span><a href="#local-1627539240"><span class="hs-identifier hs-type">n</span></a><span class="hs-special">)</span><span>
+</span><a name="line-43"></a><span class="hs-special">(</span><a name="%3E%3A"><a href="Data.Type.Length.Util.html#%3E%3A"><span class="hs-operator">&gt;:</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-keyword">case</span><span>
+</span><a name="line-44"></a><span>    </span><span class="hs-identifier hs-var">LZ</span><span>   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-glyph">\</span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">LS</span><span> </span><span class="hs-identifier hs-var">LZ</span><span>
+</span><a name="line-45"></a><span>    </span><span class="hs-identifier hs-var">LS</span><span> </span><a name="local-1627539245"><a href="#local-1627539245"><span class="hs-identifier">l</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">LS</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-special">(</span><a href="#local-1627539245"><span class="hs-identifier hs-var">l</span></a><span> </span><a href="Data.Type.Length.Util.html#%3E%3A"><span class="hs-operator hs-var">&gt;:</span></a><span class="hs-special">)</span><span>
+</span><a name="line-46"></a><span>
+</span><a name="line-47"></a><span class="hs-keyword">data</span><span> </span><a name="SnocLength"><a href="Data.Type.Length.Util.html#SnocLength"><span class="hs-identifier">SnocLength</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><a href="#local-1627539231"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-48"></a><span>    </span><a name="SnocZ"><a href="Data.Type.Length.Util.html#SnocZ"><span class="hs-identifier">SnocZ</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Data.Type.Length.Util.html#SnocLength"><span class="hs-identifier hs-type">SnocLength</span></a><span> </span><span class="hs-char">'[]
+    SnocS :: SnocLength as -&gt; Proxy a -&gt; SnocLength (as &gt;: a)
+
+snocLengthHelp
+    :: forall as bs. ()
+    =&gt; Length bs
+    -&gt; SnocLength bs
+    -&gt; Length as
+    -&gt; SnocLength (bs ++ as)
+snocLengthHelp lB sB = \case
+    LZ                            -&gt;
+        sB      \\ appendNil lB
+    lA@(LS lA') -&gt;
+        snocLengthHelp (lB &gt;: p lA) (SnocS sB (p lA)) lA'
+                \\ appendSnoc lB (p lA)
+                \\ appendAssoc lB (l lA) lA'
+  where
+    p :: forall c cs. Length (c ': cs) -&gt; Proxy c
+    p _ = Proxy
+    l :: forall c cs. Length (c ': cs) -&gt; Length '[c]
+    l _ = LS LZ
+
+-- | could this be unsafeCoerce?
+snocLength
+    :: Length as
+    -&gt; SnocLength as
+snocLength l = snocLengthHelp LZ SnocZ l
+
+-- | could just be unsafeCoerce lol
+snocLengthLength
+    :: SnocLength as
+    -&gt; Length as
+snocLengthLength = \case
+    SnocZ     -&gt; LZ
+    SnocS l s -&gt; snocLengthLength l &gt;: s
+
+snocLengthReverse
+    :: SnocLength as
+    -&gt; Length (Reverse as)
+snocLengthReverse = \case
+    SnocZ     -&gt; LZ
+    SnocS (s :: SnocLength bs) (p :: Proxy b) -&gt;
+      LS (snocLengthReverse s)
+        \\ snocReverse (snocLengthLength s) p
+
+</span></pre></body></html>

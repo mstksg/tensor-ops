@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE FlexibleInstances     #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE GADTs                 #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE KindSignatures        #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase            #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE StandaloneDeriving    #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE TypeInType            #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators         #-}</span><span>
+</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE TypeSynonymInstances  #-}</span><span>
+</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances  #-}</span><span>
+</span><a name="line-11"></a><span>
+</span><a name="line-12"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Uniform</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-13"></a><span>
+</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
+</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>
+</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Known</span><span>
+</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
+</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Constraint</span><span>
+</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
+</span><a name="line-20"></a><span>
+</span><a name="line-21"></a><span class="hs-keyword">data</span><span> </span><a name="Uniform"><a href="Data.Type.Uniform.html#Uniform"><span class="hs-identifier">Uniform</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-1627541100"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><a href="#local-1627541100"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-22"></a><span>    </span><a name="U%D8"><a href="Data.Type.Uniform.html#U%D8"><span class="hs-identifier">U&#216;</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Data.Type.Uniform.html#Uniform"><span class="hs-identifier hs-type">Uniform</span></a><span> </span><a href="#local-1627541101"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-char">'[]
+    US :: Uniform a as -&gt; Uniform a (a ': as)
+
+deriving instance Show (Uniform a as)
+
+uniformLength :: Uniform n ns -&gt; Length ns
+uniformLength = \case
+    U&#216;   -&gt; LZ
+    US u -&gt; LS (uniformLength u)
+
+instance Known (Uniform n) '[] where
+    known = U&#216;
+
+instance Known (Uniform n) ns =&gt; Known (Uniform n) (n ': ns) where
+    known = US known
+
+-- instance (m ~ Len ns) =&gt; Witness &#216;C (Known Nat m) (Uniform n ns) where
+--     (\\) r = \case
+--       U&#216;   -&gt; r
+--       US u -&gt; r \\ u
+
+instance Witness &#216;C (Known Length ms) (Uniform m ms) where
+    (\\) r = \case
+      U&#216;   -&gt; r
+      US u -&gt; r \\ u
+
+appendUniform
+    :: Uniform o ns
+    -&gt; Uniform o ms
+    -&gt; Uniform o (ns ++ ms)
+appendUniform = \case
+    U&#216;   -&gt; id
+    US u -&gt; US . appendUniform u
+
+</span></pre></body></html>

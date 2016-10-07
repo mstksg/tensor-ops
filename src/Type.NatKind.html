@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds            #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE KindSignatures       #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase           #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE PolyKinds            #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE RankNTypes           #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables  #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications     #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies         #-}</span><span>
+</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE TypeInType           #-}</span><span>
+</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators        #-}</span><span>
+</span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><a name="line-12"></a><span>
+</span><a name="line-13"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">NatKind</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-14"></a><span>
+</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span>
+</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
+</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Maybe</span><span>
+</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
+</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">Prelude</span><span class="hs-operator">.</span><span class="hs-identifier">Num</span><span>
+</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Fin</span><span>
+</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Nat.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Sing.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Sing</span></a><span>
+</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><a href="Type.Family.Nat.Util.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Unsafe</span><span class="hs-operator">.</span><span class="hs-identifier">Coerce</span><span>
+</span><a name="line-27"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>    </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">GT</span><span>
+</span><a name="line-28"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>                </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">GT</span><span>
+</span><a name="line-29"></a><span>
+</span><a name="line-30"></a><span class="hs-keyword">class</span><span> </span><a name="NatKind"><a href="Type.NatKind.html#NatKind"><span class="hs-identifier">NatKind</span></a></a><span> </span><a name="local-1627577586"><a href="#local-1627577586"><span class="hs-identifier">k</span></a></a><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-31"></a><span>    </span><span class="hs-keyword">type</span><span> </span><span class="hs-identifier">FromNat</span><span> </span><span class="hs-special">(</span><a name="local-1627577587"><a href="#local-1627577587"><span class="hs-identifier">n</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">GT</span><span class="hs-operator hs-type">.</span><span class="hs-identifier hs-type">Nat</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-1627577586"><span class="hs-identifier hs-type">k</span></a><span>
+</span><a name="line-32"></a><span>    </span><span class="hs-comment">-- type Succ (n :: k) = (m :: k) | m -&gt; n</span><span>
+</span><a name="line-33"></a><span>    </span><span class="hs-keyword">type</span><span> </span><span class="hs-identifier">Succ</span><span> </span><span class="hs-special">(</span><a name="local-1627577588"><a href="#local-1627577588"><span class="hs-identifier">n</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-1627577586"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-1627577586"><span class="hs-identifier hs-type">k</span></a><span>
+</span><a name="line-34"></a><span>    </span><span class="hs-keyword">type</span><span> </span><span class="hs-identifier">IndexN</span><span> </span><a name="local-1627577586"><a href="#local-1627577586"><span class="hs-identifier">k</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-1627577586"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span>
+</span><a name="line-35"></a><span>    </span><span class="hs-identifier">sFromNat</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Sing</span><span> </span><span class="hs-special">(</span><a href="#local-1627577589"><span class="hs-identifier hs-type">n</span></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">GT</span><span class="hs-operator hs-type">.</span><span class="hs-identifier hs-type">Nat</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Sing</span><span> </span><span class="hs-special">(</span><a href="Type.NatKind.html#FromNat"><span class="hs-identifier hs-type">FromNat</span></a><span> </span><a href="#local-1627577589"><span class="hs-identifier hs-type">n</span></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-1627577586"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">)</span><span>
+</span><a name="line-36"></a><span>    </span><span class="hs-identifier">sSucc</span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Sing</span><span> </span><span class="hs-special">(</span><a href="#local-1627577590"><span class="hs-identifier hs-type">n</span></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-1627577586"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Sing</span><span> </span><span class="hs-special">(</span><a href="Type.NatKind.html#Succ"><span class="hs-identifier hs-type">Succ</span></a><span> </span><a href="#local-1627577590"><span class="hs-identifier hs-type">n</span></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-1627577586"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">)</span><span>
+</span><a name="line-37"></a><span>
+</span><a name="line-38"></a><span class="hs-keyword">instance</span><span> </span><a href="Type.NatKind.html#NatKind"><span class="hs-identifier hs-type">NatKind</span></a><span> </span><span class="hs-identifier hs-type">N</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-39"></a><span>    </span><span class="hs-keyword">type</span><span> </span><span class="hs-identifier">FromNat</span><span> </span><a href="#local-1627577603"><span class="hs-identifier hs-type">n</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Type.Family.Nat.Util.html#NatNat"><span class="hs-identifier hs-type">NatNat</span></a><span> </span><a href="#local-1627577603"><span class="hs-identifier hs-type">n</span></a><span>
+</span><a name="line-40"></a><span>    </span><span class="hs-keyword">type</span><span> </span><span class="hs-identifier">Succ</span><span> </span><a href="#local-1627577604"><span class="hs-identifier hs-type">n</span></a><span>    </span><span class="hs-glyph">=</span><span> </span><span class="hs-char">'S n
+    type IndexN N  = Fin
+    sFromNat s = fromJust $ withNat (fromSing s) (Just . SN . unsafeCoerce)
+    sSucc      = \case
+      SN n -&gt; SN (S_ n)
+
+someNatKind
+    :: NatKind k
+    =&gt; Integer
+    -&gt; SomeSing k
+someNatKind n = withSomeSing n (SomeSing . sFromNat)
+
+withNatKind
+    :: NatKind k
+    =&gt; Integer
+    -&gt; (forall (n :: k). Sing n -&gt; r)
+    -&gt; r
+withNatKind n f = withSomeSing n (f . sFromNat)
+
+instance NatKind GT.Nat where
+    type FromNat n     = n
+    type Succ n        = n GT.+ 1
+    type IndexN GT.Nat = Finite
+    sFromNat = id
+    sSucc    = (%:+ GT.SNat @1)
+</span></pre></body></html>
