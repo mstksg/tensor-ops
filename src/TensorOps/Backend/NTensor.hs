@@ -40,12 +40,12 @@ import           Data.Type.Uniform
 import           GHC.Generics
 import           Statistics.Distribution
 import           System.Random.MWC
+import           TensorOps.NatKind
 import           TensorOps.Types
 import           Type.Class.Higher
 import           Type.Class.Higher.Util
 import           Type.Class.Witness
 import           Type.Family.List
-import           Type.NatKind
 import qualified Data.Type.Vector                    as TCV
 import qualified Data.Type.Vector.Util               as TCV
 import qualified Data.Vector.Sized                   as VS

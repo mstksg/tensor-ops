@@ -30,13 +30,13 @@ library
                        GHC.TypeLits.Util
                        TensorOps.Backend.NTensor
                        TensorOps.Gradient
+                       TensorOps.NatKind
                        TensorOps.Run
                        TensorOps.TOp
                        TensorOps.Tensor
                        Type.Class.Higher.Util
                        Type.Family.List.Util
                        Type.Family.Nat.Util
-                       Type.NatKind
   build-depends:       base >= 4.7 && < 5
                      , ad
                      , deepseq

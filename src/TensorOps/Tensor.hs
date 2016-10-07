@@ -30,12 +30,12 @@ import           Data.Type.Vector                  as TCV
 import           Data.Type.Vector.Util             as TCV
 import           Numeric.AD
 import           Prelude hiding                    (zip)
+import           TensorOps.NatKind
 import           TensorOps.Types
 import           Type.Class.Known
 import           Type.Class.Witness hiding         (inner, outer)
 import           Type.Family.List
 import           Type.Family.List.Util
-import           Type.NatKind
 
 konst
     :: (Tensor t, SingI n)

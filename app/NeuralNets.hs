@@ -40,6 +40,7 @@ import           Statistics.Distribution.Uniform
 import           System.Random.MWC
 import           TensorOps.Backend.NTensor
 import           TensorOps.Gradient
+import           TensorOps.NatKind
 import           TensorOps.Run
 import           TensorOps.Types
 import           Text.Printf
@@ -47,7 +48,6 @@ import           Type.Class.Higher
 import           Type.Class.Witness hiding       (inner)
 import           Type.Family.List
 import           Type.Family.List.Util
-import           Type.NatKind
 import qualified TensorOps.TOp                   as TO
 import qualified TensorOps.Tensor                as TT
 

@@ -26,20 +26,20 @@ import           Data.Finite
 import           Data.Kind
 import           Data.Singletons
 import           Data.Type.Index
-import           Data.Type.Length                       as TCL
+import           Data.Type.Length        as TCL
 import           Data.Type.Product
 import           Data.Type.Sing
 import           Data.Type.Uniform
 import           Data.Type.Vector
-import           Prelude hiding                         ((.), id)
+import           Prelude hiding          ((.), id)
 import           Statistics.Distribution
 import           System.Random.MWC
+import           TensorOps.NatKind
 import           Type.Class.Higher
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
-import           Type.NatKind
 
 
 class NatKind k => Tensor (t :: [k] -> Type) where

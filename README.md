@@ -103,3 +103,8 @@ API clear enough so people can implement their own backends in libraries like
 [stack-based]: https://en.wikipedia.org/wiki/Stack-oriented_programming_language
 [concatenative]: https://en.wikipedia.org/wiki/Concatenative_programming_language
 
+Haddocks are put up and rendered [here][haddocks], but don't expect them to be
+very usable/useful for now :)  Most of the API is in the `TensorOps` top-level
+module.
+
+[haddocks]: https://mstksg.github.io/tensor-ops

@@ -27,7 +27,7 @@ module Data.Nested
   , Nesting1(..), nesting1Every
   , Nested
   , genNested, genNestedA
-  , indexNested
+  , indexNested, indexNested'
   , transpose
   , gmul'
   , diagNV
@@ -35,8 +35,10 @@ module Data.Nested
   , nIxRows
   , vGen, itraverseNested
   , liftNested
+  , unScalar, unNest, unVector
   ) where
 
+-- import           Data.Type.Product.Util
 import           Control.Applicative
 import           Control.DeepSeq
 import           Data.Distributive
@@ -52,10 +54,10 @@ import           Data.Type.Product
 import           Data.Type.Sing
 import           Data.Type.SnocProd
 import           Data.Type.Uniform
+import           TensorOps.NatKind
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
-import           Type.NatKind
 import qualified Data.Singletons.TypeLits            as GT
 import qualified Data.Type.Nat                       as TCN
 import qualified Data.Type.Vector                    as TCV
@@ -346,6 +348,8 @@ indexNested = \case
       NØ x  -> x
     i :< is -> \case
       NS xs -> indexNested is (vIndex i xs)
+-- indexNested i = unScalar . indexNested' i
+--                   \\ appendNil (prodLength i)
 
 indexNested'
     :: Vec (v :: k -> Type -> Type)

@@ -10,7 +10,7 @@
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Type.NatKind where
+module TensorOps.NatKind where
 
 import           Data.Finite
 import           Data.Kind
