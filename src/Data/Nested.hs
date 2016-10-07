@@ -64,7 +64,7 @@ import qualified Data.Vector.Sized                   as VS
 
 data Uncons :: (k -> Type -> Type) -> k -> Type -> Type where
     UNil  :: Uncons v (FromNat 0) a
-    UCons :: Sing n -> a -> v n a -> Uncons v (Succ n) a
+    UCons :: !(Sing n) -> !a -> !(v n a) -> Uncons v (Succ n) a
 
 class NatKind k => Vec (v :: k -> Type -> Type) where
     vHead   :: p j -> v (Succ j) a -> a
@@ -179,8 +179,8 @@ nesting1Every p = \case
                 \\ (nesting1Every p ws :: Wit (Every c (v <$> as')))
 
 data Nested :: (k -> Type -> Type) -> [k] -> Type -> Type where
-    NØ :: a                   -> Nested v '[]       a
-    NS :: v j (Nested v js a) -> Nested v (j ': js) a
+    NØ :: !a                     -> Nested v '[]       a
+    NS :: !(v j (Nested v js a)) -> Nested v (j ': js) a
 
 instance (NFData a, Nesting Proxy NFData v) => NFData (Nested v js a) where
     rnf = \case
@@ -193,12 +193,19 @@ instance (NFData a, Nesting Proxy NFData v) => NFData (Nested v js a) where
 
 instance (Num a, Applicative (Nested v js)) => Num (Nested v js a) where
     (+)         = liftA2 (+)
+    {-# INLINE (+) #-}
     (*)         = liftA2 (*)
+    {-# INLINE (*) #-}
     (-)         = liftA2 (-)
+    {-# INLINE (-) #-}
     negate      = fmap negate
+    {-# INLINE negate #-}
     abs         = fmap abs
+    {-# INLINE abs #-}
     signum      = fmap signum
+    {-# INLINE signum #-}
     fromInteger = pure . fromInteger
+    {-# INLINE fromInteger #-}
 
 instance Nesting1 Proxy Functor v => Functor (Nested v js) where
     fmap f = \case
@@ -233,6 +240,7 @@ instance (SingI js, Nesting1 Sing Applicative v, Nesting1 Proxy Functor v) => Ap
             NS fs -> \case
               NS xs -> NS $ liftA2 (go ss) fs xs
                               \\ (nesting1 s :: Wit (Applicative (v k)))
+    {-# INLINE (<*>) #-}
 
 instance Nesting1 Proxy Foldable v => Foldable (Nested v js) where
     foldMap f = \case

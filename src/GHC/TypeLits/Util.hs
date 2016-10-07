@@ -19,7 +19,7 @@ import           Unsafe.Coerce
 
 data Inductive :: Nat -> Type where
     NatZ :: Inductive 0
-    NatS :: KnownNat n => Proxy n -> Inductive (n + 1)
+    NatS :: KnownNat n => !(Proxy n) -> Inductive (n + 1)
 
 inductive
     :: forall n. KnownNat n

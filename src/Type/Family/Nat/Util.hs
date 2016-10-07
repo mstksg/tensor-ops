@@ -26,12 +26,3 @@ type family NatNat (n :: GT.Nat) = (m :: N) where
     NatNat 0 = 'Z
     NatNat n = 'S (NatNat (n GT.- 1))
 
--- instance PNum ('Proxy :: Proxy N) where
---     type x :+ y = x + y
---     type x :* y = x * y
---     type Signum x = N1
---     type FromInteger x = NatNat x
-
-
--- type family (x :: N) - (y :: N) where
-

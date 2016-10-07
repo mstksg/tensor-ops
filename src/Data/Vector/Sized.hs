@@ -168,7 +168,7 @@ vmap f (UnsafeV xs) = UnsafeV (f <$> xs)
 
 data Uncons :: Nat -> (Type -> Type) -> Type -> Type where
     VNil  :: Uncons 0 f a
-    VCons :: KnownNat n => f a -> VectorT n f a -> Uncons (n + 1) f a
+    VCons :: KnownNat n => !(f a) -> !(VectorT n f a) -> Uncons (n + 1) f a
 
 uncons
     :: forall n f a. KnownNat n
