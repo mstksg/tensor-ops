@@ -22,7 +22,7 @@ produceEq1 :: Eq1 f :- Eq (f a)
 module GHC.TypeLits.Util
 data Inductive :: Nat -> Type
 [NatZ] :: Inductive 0
-[NatS] :: KnownNat n => Proxy n -> Inductive (n + 1)
+[NatS] :: KnownNat n => !(Proxy n) -> Inductive (n + 1)
 inductive :: forall n. KnownNat n => Proxy n -> Inductive n
 
 module Data.Type.Nat.Util
@@ -49,7 +49,7 @@ vap :: (f a -> g b -> h c) -> VectorT n f a -> VectorT n g b -> VectorT n h c
 vmap :: (f a -> g b) -> VectorT n f a -> VectorT n g b
 data Uncons :: Nat -> (Type -> Type) -> Type -> Type
 [VNil] :: Uncons 0 f a
-[VCons] :: KnownNat n => f a -> VectorT n f a -> Uncons (n + 1) f a
+[VCons] :: KnownNat n => !(f a) -> !(VectorT n f a) -> Uncons (n + 1) f a
 uncons :: forall n f a. KnownNat n => VectorT n f a -> Uncons n f a
 fromUncons :: Uncons n f a -> VectorT n f a
 cons :: f a -> VectorT n f a -> VectorT (n + 1) f a
@@ -62,6 +62,7 @@ instance GHC.Show.Show (f a) => GHC.Show.Show (Data.Vector.Sized.VectorT n f a)
 instance GHC.Base.Functor f => GHC.Base.Functor (Data.Vector.Sized.VectorT n f)
 instance Data.Traversable.Traversable f => Data.Traversable.Traversable (Data.Vector.Sized.VectorT n f)
 instance Data.Foldable.Foldable f => Data.Foldable.Foldable (Data.Vector.Sized.VectorT n f)
+instance (GHC.TypeLits.KnownNat n, Data.Distributive.Distributive f) => Data.Distributive.Distributive (Data.Vector.Sized.VectorT n f)
 instance Control.DeepSeq.NFData (f a) => Control.DeepSeq.NFData (Data.Vector.Sized.VectorT n f a)
 instance (GHC.TypeLits.KnownNat n, GHC.Base.Applicative f) => GHC.Base.Applicative (Data.Vector.Sized.VectorT n f)
 
@@ -87,14 +88,15 @@ newtype Flip2 p b a c
 instance forall k k1 k2 (p :: k1 -> k -> k2 -> *) (b :: k) (a :: k1) (c :: k2). GHC.Generics.Generic (Data.Type.Combinator.Util.Flip2 p b a c)
 instance forall k k1 (p :: k1 -> k -> * -> *) (a :: k1) (b :: k). GHC.Base.Functor (p a b) => GHC.Base.Functor (Data.Type.Combinator.Util.Flip2 p b a)
 instance forall k k1 (p :: k1 -> k -> * -> *) (a :: k1) (b :: k). GHC.Base.Applicative (p a b) => GHC.Base.Applicative (Data.Type.Combinator.Util.Flip2 p b a)
-instance forall k k1 (p :: k1 -> k -> * -> *) (a :: k1) (b :: k). Data.Traversable.Traversable (p a b) => Data.Traversable.Traversable (Data.Type.Combinator.Util.Flip2 p b a)
 instance forall k k1 (p :: k1 -> k -> * -> *) (a :: k1) (b :: k). Data.Foldable.Foldable (p a b) => Data.Foldable.Foldable (Data.Type.Combinator.Util.Flip2 p b a)
+instance forall k k1 (p :: k1 -> k -> * -> *) (a :: k1) (b :: k). Data.Traversable.Traversable (p a b) => Data.Traversable.Traversable (Data.Type.Combinator.Util.Flip2 p b a)
 instance forall k k1 k2 (p :: k1 -> k -> k2 -> *) (a :: k1) (b :: k) (c :: k2). GHC.Show.Show (p a b c) => GHC.Show.Show (Data.Type.Combinator.Util.Flip2 p b a c)
 instance forall k k1 k2 (p :: k1 -> k -> k2 -> *) (a :: k1) (b :: k) (c :: k2). GHC.Num.Num (p a b c) => GHC.Num.Num (Data.Type.Combinator.Util.Flip2 p b a c)
 instance GHC.Generics.Generic (Data.Type.Combinator.I a)
 instance Data.Distributive.Distributive Data.Type.Combinator.I
 instance forall k k1 k2 (p :: k1 -> k -> k2 -> *) (a :: k1) (b :: k) (c :: k2). Control.DeepSeq.NFData (p a b c) => Control.DeepSeq.NFData (Data.Type.Combinator.Util.Flip2 p b a c)
 instance Control.DeepSeq.NFData a => Control.DeepSeq.NFData (Data.Type.Combinator.I a)
+instance forall k k1 (p :: k1 -> k -> * -> *) (a :: k1) (b :: k). Data.Distributive.Distributive (p a b) => Data.Distributive.Distributive (Data.Type.Combinator.Util.Flip2 p b a)
 
 module Type.Family.List.Util
 reverseSnoc :: forall a as. Length as -> Proxy a -> (Reverse (a : as) :~: (Reverse as >: a))
@@ -195,9 +197,6 @@ instance Type.NatKind.NatKind Type.Family.Nat.N
 instance Type.NatKind.NatKind GHC.Types.Nat
 
 module Data.Nested
-data Uncons :: (k -> Type -> Type) -> k -> Type -> Type
-[UNil] :: Uncons v (FromNat 0) a
-[UCons] :: Sing n -> a -> v n a -> Uncons v (Succ n) a
 class NatKind k => Vec (v :: k -> Type -> Type)
 vHead :: Vec v => p j -> v (Succ j) a -> a
 vTail :: Vec v => v (Succ j) a -> v j a
@@ -207,36 +206,27 @@ vUncons :: Vec v => Sing j -> v j a -> Uncons v j a
 vEmpty :: Vec v => v (FromNat 0) a
 vCons :: Vec v => a -> v j a -> v (Succ j) a
 vITraverse :: (Vec v, Applicative f) => (IndexN k j -> a -> f b) -> v j a -> f (v j b)
-vGen :: Vec (v :: k -> Type -> Type) => Sing j -> (IndexN k j -> a) -> v j a
 class Nesting (w :: k -> Type) (c :: j -> Constraint) (v :: k -> j -> j)
 nesting :: Nesting w c v => w i -> c a :- c (v i a)
 class Nesting1 (w :: k -> Type) (c :: j -> Constraint) (v :: k -> j)
 nesting1 :: Nesting1 w c v => w a -> Wit (c (v a))
 nesting1Every :: forall p w c v as. Nesting1 w c v => p v -> Prod w as -> Wit (Every c (v <$> as))
 data Nested :: (k -> Type -> Type) -> [k] -> Type -> Type
-[NØ] :: a -> Nested v '[] a
-[NS] :: v j (Nested v js a) -> Nested v (j : js) a
-nHead :: forall v p j js a. Vec v => p j -> Nested v (Succ j : js) a -> Nested v js a
-nTail :: Vec v => Nested v (Succ j : js) a -> Nested v (j : js) a
-unScalar :: Nested v '[] a -> a
-unVector :: Functor (v j) => Nested v '[j] a -> v j a
-nVector :: Functor (v j) => v j a -> Nested v '[j] a
-genNestedVec :: Vec (v :: k -> Type -> Type) => Sing ns -> (Prod (IndexN k) ns -> a) -> Nested v ns a
-genNestedVecA :: (Vec (v :: k -> Type -> Type), Applicative f) => Sing ns -> (Prod (IndexN k) ns -> f a) -> f (Nested v ns a)
-indexNestedVec :: Vec (v :: k -> Type -> Type) => Prod (IndexN k) ns -> Nested v ns a -> a
-joinNestedVec :: forall v ns ms a. Nesting1 Proxy Functor v => Nested v ns (Nested v ms a) -> Nested v (ns ++ ms) a
-unjoinNestedVec :: Nesting1 Proxy Functor v => Length ns -> Nested v (ns ++ ms) a -> Nested v ns (Nested v ms a)
-mapNVecSlices :: forall v ns ms a b. Nesting1 Proxy Functor v => (Nested v ms a -> b) -> Length ns -> Nested v (ns ++ ms) a -> Nested v ns b
-reduceTrace :: forall ns ms v a. (Num a, SingI (Reverse ns ++ ms), Nesting1 Proxy Functor v, Nesting1 Proxy Foldable v, Nesting1 Sing Applicative v, Vec v) => Length ns -> Length ms -> Nested v ns (Nested v (Reverse ns ++ ms) a) -> Nested v ms a
-reduceTraceHelp :: forall ns ms v a. (Num a, Vec v, Nesting1 Proxy Functor v, Nesting1 Proxy Foldable v, Nesting1 Sing Applicative v) => SnocProd Sing ns -> Sing ms -> Nested v ns (Nested v (Reverse ns ++ ms) a) -> Nested v ms a
-diagNV' :: forall v n ns a. (Vec v, Nesting1 Proxy Functor v) => Sing n -> Nested v (n : (n : ns)) a -> Nested v (n : ns) a
+genNested :: Vec (v :: k -> Type -> Type) => Sing ns -> (Prod (IndexN k) ns -> a) -> Nested v ns a
+genNestedA :: (Vec (v :: k -> Type -> Type), Applicative f) => Sing ns -> (Prod (IndexN k) ns -> f a) -> f (Nested v ns a)
+indexNested :: Vec (v :: k -> Type -> Type) => Prod (IndexN k) ns -> Nested v ns a -> a
+indexNested' :: Vec (v :: k -> Type -> Type) => Prod (IndexN k) ms -> Nested v (ms ++ ns) a -> Nested v ns a
+transpose :: forall v os a. (Nesting1 Proxy Functor v, Nesting1 Proxy Foldable v, Nesting1 Proxy Traversable v, Nesting1 Sing Distributive v) => Sing os -> Nested v os a -> Nested v (Reverse os) a
+gmul' :: forall ms os ns v a. (Nesting1 Proxy Functor v, Nesting1 Sing Applicative v, Nesting1 Proxy Foldable v, Nesting1 Proxy Traversable v, Nesting1 Sing Distributive v, SingI ns, SingI (Reverse os), Num a) => Length ms -> Length os -> Length ns -> Nested v (ms ++ os) a -> Nested v (Reverse os ++ ns) a -> Nested v (ms ++ ns) a
 diagNV :: (Vec v, Nesting1 Proxy Functor v) => Sing n -> Uniform n ms -> Nested v (n : (n : ms)) a -> Nested v '[n] a
-itraverseNestedVec :: forall k (v :: k -> Type -> Type) (ns :: [k]) a b f. (Applicative f, Vec v) => (Prod (IndexN k) ns -> a -> f b) -> Nested v ns a -> f (Nested v ns b)
-gmul' :: forall ms os ns v a. (Nesting1 Proxy Functor v, Nesting1 Sing Applicative v, Nesting1 Proxy Foldable v, Nesting1 Proxy Traversable v, SingI ns, SingI (Reverse os), Num a) => Length ms -> Length os -> Length ns -> Nested v (ms ++ os) a -> Nested v (Reverse os ++ ns) a -> Nested v (ms ++ ns) a
-squish :: forall v os ns a. (Num a, Nesting1 Proxy Functor v, Nesting1 Sing Applicative v, Nesting1 Proxy Foldable v, Nesting1 Proxy Traversable v, SingI ns) => Length os -> SnocProd Sing (Reverse os) -> Nested v os a -> Nested v (Reverse os) (Nested v ns a) -> Nested v ns a
-transpose :: forall v os a. (Nesting1 Proxy Functor v, Nesting1 Sing Applicative v, Nesting1 Proxy Foldable v, Nesting1 Proxy Traversable v) => Sing os -> Nested v os a -> Nested v (Reverse os) a
-transposeHelp :: forall v os a. (Nesting1 Proxy Functor v, Nesting1 Sing Applicative v, Nesting1 Proxy Foldable v, Nesting1 Proxy Traversable v) => SnocProd Sing os -> Nested v os a -> Nested v (Reverse os) a
+joinNested :: forall v ns ms a. Nesting1 Proxy Functor v => Nested v ns (Nested v ms a) -> Nested v (ns ++ ms) a
 nIxRows :: forall k (v :: k -> Type -> Type) ns ms a b f. (Nesting1 Proxy Functor v, Applicative f, Vec v) => Length ns -> (Prod (IndexN k) ns -> Nested v ms a -> f b) -> Nested v (ns ++ ms) a -> f (Nested v ns b)
+vGen :: Vec (v :: k -> Type -> Type) => Sing j -> (IndexN k j -> a) -> v j a
+itraverseNested :: forall k (v :: k -> Type -> Type) (ns :: [k]) a b f. (Applicative f, Vec v) => (Prod (IndexN k) ns -> a -> f b) -> Nested v ns a -> f (Nested v ns b)
+liftNested :: Distributive (Nested v ns) => (Vec m (Vec n a -> a)) -> Vec n (Nested v ns a) -> Vec m (Nested v ns a)
+unScalar :: Nested v '[] a -> a
+unNest :: Nested v (j : js) a -> v j (Nested v js a)
+unVector :: Functor (v j) => Nested v '[j] a -> v j a
 instance Data.Nested.Vec (Data.Type.Combinator.Util.Flip2 Data.Vector.Sized.VectorT Data.Type.Combinator.I)
 instance Data.Nested.Vec (Data.Type.Combinator.Util.Flip2 Data.Type.Vector.VecT Data.Type.Combinator.I)
 instance Data.Nested.Nesting w Control.DeepSeq.NFData (Data.Type.Combinator.Util.Flip2 Data.Vector.Sized.VectorT Data.Type.Combinator.I)
@@ -244,17 +234,20 @@ instance GHC.Base.Functor f => Data.Nested.Nesting1 w GHC.Base.Functor (Data.Typ
 instance GHC.Base.Applicative f => Data.Nested.Nesting1 Data.Singletons.Sing GHC.Base.Applicative (Data.Type.Combinator.Util.Flip2 Data.Vector.Sized.VectorT f)
 instance Data.Foldable.Foldable f => Data.Nested.Nesting1 w Data.Foldable.Foldable (Data.Type.Combinator.Util.Flip2 Data.Vector.Sized.VectorT f)
 instance Data.Traversable.Traversable f => Data.Nested.Nesting1 w Data.Traversable.Traversable (Data.Type.Combinator.Util.Flip2 Data.Vector.Sized.VectorT f)
+instance Data.Distributive.Distributive f => Data.Nested.Nesting1 Data.Singletons.Sing Data.Distributive.Distributive (Data.Type.Combinator.Util.Flip2 Data.Vector.Sized.VectorT f)
 instance Data.Nested.Nesting w Control.DeepSeq.NFData (Data.Type.Combinator.Util.Flip2 Data.Type.Vector.VecT Data.Type.Combinator.I)
 instance GHC.Base.Functor f => Data.Nested.Nesting1 w GHC.Base.Functor (Data.Type.Combinator.Util.Flip2 Data.Type.Vector.VecT f)
 instance GHC.Base.Applicative f => Data.Nested.Nesting1 Data.Singletons.Sing GHC.Base.Applicative (Data.Type.Combinator.Util.Flip2 Data.Type.Vector.VecT f)
 instance Data.Foldable.Foldable f => Data.Nested.Nesting1 w Data.Foldable.Foldable (Data.Type.Combinator.Util.Flip2 Data.Type.Vector.VecT f)
 instance Data.Traversable.Traversable f => Data.Nested.Nesting1 w Data.Traversable.Traversable (Data.Type.Combinator.Util.Flip2 Data.Type.Vector.VecT f)
+instance Data.Distributive.Distributive f => Data.Nested.Nesting1 Data.Singletons.Sing Data.Distributive.Distributive (Data.Type.Combinator.Util.Flip2 Data.Type.Vector.VecT f)
 instance forall k a (v :: k -> * -> *) (js :: [k]). (Control.DeepSeq.NFData a, Data.Nested.Nesting Data.Proxy.Proxy Control.DeepSeq.NFData v) => Control.DeepSeq.NFData (Data.Nested.Nested v js a)
 instance forall k a (v :: k -> GHC.Types.Type -> GHC.Types.Type) (js :: [k]). (GHC.Num.Num a, GHC.Base.Applicative (Data.Nested.Nested v js)) => GHC.Num.Num (Data.Nested.Nested v js a)
 instance forall k (v :: k -> * -> *) (js :: [k]). Data.Nested.Nesting1 Data.Proxy.Proxy GHC.Base.Functor v => GHC.Base.Functor (Data.Nested.Nested v js)
 instance forall k (js :: [k]) (v :: k -> * -> *). (Data.Singletons.SingI js, Data.Nested.Nesting1 Data.Singletons.Sing GHC.Base.Applicative v, Data.Nested.Nesting1 Data.Proxy.Proxy GHC.Base.Functor v) => GHC.Base.Applicative (Data.Nested.Nested v js)
 instance forall k (v :: k -> * -> *) (js :: [k]). Data.Nested.Nesting1 Data.Proxy.Proxy Data.Foldable.Foldable v => Data.Foldable.Foldable (Data.Nested.Nested v js)
 instance forall k (v :: k -> * -> *) (js :: [k]). (Data.Nested.Nesting1 Data.Proxy.Proxy GHC.Base.Functor v, Data.Nested.Nesting1 Data.Proxy.Proxy Data.Foldable.Foldable v, Data.Nested.Nesting1 Data.Proxy.Proxy Data.Traversable.Traversable v) => Data.Traversable.Traversable (Data.Nested.Nested v js)
+instance forall k (v :: k -> GHC.Types.Type -> GHC.Types.Type) (js :: [k]). (Data.Nested.Vec v, Data.Singletons.SingI js, Data.Nested.Nesting1 Data.Proxy.Proxy GHC.Base.Functor v) => Data.Distributive.Distributive (Data.Nested.Nested v js)
 
 module TensorOps.Types
 class NatKind k => Tensor (t :: [k] -> Type) where type ElemT t :: Type where {
@@ -305,7 +298,7 @@ type VTensor = NTensor (Flip2 VectorT I) Double
 instance forall k (v :: k -> GHC.Types.Type -> GHC.Types.Type) a (ns :: [k]). GHC.Generics.Generic (TensorOps.Backend.NTensor.NTensor v a ns)
 instance forall a k (v :: k -> * -> *) (ns :: [k]). (Control.DeepSeq.NFData a, Data.Nested.Nesting Data.Proxy.Proxy Control.DeepSeq.NFData v) => Control.DeepSeq.NFData (TensorOps.Backend.NTensor.NTensor v a ns)
 instance forall k a (v :: k -> * -> *) (w :: [k] -> GHC.Types.Type). (Control.DeepSeq.NFData a, Data.Nested.Nesting Data.Proxy.Proxy Control.DeepSeq.NFData v) => Data.Nested.Nesting1 w Control.DeepSeq.NFData (TensorOps.Backend.NTensor.NTensor v a)
-instance forall k (k1 :: k) k2 (v :: k2 -> GHC.Types.Type -> GHC.Types.Type) a. (Data.Nested.Vec v, a ~ GHC.Types.Double, Data.Nested.Nesting1 Data.Proxy.Proxy GHC.Base.Functor v, Data.Nested.Nesting1 Data.Singletons.Sing GHC.Base.Applicative v, Data.Nested.Nesting1 Data.Proxy.Proxy Data.Foldable.Foldable v, Data.Nested.Nesting1 Data.Proxy.Proxy Data.Traversable.Traversable v, Type.Class.Higher.Eq1 (Type.NatKind.IndexN k2)) => TensorOps.Types.Tensor (TensorOps.Backend.NTensor.NTensor v a)
+instance forall k (k1 :: k) k2 (v :: k2 -> GHC.Types.Type -> GHC.Types.Type) a. (Data.Nested.Vec v, a ~ GHC.Types.Double, Data.Nested.Nesting1 Data.Proxy.Proxy GHC.Base.Functor v, Data.Nested.Nesting1 Data.Singletons.Sing GHC.Base.Applicative v, Data.Nested.Nesting1 Data.Proxy.Proxy Data.Foldable.Foldable v, Data.Nested.Nesting1 Data.Proxy.Proxy Data.Traversable.Traversable v, Data.Nested.Nesting1 Data.Singletons.Sing Data.Distributive.Distributive v, Type.Class.Higher.Eq1 (Type.NatKind.IndexN k2)) => TensorOps.Types.Tensor (TensorOps.Backend.NTensor.NTensor v a)
 
 module TensorOps.Run
 runTOp :: forall (ns :: [[k]]) (ms :: [[k]]) (t :: [k] -> *). (Tensor t, Floating (ElemT t)) => Sing ns -> Sing ms -> TOp ns ms -> Prod t ns -> Prod t ms
