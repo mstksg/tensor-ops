@@ -250,10 +250,10 @@ main = withSystemRandom $ \g -> do
     --     traverse1_ (\(s' :&: t) -> putStrLn (show t) \\ s') p'
 
     putStrLn "Training network..."
-    (r1, t1) <- time $ netTest (Proxy @LTensor) 1 50000 [7,7] g
+    (r1, t1) <- time $ netTest (Proxy @LTensor) 1 100000 [7,7] g
     putStrLn r1
     print t1
-    (r2, t2) <- time $ netTest (Proxy @VTensor) 1 50000 [7,7] g
+    (r2, t2) <- time $ netTest (Proxy @VTensor) 1 100000 [7,7] g
     putStrLn r2
     print t2
 

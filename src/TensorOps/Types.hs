@@ -26,7 +26,6 @@ module TensorOps.Types where
 -- import           Data.Type.Subset
 -- import           GHC.TypeLits
 -- import           Unsafe.Coerce
--- import qualified Control.Foldl                       as F
 import           Control.Category
 import           Control.Monad.Primitive
 import           Data.Finite
@@ -55,6 +54,7 @@ import           Type.Family.Nat
 import           Type.Family.Nat.Util
 import           Type.NatKind
 import           Unsafe.Coerce
+import qualified Control.Foldl                          as F
 import qualified Data.Singletons.TypeLits               as GT
 import qualified Data.Singletons.TypeLits               as GT
 import qualified GHC.TypeLits                           as GT
@@ -62,8 +62,8 @@ import qualified GHC.TypeLits                           as GT
 
 class NatKind k => Tensor (t :: [k] -> Type) where
     type ElemT t  :: Type
-    type IndexT t :: [k] -> Type
-    type IndexT (t :: [k] -> Type) = Prod (IndexN k)
+    -- type IndexT t :: [k] -> Type
+    -- type IndexT (t :: [k] -> Type) = Prod (IndexN k)
 
     -- TODO: can we detach Vec from liftT ?
     liftT   :: (SingI o, Floating (ElemT t), Known Nat m)
@@ -102,15 +102,17 @@ class NatKind k => Tensor (t :: [k] -> Type) where
             -> Gen (PrimState m)
             -> m (t ns)
     generateA :: (Applicative f, SingI ns)
-              => (IndexT t ns -> f (ElemT t))
+              => (Prod (IndexN k) ns -> f (ElemT t))
               -> f (t ns)
-    ixElems :: Applicative f
-            => ((IndexT t ns, ElemT t) -> f (ElemT t))
-            -> t ns
-            -> f (t ns)
-    (!)     :: t ns
-            -> IndexT t ns
-            -> ElemT t
+    ixRows
+        :: (Applicative f, SingI ns, SingI os, SingI (ms ++ ns), SingI (ms ++ os))
+        => Length ms
+        -> (Prod (IndexN k) ms -> t ns -> f (t os))
+        -> t (ms ++ ns)
+        -> f (t (ms ++ os))
+    (!) :: t ns
+        -> Prod (IndexN k) ns
+        -> ElemT t
 
 type TensorOp = OpPipe TOp
 

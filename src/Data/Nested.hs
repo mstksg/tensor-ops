@@ -496,4 +496,15 @@ transposeHelp = \case
               \\ snocReverse lOs' sO
 
 
+nIxRows
+    :: forall k (v :: k -> Type -> Type) ns ms a b f. (Nesting1 Proxy Functor v, Applicative f, Vec v)
+    => Length ns
+    -> (Prod (IndexN k) ns -> Nested v ms a -> f b)
+    -> Nested v (ns ++ ms) a
+    -> f (Nested v ns b)
+nIxRows = \case
+    LZ   -> \f -> fmap NØ . f Ø
+    LS l -> \f -> \case
+      NS (xs :: v j (Nested v js a)) ->
+        fmap NS . vITraverse (\i -> nIxRows l (\is ys -> f (i :< is) ys)) $ xs
 

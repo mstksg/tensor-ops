@@ -104,19 +104,27 @@ overNVec2
 overNVec2 f x y = NTensor $ f (getNVec x) (getNVec y)
 {-# INLINE overNVec2 #-}
 
-ltNVec
+ntNVec
     :: Functor f
-    => (Nested v ns a -> f (Nested v ms a))
+    => (Nested v ns a -> f (Nested w ms b))
     -> NTensor v a ns
-    -> f (NTensor v a ms)
-ltNVec f = fmap NTensor . f . getNVec
-{-# INLINE ltNVec #-}
+    -> f (NTensor w b ms)
+ntNVec f = fmap NTensor . f . getNVec
+{-# INLINE ntNVec #-}
+
+nvecNT
+    :: Functor f
+    => (NTensor v a ns -> f (NTensor w b ms))
+    -> Nested v ns a
+    -> f (Nested w ms b)
+nvecNT f = fmap getNVec . f . NTensor
+{-# INLINE nvecNT #-}
 
 overNVec
     :: (Nested v ns a -> Nested v ms a)
     -> NTensor v a ns
     -> NTensor v a ms
-overNVec f = getI . ltNVec (I . f)
+overNVec f = getI . ntNVec (I . f)
 {-# INLINE overNVec #-}
 
 
@@ -130,7 +138,7 @@ instance
       , Eq1 (IndexN k)
       ) => Tensor (NTensor v a) where
     type ElemT  (NTensor v a) = a
-    type IndexT (NTensor (v :: k -> Type -> Type) a) = Prod (IndexN k)
+    -- type IndexT (NTensor (v :: k -> Type -> Type) a) = Prod (IndexN k)
 
     liftT
         :: forall (n :: TCN.N) (m :: TCN.N) (o :: [k]). (SingI o, Known TCN.Nat m)
@@ -210,19 +218,17 @@ instance
     generateA = genNTensorA sing
     {-# INLINE generateA #-}
 
-    ixElems
-        :: Applicative f
-        => ((Prod (IndexN k) ns, a) -> f a)
-        -> NTensor v a ns
-        -> f (NTensor v a ns)
-    ixElems f = ltNVec (itraverseNestedVec (curry f))
-    {-# INLINE ixElems #-}
-
     (!) = flip indexNTensor
     {-# INLINE (!) #-}
 
--- newtype LTensor ns = LTensor { lTensor :: NTensor (Flip2 TCV.VecT   I) Double ns }
--- newtype VTensor ns = VTensor { vTensor :: NTensor (Flip2 VS.VectorT I) Double ns }
+    ixRows
+        :: (Applicative f, SingI ns, SingI os, SingI (ms ++ ns), SingI (ms ++ os))
+        => Length ms
+        -> (Prod (IndexN k) ms -> NTensor v a ns -> f (NTensor v a os))
+        -> NTensor v a (ms ++ ns)
+        -> f (NTensor v a (ms ++ os))
+    ixRows l f = ntNVec $ fmap joinNestedVec . nIxRows l (\i -> nvecNT (f i))
 
-type LTensor = NTensor (Flip2 TCV.VecT I) Double
+
+type LTensor = NTensor (Flip2 TCV.VecT   I) Double
 type VTensor = NTensor (Flip2 VS.VectorT I) Double

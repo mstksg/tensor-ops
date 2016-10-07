@@ -17,7 +17,6 @@ module TensorOps.Tensor where
 -- import           Data.Type.Index
 -- import           Data.Type.Product as TCP hiding     (toList)
 -- import           Data.Type.Product.Util
--- import           Data.Type.Sing
 -- import           Data.Type.Uniform
 -- import           Type.Family.Nat.Util
 -- import qualified Numeric.AD.Internal.Reverse         as AD
@@ -33,7 +32,10 @@ import           Data.Singletons
 import           Data.Type.Combinator
 import           Data.Type.Fin
 import           Data.Type.Length
+import           Data.Type.Length.Util
 import           Data.Type.Nat
+import           Data.Type.Product
+import           Data.Type.Sing
 import           Data.Type.Vector                       as TCV
 import           Data.Type.Vector.Util                  as TCV
 import           Numeric.AD
@@ -44,20 +46,28 @@ import           Type.Class.Witness hiding              (inner, outer)
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
+import           Type.NatKind
 
 konst
-    :: (Tensor t, Floating (ElemT t), SingI n)
+    :: (Tensor t, SingI n)
     => ElemT t
     -> t n
-konst = getI . TCV.head' . konstN @('S 'Z)
+konst x = generate (\_ -> x)
 {-# INLINE konst #-}
 
-konstN
-    :: forall n o t. (Tensor t, Floating (ElemT t), SingI o, Known Nat n)
-    => ElemT t
-    -> Vec n (t o)
-konstN x = liftT (vrep (I (\ØV -> x))) ØV
-{-# INLINE konstN #-}
+-- konst
+--     :: (Tensor t, Floating (ElemT t), SingI n)
+--     => ElemT t
+--     -> t n
+-- konst = getI . TCV.head' . konstN @('S 'Z)
+-- {-# INLINE konst #-}
+
+-- konstN
+--     :: forall n o t. (Tensor t, Floating (ElemT t), SingI o, Known Nat n)
+--     => ElemT t
+--     -> Vec n (t o)
+-- konstN x = liftT (vrep (I (\ØV -> x))) ØV
+-- {-# INLINE konstN #-}
 
 map
     :: forall k (o :: [k]) (t :: [k] -> Type). (Floating (ElemT t), SingI o, Tensor t)
@@ -186,29 +196,58 @@ fromList
 fromList = evalStateT . generateA $ \_ -> StateT uncons
 
 generate
-    :: (Tensor t, SingI ns)
-    => (IndexT t ns -> ElemT t)
+    :: forall k (t :: [k] -> Type) ns. (Tensor t, SingI ns)
+    => (Prod (IndexN k) ns -> ElemT t)
     -> t ns
 generate = getI . generateA . fmap I
 
-itoList
-    :: Tensor t
-    => t ns
-    -> [(IndexT t ns, ElemT t)]
-itoList = ($ [])
-        . appEndo
-        . execWriter
-        . ixElems (\ix@(_,x) -> tell (Endo (ix:)) $> x)
+rows
+    :: (Tensor t, Applicative f, SingI ns, SingI os, SingI (ms ++ ns), SingI (ms ++ os))
+    => Length ms
+    -> (t ns -> f (t os))
+    -> t (ms ++ ns)
+    -> f (t (ms ++ os))
+rows l f = ixRows l (\_ -> f)
+
+toRows
+    :: (Tensor t, SingI ns, SingI (n ': ns))
+    => t (n ': ns)
+    -> [t ns]
+toRows = ($[])
+       . appEndo
+       . execWriter
+       . rows (LS LZ) (\xs -> tell (Endo (xs:)) $> xs)
+
+ixElems
+    :: forall k f (t :: [k] -> Type) ns. (Applicative f, Tensor t, SingI ns)
+    => (Prod (IndexN k) ns -> ElemT t -> f (ElemT t))
+    -> t ns
+    -> f (t ns)
+ixElems f = (\\ appendNil l) $
+    ixRows l $ \i x ->
+      konst <$> f i (unScalar (x :: t '[])) :: f (t '[])
+  where
+    l :: Length ns
+    l = singLength sing
 
 elems
-    :: (Applicative f, Tensor t)
+    :: (Applicative f, Tensor t, SingI ns)
     => (ElemT t -> f (ElemT t))
     -> t ns
     -> f (t ns)
-elems f = ixElems (f . snd)
+elems f = ixElems (\_ x -> f x)
+
+itoList
+    :: forall k (t :: [k] -> Type) ns. (Tensor t, SingI ns)
+    => t ns
+    -> [(Prod (IndexN k) ns, ElemT t)]
+itoList = ($ [])
+        . appEndo
+        . execWriter
+        . ixElems (\i x -> tell (Endo ((i,x):)) $> x)
 
 toList
-    :: Tensor t
+    :: (Tensor t, SingI ns)
     => t ns
     -> [ElemT t]
 toList = ($[])
@@ -217,9 +256,7 @@ toList = ($[])
        . elems (\x -> tell (Endo (x:)) $> x)
 
 unScalar
-    :: Tensor t
+    :: forall t. Tensor t
     => t '[]
     -> ElemT t
-unScalar = head . toList
-
-
+unScalar = (! Ø)
