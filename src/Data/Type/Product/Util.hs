@@ -15,7 +15,6 @@ module Data.Type.Product.Util where
 import           Control.DeepSeq
 import           Data.Bifunctor
 import           Data.Functor.Identity
-import           Data.Proxy
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
 import           Data.Type.Equality
@@ -26,11 +25,8 @@ import           Data.Type.Uniform
 import           Data.Type.Vector
 import           Prelude hiding        (replicate)
 import           Type.Class.Known
-import           Type.Class.Witness
 import           Type.Family.List
-import           Type.Family.List.Util
 import           Type.Family.Nat
-import qualified Data.Type.Length.Util as TCL
 
 instance Every NFData (f <$> as) => NFData (Prod f as) where
     rnf = \case

@@ -17,7 +17,7 @@ import           Control.Monad.Trans.State.Strict
 import           Control.Monad.Trans.Writer.Strict
 import           Data.Functor
 import           Data.Kind
-import           Data.List hiding                       ((\\), zip)
+import           Data.List hiding                  ((\\), zip)
 import           Data.Monoid
 import           Data.Proxy
 import           Data.Singletons
@@ -26,13 +26,13 @@ import           Data.Type.Fin
 import           Data.Type.Length
 import           Data.Type.Product
 import           Data.Type.Sing
-import           Data.Type.Vector                       as TCV
-import           Data.Type.Vector.Util                  as TCV
+import           Data.Type.Vector                  as TCV
+import           Data.Type.Vector.Util             as TCV
 import           Numeric.AD
-import           Prelude hiding                         (zip)
+import           Prelude hiding                    (zip)
 import           TensorOps.Types
 import           Type.Class.Known
-import           Type.Class.Witness hiding              (inner, outer)
+import           Type.Class.Witness hiding         (inner, outer)
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.NatKind
@@ -124,7 +124,7 @@ gradLift fs xs dtdys =
 -- implementation of liftT would have index''d everything anyways.
 
 inner
-    :: forall t ms ns o. (Tensor t, SingI (ms >: o), SingI (o ': ns), SingI (ms ++ ns))
+    :: forall t ms ns o. (Tensor t, SingI (o ': ns))
     => Length ms
     -> Length ns
     -> t (ms >: o)
@@ -134,7 +134,7 @@ inner lM lN x = gmul lM (LS LZ) lN x
                     \\ appendSnoc lM (Proxy @o)
 
 outer
-    :: (Tensor t, SingI ms, SingI ns, SingI (ms ++ ns))
+    :: (Tensor t, SingI ns)
     => Length ms
     -> Length ns
     -> t ms
@@ -144,35 +144,35 @@ outer lM lN x = gmul lM LZ lN x
                     \\ appendNil lM
 
 outerV
-    :: (Tensor t, SingI '[n], SingI '[m], SingI '[m,n])
+    :: (Tensor t, SingI '[n])
     => t '[m]
     -> t '[n]
     -> t '[m,n]
 outerV = outer (LS LZ) (LS LZ)
 
 dot
-    :: forall (t :: [k] -> Type) (m :: k). (Tensor t, SingI '[m], SingI ('[] :: [k]))
+    :: forall (t :: [k] -> Type) (m :: k). (Tensor t, SingI '[m])
     => t '[m]
     -> t '[m]
     -> t '[]
 dot = inner LZ LZ
 
 matVec
-    :: (Tensor t, SingI '[m,n], SingI '[n], SingI '[m])
+    :: (Tensor t, SingI '[n])
     => t '[m, n]
     -> t '[n]
     -> t '[m]
 matVec = inner (LS LZ) LZ
 
 vecMat
-    :: (Tensor t, SingI '[m], SingI '[m,n], SingI '[n])
+    :: (Tensor t, SingI '[m,n])
     => t '[m]
     -> t '[m,n]
     -> t '[n]
 vecMat = inner LZ (LS LZ)
 
 matMat
-    :: (Tensor t, SingI '[m,n], SingI '[n,o], SingI '[m,o])
+    :: (Tensor t, SingI '[n,o])
     => t '[m,n]
     -> t '[n,o]
     -> t '[m,o]
@@ -191,7 +191,7 @@ generate
 generate = getI . generateA . fmap I
 
 rows
-    :: (Tensor t, Applicative f, SingI ns, SingI os, SingI (ms ++ ns), SingI (ms ++ os))
+    :: (Tensor t, Applicative f)
     => Length ms
     -> (t ns -> f (t os))
     -> t (ms ++ ns)
@@ -199,7 +199,7 @@ rows
 rows l f = ixRows l (\_ -> f)
 
 toRows
-    :: (Tensor t, SingI ns, SingI (n ': ns))
+    :: Tensor t
     => t (n ': ns)
     -> [t ns]
 toRows = ($[])

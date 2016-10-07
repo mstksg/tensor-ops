@@ -38,7 +38,6 @@ import           Data.Type.Product.Util
 import           Data.Type.Sing
 import           Data.Type.SnocProd
 import           Data.Type.Uniform
-import           Type.Class.Higher
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util

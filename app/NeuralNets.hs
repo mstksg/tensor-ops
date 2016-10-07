@@ -20,6 +20,7 @@ import           Control.Monad.Primitive
 import           Data.Kind
 import           Data.List hiding                ((\\))
 import           Data.Maybe
+import           Data.Monoid
 import           Data.Nested
 import           Data.Singletons
 import           Data.Singletons.Prelude.List    (Sing(..))

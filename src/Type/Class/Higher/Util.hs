@@ -33,7 +33,7 @@ forM1_ x f = mapM1_ f x
 all1
     :: Foldable1 t
     => (forall a. f a -> Bool)
-    -> t f a
+    -> t f b
     -> Bool
 all1 p = getAll . foldMap1 (All . p)
 

@@ -28,7 +28,6 @@ import           Type.Class.Witness
 import           Type.Family.Constraint
 import           Type.Family.List
 import           Type.Family.Nat
-import           Type.Family.Nat.Util
 
 instance Witness ØC (SingI a) (Sing a) where
     q \\ s = withSingI s q

@@ -13,12 +13,10 @@ module Data.Type.Uniform where
 
 import           Data.Kind
 import           Data.Type.Length
-import           Data.Type.Nat
 import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.Constraint
 import           Type.Family.List
-import           Type.Family.Nat
 
 data Uniform :: a -> [a] -> Type where
     UØ :: Uniform a '[]

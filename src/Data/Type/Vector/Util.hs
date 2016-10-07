@@ -16,7 +16,6 @@ import           Data.Type.Combinator
 import           Data.Type.Fin
 import           Data.Type.Nat
 import           Data.Type.Vector
-import           Type.Class.Higher.Util
 import           Type.Class.Known
 import           Type.Family.Nat
 

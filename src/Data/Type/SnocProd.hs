@@ -14,14 +14,8 @@ module Data.Type.SnocProd where
 
 import           Data.Kind
 import           Data.Proxy
-import           Data.Singletons
-import           Data.Singletons.Prelude.Bool
-import           Data.Singletons.Prelude.Eq
-import           Data.Singletons.Prelude.List hiding (Length, Reverse)
-import           Data.Singletons.Prelude.Ord
-import           Data.Singletons.TH
 import           Data.Type.Length
-import           Data.Type.Length.Util               as TCL
+import           Data.Type.Length.Util  as TCL
 import           Data.Type.Product
 import           Data.Type.Product.Util
 import           Type.Class.Witness

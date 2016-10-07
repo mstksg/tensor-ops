@@ -8,13 +8,11 @@
 
 module Type.Family.Nat.Util where
 
-import           Data.Proxy
-import           Data.Singletons.Prelude.Num
 import           Data.Type.Equality
 import           Data.Type.Length
 import           Type.Family.List
 import           Type.Family.Nat
-import qualified GHC.TypeLits                as GT
+import qualified GHC.TypeLits       as GT
 
 appendLengths
     :: Length n
