@@ -11,7 +11,7 @@
 {-# LANGUAGE RankNTypes              #-}
 {-# LANGUAGE ScopedTypeVariables     #-}
 {-# LANGUAGE StandaloneDeriving      #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeApplications        #-}
 {-# LANGUAGE TypeFamilies            #-}
 {-# LANGUAGE TypeFamilyDependencies  #-}
 {-# LANGUAGE TypeInType              #-}
@@ -90,7 +90,7 @@ class NatKind k => Tensor (t :: [k] -> Type) where
 
 type TensorOp = OpPipe TOp
 
--- | A cludge to get around lack of impredicative types in Haskell
+-- | A kludge to get around lack of impredicative types in Haskell
 newtype VFunc n = VF { getVF :: forall a. Floating a => Vec n a -> a }
 
 data TOp :: [[k]] -> [[k]] -> Type where
@@ -121,6 +121,7 @@ data TOp :: [[k]] -> [[k]] -> Type where
     Shuffle :: Prod (Index ns) ms
             -> TOp ns ms
 
+-- | TODO: replace with `syntactic`?
 data OpPipe :: ([k] -> [k] -> Type) -> [k] -> [k] -> Type where
     OPØ   :: OpPipe f a a
     Pop   :: Sing a
@@ -169,6 +170,5 @@ infixr 4 ~.
     -> OpPipe f (b ++ d) c
     -> OpPipe f (a ++ d) c
 (_, lD, x) ~. y = pop lD x y
-
 
 instance Eq1 Finite
