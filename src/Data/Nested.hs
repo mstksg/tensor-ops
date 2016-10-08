@@ -451,6 +451,7 @@ gmul' lM lO _ x y = joinNested $ mapNVecSlices f lM x
     f   :: Nested v os a
         -> Nested v ns a
     f z = squish lO (snocProd psO) z (unjoinNested (TCL.reverse' lO) y)
+{-# INLINE gmul' #-}
 
 squish
     :: forall v os ns a.
@@ -470,6 +471,7 @@ squish
 squish lO spO x y = (\\ reverseReverse lO)              $
                     (\\ prodSing (snocProdReverse spO)) $
     sum $ liftA2 (\x' y' -> fmap (x' *) y') x (transposeHelp spO y)
+{-# INLINE squish #-}
 
 transpose
     :: forall v os a.
@@ -482,6 +484,7 @@ transpose
     -> Nested v os a
     -> Nested v (Reverse os) a
 transpose s = transposeHelp (snocProd (singProd s))
+{-# INLINE transpose #-}
 
 transposeHelp
     :: forall v os a.

@@ -47,6 +47,7 @@ deriving instance Foldable f    => Foldable (VectorT n f)
 
 instance (KnownNat n, Distributive f) => Distributive (VectorT n f) where
     distribute xs = generate $ \i -> distribute $ fmap (! i) xs
+    {-# INLINE distribute #-}
 
 instance NFData (f a) => NFData (VectorT n f a)
 
@@ -54,8 +55,9 @@ instance (KnownNat n, Applicative f) => Applicative (VectorT n f) where
     pure x = UnsafeV $ V.replicate n (pure x)
       where
         n = fromIntegral $ natVal (Proxy @n)
+    {-# INLINE pure #-}
     UnsafeV fs <*> UnsafeV xs = UnsafeV (V.zipWith (<*>) fs xs)
-    -- UnsafeV fs <*> UnsafeV xs = mkVectorT' (V.zipWith (<*>) fs xs)
+    {-# INLINE (<*>) #-}
 
 mkVectorT
     :: forall n f a. KnownNat n
@@ -65,12 +67,14 @@ mkVectorT v | V.length v == n = Just (UnsafeV v)
             | otherwise       = Nothing
   where
     n = fromIntegral $ natVal (Proxy @n)
+{-# INLINE mkVectorT #-}
 
 mkVector
     :: forall n a. KnownNat n
     => V.Vector a
     -> Maybe (Vector n a)
 mkVector = mkVectorT . fmap I
+{-# INLINE mkVector #-}
 
 mkVectorT'
     :: forall n f a. KnownNat n
@@ -81,13 +85,14 @@ mkVectorT' v | V.length v == n = UnsafeV v
                                $ printf "mkVectorT: Mismatched vector length. %d, expected %d" (V.length v) n
   where
     n = fromIntegral $ natVal (Proxy @n)
+{-# INLINE mkVectorT' #-}
 
 mkVector'
     :: forall n a. KnownNat n
     => V.Vector a
     -> Vector n a
 mkVector' = mkVectorT' . fmap I
-
+{-# INLINE mkVector' #-}
 
 generate
     :: forall n f a. KnownNat n
@@ -96,6 +101,7 @@ generate
 generate f = UnsafeV $ V.generate n (f . Finite . fromIntegral)
   where
     n = fromIntegral $ natVal (Proxy @n)
+{-# INLINE generate #-}
 
 generateA
     :: forall n f a g. (KnownNat n, Applicative g)
@@ -104,23 +110,27 @@ generateA
 generateA f = UnsafeV <$> sequenceA (V.generate n (f . Finite . fromIntegral))
   where
     n = fromIntegral $ natVal (Proxy @n)
+{-# INLINE generateA #-}
 
 replicate
     :: KnownNat n
     => f a
     -> VectorT n f a
 replicate x = generate (\_ -> x)
+{-# INLINE replicate #-}
 
 (!) :: VectorT n f a
     -> Finite n
     -> f a
-UnsafeV v ! i = v V.! fromIntegral (getFinite i)
+UnsafeV v ! i = v `V.unsafeIndex` fromIntegral (getFinite i)
+{-# INLINE (!) #-}
 
 (!!)
     :: Vector n a
     -> Finite n
     -> a
 v !! i = getI $ v ! i
+{-# INLINE (!!) #-}
 
 withVectorT
     :: forall f a r. ()
@@ -133,6 +143,7 @@ withVectorT v f =
   where
     n :: Integer
     n = fromIntegral (V.length v)
+{-# INLINE withVectorT #-}
 
 withVector
     :: forall a r. ()
@@ -140,6 +151,7 @@ withVector
     -> (forall n. KnownNat n => Vector n a -> r)
     -> r
 withVector v f = withVectorT (I <$> v) f
+{-# INLINE withVector #-}
 
 liftVec
     :: (Applicative f, Traversable g)
@@ -147,24 +159,28 @@ liftVec
     -> g (f a)
     -> f b
 liftVec f xs = f <$> sequenceA xs
+{-# INLINE liftVec #-}
 
 vecFunc
     :: KnownNat n
     => (a -> Vector n b)
     -> Vector n (a -> b)
 vecFunc f = generate (\i -> I $ (!! i) . f)
+{-# INLINE vecFunc #-}
 
 vap :: (f a -> g b -> h c)
     -> VectorT n f a
     -> VectorT n g b
     -> VectorT n h c
 vap f (UnsafeV xs) (UnsafeV ys) = UnsafeV (V.zipWith f xs ys)
+{-# INLINE vap #-}
 
 vmap
     :: (f a -> g b)
     -> VectorT n f a
     -> VectorT n g b
 vmap f (UnsafeV xs) = UnsafeV (f <$> xs)
+{-# INLINE vmap #-}
 
 data Uncons :: Nat -> (Type -> Type) -> Type -> Type where
     VNil  :: Uncons 0 f a
@@ -176,7 +192,8 @@ uncons
     -> Uncons n f a
 uncons (UnsafeV v) = case inductive (Proxy @n) of
     NatZ   -> VNil
-    NatS _ -> VCons (V.head v) (UnsafeV (V.tail v))
+    NatS _ -> VCons (V.unsafeHead v) (UnsafeV (V.unsafeTail v))
+{-# INLINE uncons #-}
 
 fromUncons
     :: Uncons n f a
@@ -184,25 +201,30 @@ fromUncons
 fromUncons = \case
     VNil                 -> UnsafeV V.empty
     VCons x (UnsafeV xs) -> UnsafeV (V.cons x xs)
+{-# INLINE fromUncons #-}
 
 cons
     :: f a
     -> VectorT n f a
     -> VectorT (n + 1) f a
 x `cons` UnsafeV xs = UnsafeV (x `V.cons` xs)
+{-# INLINE cons #-}
 
 empty :: VectorT 0 f a
 empty = UnsafeV (V.empty)
+{-# INLINE empty #-}
 
 head
     :: VectorT (m + 1) f a
     -> f a
-head (UnsafeV v) = V.head v
+head (UnsafeV v) = V.unsafeHead v
+{-# INLINE head #-}
 
 tail
     :: VectorT (m + 1) f a
     -> VectorT m f a
-tail (UnsafeV v) = UnsafeV (V.tail v)
+tail (UnsafeV v) = UnsafeV (V.unsafeTail v)
+{-# INLINE tail #-}
 
 itraverse
     :: Applicative h
@@ -211,3 +233,4 @@ itraverse
     -> h (VectorT n g b)
 itraverse f (UnsafeV v) = UnsafeV
     <$> sequenceA (V.imap (\i x -> f (Finite (fromIntegral i)) x) v)
+{-# INLINE itraverse #-}
