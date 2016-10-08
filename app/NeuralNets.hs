@@ -177,7 +177,7 @@ netTest
     -> IO String
 netTest _ rate n hs g = withSingI (sFromNat @k (SNat @1)) $
                         withSingI (sFromNat @k (SNat @2)) $ do
-    ((inps,outs),t) <- time $ do
+    ((inps,outs),tp) <- time $ do
       inps :: [t '[FromNat 2]] <- replicateM n (genRand (uniformDistr (-1) 1) g)
       let outs :: [t '[FromNat 1]]
           outs = flip map inps $ \v -> TT.konst $
@@ -186,7 +186,7 @@ netTest _ rate n hs g = withSingI (sFromNat @k (SNat @1)) $
                      then 1
                      else 0
       evaluate . force $ (inps, outs)
-    printf "Generated test points (%s)\n" (show t)
+    printf "Generated test points (%s)\n" (show tp)
     net0 :: Network t (FromNat 2) (FromNat 1)
             <- genNet hs g
     let trained = foldl' trainEach net0 (zip inps outs)
@@ -196,8 +196,9 @@ netTest _ rate n hs g = withSingI (sFromNat @k (SNat @1)) $
                       -> (t '[i], t '[o])
                       -> Network t i o
             trainEach nt (i, o) = nt `deepseq` trainNetwork rate i o nt
-
-        outMat = [ [ render . TT.unScalar . join TT.dot . runNetwork trained $
+    (trained', tn) <- time $ return trained
+    printf "Network trained (%s)\n" (show tn)
+    let outMat = [ [ render . TT.unScalar . join TT.dot . runNetwork trained' $
                        fromJust (TT.fromList [x / 25 - 1,y / 10 - 1])
                    | x <- [0..50] ]
                  | y <- [0..20] ]
@@ -255,14 +256,10 @@ main = withSystemRandom $ \g -> do
     printf "rate: %f | samps: %d | layers: %s\n" oRate oSamples (show oNetwork)
     unless oNoList $ do
       putStrLn "Training nested linked list network..."
-      (r1, t1) <- time $ netTest (Proxy @LTensor) oRate oSamples oNetwork g
-      putStrLn r1
-      print t1
+      putStrLn =<< netTest (Proxy @LTensor) oRate oSamples oNetwork g
     unless oNoVect $ do
       putStrLn "Training nested vector network..."
-      (r2, t2) <- time $ netTest (Proxy @VTensor) oRate oSamples oNetwork g
-      putStrLn r2
-      print t2
+      putStrLn =<< netTest (Proxy @VTensor) oRate oSamples oNetwork g
 
 time
     :: NFData a
