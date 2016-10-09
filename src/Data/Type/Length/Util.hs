@@ -26,7 +26,6 @@ append' = \case
     LS l -> LS . append' l
 
 -- TODO: could PROBABLY just be unsafeCoerce?
--- also, make the product reverse' efficient.
 reverse'
     :: forall ns. ()
     => Length ns
@@ -36,6 +35,7 @@ reverse' = unsafeCoerce
 --     LZ   -> LZ
 --     LS l -> reverse' l >: (Proxy @(Head ns))
 
+-- TODO: can this be unsafeCoerce?
 (>:)
     :: Length ns
     -> Proxy n

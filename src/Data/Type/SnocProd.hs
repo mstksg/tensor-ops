@@ -60,6 +60,7 @@ snocProdReverse = \case
     ØS      -> Ø
     ss :& s -> s :< snocProdReverse ss
                  \\ snocReverse (snocProdLength ss) s
+-- TODO: might recomputing snocProdLength be slow?
 
 reverseSnocProd
     :: Prod f as
@@ -67,6 +68,13 @@ reverseSnocProd
 reverseSnocProd = \case
     Ø       -> ØS
     x :< xs -> reverseSnocProd xs :& x
+
+-- | An implementation of reverse' for Prod that runs in O(n) instead of
+-- O(n^2)
+prodReverse'
+    :: Prod f as
+    -> Prod f (Reverse as)
+prodReverse' = snocProdReverse . snocProd
 
 
 -- $(singletons [d|

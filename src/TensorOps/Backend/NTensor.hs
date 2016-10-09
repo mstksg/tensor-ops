@@ -138,10 +138,11 @@ instance
     {-# INLINE liftT #-}
 
     transp
-        :: forall ns. SingI ns
+        :: forall ns. (SingI ns, SingI (Reverse ns))
         => NTensor v a ns
         -> NTensor v a (Reverse ns)
-    transp = overNVec (transpose sing)
+    -- transp = overNVec (transpose sing)
+    transp = overNVec (transpose' (singLength sing) sing)
     {-# INLINE transp #-}
 
     gmul

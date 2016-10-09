@@ -29,6 +29,7 @@ module Data.Nested
   , genNested, genNestedA
   , indexNested, indexNested'
   , transpose
+  , transpose'
   , gmul'
   , diagNV
   , joinNested
@@ -451,6 +452,7 @@ gmul'
      , SingI ns
      , SingI (Reverse os)
      , Num a
+     , Vec v
      )
     => Length ms
     -> Length os
@@ -460,11 +462,15 @@ gmul'
     -> Nested v (ms         ++ ns) a
 gmul' lM lO _ x y = joinNested $ mapNVecSlices f lM x
   where
+    -- sO :: Sing os
+    -- sO = sReverse (sing :: Sing (Reverse os))
+    --        \\ reverseReverse lO
     psO :: Prod Sing (Reverse os)
     psO = singProd (sing :: Sing (Reverse os))
     f   :: Nested v os a
         -> Nested v ns a
     f z = squish lO (snocProd psO) z (unjoinNested (TCL.reverse' lO) y)
+    -- f z = squish' (TCL.reverse' lO) sO z (unjoinNested (TCL.reverse' lO) y)
 {-# INLINE gmul' #-}
 
 squish
@@ -486,6 +492,26 @@ squish lO spO x y = (\\ reverseReverse lO)              $
                     (\\ prodSing (snocProdReverse spO)) $
     sum $ liftA2 (\x' y' -> fmap (x' *) y') x (transposeHelp spO y)
 {-# INLINE squish #-}
+
+squish'
+    :: forall v os ns a.
+     ( Num a
+     , Nesting1 Proxy Functor      v
+     , Nesting1 Sing  Applicative  v
+     , Nesting1 Proxy Foldable     v
+     , Nesting1 Proxy Traversable  v
+     , Nesting1 Sing  Distributive v
+     , SingI ns
+     , Vec v
+     )
+    => Length (Reverse os)
+    -> Sing os
+    -> Nested v os a
+    -> Nested v (Reverse os) (Nested v ns a)
+    -> Nested v ns a
+squish' lO sO x y = (\\ reverseReverse (singLength sO)) $
+                    (\\ sO)                             $
+    sum $ liftA2 (\x' y' -> fmap (x' *) y') x (transpose' lO sO y)
 
 transpose
     :: forall v os a.
@@ -530,6 +556,15 @@ transposeHelp = \case
         in  joinNested y'
               \\ snocReverse lOs' sO
 
+transpose'
+    :: Vec v
+    => Length os
+    -> Sing (Reverse os)
+    -> Nested v os a
+    -> Nested v (Reverse os) a
+transpose' l sR x = genNested sR $ \i -> indexNested (prodReverse' i) x
+                      \\ reverseReverse l
+{-# INLINE transpose' #-}
 
 nIxRows
     :: forall k (v :: k -> Type -> Type) ns ms a b f. (Nesting1 Proxy Functor v, Applicative f, Vec v)

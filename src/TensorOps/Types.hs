@@ -60,7 +60,7 @@ class NatKind k => Tensor (t :: [k] -> Type) where
             -> t (ms         ++ os)
             -> t (Reverse os ++ ns)
             -> t (ms         ++ ns)
-    transp  :: SingI ns
+    transp  :: (SingI ns, SingI (Reverse ns))
             => t ns
             -> t (Reverse ns)
     diag    :: SingI ns

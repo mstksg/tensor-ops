@@ -15,17 +15,21 @@ module Data.Type.Product.Util where
 import           Control.DeepSeq
 import           Data.Bifunctor
 import           Data.Functor.Identity
+import           Data.Proxy
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
 import           Data.Type.Equality
 import           Data.Type.Index
 import           Data.Type.Length
-import           Data.Type.Product     as TCP
+import           Data.Type.Length.Util               as TCL
+import           Data.Type.Product     as TCP hiding (reverse')
 import           Data.Type.Uniform
 import           Data.Type.Vector
-import           Prelude hiding        (replicate)
+import           Prelude hiding                      (replicate)
 import           Type.Class.Known
+import           Type.Class.Witness
 import           Type.Family.List
+import           Type.Family.List.Util
 import           Type.Family.Nat
 
 instance Every NFData (f <$> as) => NFData (Prod f as) where
@@ -69,7 +73,7 @@ prodInit
     -> Prod g (ns ++ os)
     -> f (Prod g (ms ++ os))
 prodInit lN lO f = case lN of
-    LZ     -> \xs -> (`append'` xs) <$> f Ø
+    LZ     -> \xs -> (`TCP.append'` xs) <$> f Ø
     LS lN' -> \case
       x :< xs -> prodInit lN' lO (\xs' -> f (x :< xs')) xs
 {-# INLINE prodInit #-}
@@ -91,7 +95,7 @@ prodSplit
     -> Prod g (ns ++ os)
     -> f (Prod g (ms ++ ps))
 prodSplit lN f g = case lN of
-    LZ     -> \xs -> append' <$> f Ø <*> g xs
+    LZ     -> \xs -> TCP.append' <$> f Ø <*> g xs
     LS lN' -> \case
       x :< xs -> prodSplit lN' (\xs' -> f (x :< xs')) g xs
 {-# INLINE prodSplit #-}
@@ -103,7 +107,7 @@ prodSplit'
     -> Prod g (ns ++ os)
     -> f (Prod g (ms ++ ps))
 prodSplit' lN f = case lN of
-    LZ     -> \ys -> uncurry append' <$> f (Ø, ys)
+    LZ     -> \ys -> uncurry TCP.append' <$> f (Ø, ys)
     LS lN' -> \case
       x :< xs -> prodSplit' lN' (\(xs', ys) -> f (x :< xs', ys)) xs
 {-# INLINE prodSplit' #-}
@@ -260,4 +264,19 @@ prodLength
 prodLength = \case
     Ø       -> LZ
     _ :< xs -> LS (prodLength xs)
+
+
+-- reverse'Help
+--     :: forall f as bs. ()
+--     => Length as
+--     -> Prod f (Reverse as)
+--     -> Prod f bs
+--     -> Prod f (Reverse bs ++ Reverse as)
+-- reverse'Help lA pA = \case
+--     Ø                ->
+--       pA
+--     (x :: f a) :< (xs :: Prod f as') ->
+--       reverse'Help (lA TCL.>: Proxy @a) (x :< pA) xs
+--         \\ reverseSnoc lA (Proxy @a)
+--         \\ appendAssoc (undefined :: Length as') (LS LZ :: Length '[a]) (TCL.reverse' lA)
 
