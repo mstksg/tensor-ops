@@ -144,30 +144,42 @@ class Nesting1 (w :: k -> Type) (c :: j -> Constraint) (v :: k -> j) where
 
 instance Nesting w NFData (Flip2 VS.VectorT I) where
     nesting _ = Sub Wit
+    {-# INLINE nesting #-}
 instance Functor f      => Nesting1 w    Functor      (Flip2 VS.VectorT f) where
     nesting1 _ = Wit
+    {-# INLINE nesting1 #-}
 instance Applicative f  => Nesting1 Sing Applicative  (Flip2 VS.VectorT f) where
     nesting1 GT.SNat = Wit
+    {-# INLINE nesting1 #-}
 instance Foldable f     => Nesting1 w    Foldable     (Flip2 VS.VectorT f) where
     nesting1 _ = Wit
+    {-# INLINE nesting1 #-}
 instance Traversable f  => Nesting1 w    Traversable  (Flip2 VS.VectorT f) where
     nesting1 _ = Wit
+    {-# INLINE nesting1 #-}
 instance Distributive f => Nesting1 Sing Distributive (Flip2 VS.VectorT f) where
     nesting1 GT.SNat = Wit
+    {-# INLINE nesting1 #-}
 
 
 instance Nesting w NFData (Flip2 TCV.VecT I) where
     nesting _ = Sub Wit
+    {-# INLINE nesting #-}
 instance Functor f      => Nesting1 w    Functor      (Flip2 TCV.VecT f) where
     nesting1 _ = Wit
+    {-# INLINE nesting1 #-}
 instance Applicative f  => Nesting1 Sing Applicative  (Flip2 TCV.VecT f) where
     nesting1 (SN n) = Wit \\ n
+    {-# INLINE nesting1 #-}
 instance Foldable f     => Nesting1 w    Foldable     (Flip2 TCV.VecT f) where
     nesting1 _ = Wit
+    {-# INLINE nesting1 #-}
 instance Traversable f  => Nesting1 w    Traversable  (Flip2 TCV.VecT f) where
     nesting1 _ = Wit
+    {-# INLINE nesting1 #-}
 instance Distributive f => Nesting1 Sing Distributive (Flip2 TCV.VecT f) where
     nesting1 (SN n) = Wit \\ n
+    {-# INLINE nesting1 #-}
 
 nesting1Every
     :: forall p w c v as. Nesting1 w c v
@@ -175,10 +187,11 @@ nesting1Every
     -> Prod w as
     -> Wit (Every c (v <$> as))
 nesting1Every p = \case
-    Ø       -> Wit
+    Ø   -> Wit
     (w :: w a) :< (ws :: Prod w as')
         -> Wit  \\ (nesting1 w :: Wit (c (v a)))
                 \\ (nesting1Every p ws :: Wit (Every c (v <$> as')))
+{-# INLINE nesting1Every #-}
 
 data Nested :: (k -> Type -> Type) -> [k] -> Type -> Type where
     NØ :: !a                     -> Nested v '[]       a
@@ -190,6 +203,7 @@ instance (NFData a, Nesting Proxy NFData v) => NFData (Nested v js a) where
       NS (xs :: v j (Nested v ks a))
             -> deepseq xs ()
                  \\ (nesting Proxy :: NFData (Nested v ks a) :- NFData (v j (Nested v ks a)))
+    {-# INLINE rnf #-}
 
 -- deriving instance ListC (Show <$> ((v <$> js) <&> a)) => Show (Nested v js a)
 

@@ -1,17 +1,18 @@
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE DeriveFunctor        #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE GADTs                #-}
-{-# LANGUAGE InstanceSigs         #-}
-{-# LANGUAGE KindSignatures       #-}
-{-# LANGUAGE LambdaCase           #-}
-{-# LANGUAGE PolyKinds            #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TemplateHaskell      #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE TypeInType           #-}
-{-# LANGUAGE TypeOperators        #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE DeriveFunctor          #-}
+{-# LANGUAGE FlexibleContexts       #-}
+{-# LANGUAGE GADTs                  #-}
+{-# LANGUAGE InstanceSigs           #-}
+{-# LANGUAGE KindSignatures         #-}
+{-# LANGUAGE LambdaCase             #-}
+{-# LANGUAGE PolyKinds              #-}
+{-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeFamilies           #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
+{-# LANGUAGE TypeInType             #-}
+{-# LANGUAGE TypeOperators          #-}
+{-# LANGUAGE UndecidableInstances   #-}
 
 module TensorOps.BLAS where
 
@@ -31,11 +32,17 @@ import           Type.Family.List
 $(singletons [d|
   data BShape a = BV !a | BM !a !a
     deriving (Show, Eq, Ord, Functor)
-
-  bShapeDims :: BShape a -> [a]
-  bShapeDims (BV x  ) = [x]
-  bShapeDims (BM x y) = [x,y]
   |])
+
+type family BShapeDims (s :: BShape k) = (ks :: [k]) | ks -> s where
+    BShapeDims ('BV x  ) = '[x]
+    BShapeDims ('BM x y) = '[x,y]
+
+genDefunSymbols [''BShapeDims]
+
+-- bShapeDims :: BShape a -> [a]
+-- bShapeDims (BV x  ) = [x]
+-- bShapeDims (BM x y) = [x,y]
 
 class NatKind k => BLAS (b :: BShape k -> Type) where
     type ElemB b :: Type
