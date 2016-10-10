@@ -52,7 +52,8 @@ import           Data.Type.Combinator.Util
 import           Data.Type.Index
 import           Data.Type.Length                    as TCL
 import           Data.Type.Length.Util               as TCL
-import           Data.Type.Product
+import           Data.Type.Product                   as TCP
+import           Data.Type.Product.Util              as TCP
 import           Data.Type.Sing
 import           Data.Type.SnocProd
 import           Data.Type.Uniform
@@ -466,7 +467,8 @@ gmul' lM lO _ x y = joinNested $ mapNVecSlices f lM x
         -> Nested v ns a
     f = getSum
       . getConst
-      . itraverseNested (\i x' -> Const . Sum $ fmap (x' *) (indexNested' (prodReverse' i) y))
+      -- . itraverseNested (\i x' -> Const . Sum $ fmap (x' *) (indexNested' (prodReverse' i) y))
+      . itraverseNested (\i x' -> Const . Sum $ fmap (x' *) (indexNested' (TCP.reverse' i) y))
 {-# INLINE gmul' #-}
 
 transpose
@@ -518,7 +520,7 @@ transpose'
     -> Sing (Reverse os)
     -> Nested v os a
     -> Nested v (Reverse os) a
-transpose' l sR x = genNested sR $ \i -> indexNested (prodReverse' i) x
+transpose' l sR x = genNested sR $ \i -> indexNested (TCP.reverse' i) x
                       \\ reverseReverse l
 {-# INLINE transpose' #-}
 
