@@ -28,6 +28,7 @@ library
                        Data.Type.Vector.Util
                        Data.Vector.Sized
                        GHC.TypeLits.Util
+                       TensorOps.BLAS
                        TensorOps.Backend.NTensor
                        TensorOps.Gradient
                        TensorOps.NatKind

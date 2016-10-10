@@ -138,10 +138,11 @@ instance
     {-# INLINE liftT #-}
 
     transp
-        :: forall ns. SingI ns
+        :: forall ns. (SingI ns, SingI (Reverse ns))
         => NTensor v a ns
         -> NTensor v a (Reverse ns)
-    transp = overNVec (transpose sing)
+    -- transp = overNVec (transpose sing)
+    transp = overNVec (transpose' (singLength sing) sing)
     {-# INLINE transp #-}
 
     gmul
@@ -160,6 +161,7 @@ instance
         sN  :: Sing ns
         (sO', sN) = splitSing (TCL.reverse' lO)
                               (sing :: Sing (Reverse os ++ ns))
+    {-# INLINE gmul #-}
 
     diag
         :: forall n ns. SingI ns
@@ -173,7 +175,7 @@ instance
                           )
             \\ witSings (sing :: Sing ns)
             \\ (produceEq1 :: Eq1 (IndexN k) :- Eq (IndexN k n))
-    -- {-# INLINE diag #-}
+    {-# INLINE diag #-}
 
     getDiag
         :: forall n ns. SingI '[n]
@@ -182,7 +184,7 @@ instance
         -> NTensor v a '[n]
     getDiag u = overNVec (diagNV sing u)
                   \\ sHead (sing :: Sing '[n])
-    -- {-# INLINE getDiag #-}
+    {-# INLINE getDiag #-}
 
     genRand
         :: forall m d (ns :: [k]). (ContGen d, PrimMonad m, SingI ns)
@@ -190,7 +192,7 @@ instance
         -> Gen (PrimState m)
         -> m (NTensor v a ns)
     genRand d g = generateA (\_ -> genContVar d g)
-    -- {-# INLINE genRand #-}
+    {-# INLINE genRand #-}
 
     generateA
         :: forall f ns. (Applicative f, SingI ns)
@@ -209,6 +211,7 @@ instance
         -> NTensor v a (ms ++ ns)
         -> f (NTensor v a (ms ++ os))
     ixRows l f = ntNVec $ fmap joinNested . nIxRows l (\i -> nvecNT (f i))
+    {-# INLINE ixRows #-}
 
 
 type LTensor = NTensor (Flip2 TCV.VecT   I) Double
