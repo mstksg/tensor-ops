@@ -161,6 +161,10 @@ snocProdLength :: SnocProd f as -> Length as
 snocProdReverse :: SnocProd f as -> Prod f (Reverse as)
 reverseSnocProd :: Prod f as -> SnocProd f (Reverse as)
 
+-- | An implementation of reverse' for Prod that runs in O(n) instead of
+--   O(n^2)
+prodReverse' :: Prod f as -> Prod f (Reverse as)
+
 module Data.Type.Sing
 singLength :: Sing ns -> Length ns
 singProd :: Sing as -> Prod Sing as
@@ -216,8 +220,13 @@ genNested :: Vec (v :: k -> Type -> Type) => Sing ns -> (Prod (IndexN k) ns -> a
 genNestedA :: (Vec (v :: k -> Type -> Type), Applicative f) => Sing ns -> (Prod (IndexN k) ns -> f a) -> f (Nested v ns a)
 indexNested :: Vec (v :: k -> Type -> Type) => Prod (IndexN k) ns -> Nested v ns a -> a
 indexNested' :: Vec (v :: k -> Type -> Type) => Prod (IndexN k) ms -> Nested v (ms ++ ns) a -> Nested v ns a
+
+-- | Transpose by iteratively sequencing/distributing layers
 transpose :: forall v os a. (Nesting1 Proxy Functor v, Nesting1 Proxy Foldable v, Nesting1 Proxy Traversable v, Nesting1 Sing Distributive v) => Sing os -> Nested v os a -> Nested v (Reverse os) a
-gmul' :: forall ms os ns v a. (Nesting1 Proxy Functor v, Nesting1 Sing Applicative v, Nesting1 Proxy Foldable v, Nesting1 Proxy Traversable v, Nesting1 Sing Distributive v, SingI ns, SingI (Reverse os), Num a) => Length ms -> Length os -> Length ns -> Nested v (ms ++ os) a -> Nested v (Reverse os ++ ns) a -> Nested v (ms ++ ns) a
+
+-- | Transpose by populating a new <a>Nested</a> from scratch
+transpose' :: Vec v => Length os -> Sing (Reverse os) -> Nested v os a -> Nested v (Reverse os) a
+gmul' :: forall ms os ns v a. (Nesting1 Proxy Functor v, Nesting1 Sing Applicative v, Nesting1 Proxy Foldable v, Nesting1 Proxy Traversable v, Nesting1 Sing Distributive v, SingI ns, SingI (Reverse os), Num a, Vec v) => Length ms -> Length os -> Length ns -> Nested v (ms ++ os) a -> Nested v (Reverse os ++ ns) a -> Nested v (ms ++ ns) a
 diagNV :: (Vec v, Nesting1 Proxy Functor v) => Sing n -> Uniform n ms -> Nested v (n : (n : ms)) a -> Nested v '[n] a
 joinNested :: forall v ns ms a. Nesting1 Proxy Functor v => Nested v ns (Nested v ms a) -> Nested v (ns ++ ms) a
 nIxRows :: forall k (v :: k -> Type -> Type) ns ms a b f. (Nesting1 Proxy Functor v, Applicative f, Vec v) => Length ns -> (Prod (IndexN k) ns -> Nested v ms a -> f b) -> Nested v (ns ++ ms) a -> f (Nested v ns b)
@@ -255,7 +264,7 @@ class NatKind k => Tensor (t :: [k] -> Type) where type ElemT t :: Type where {
 }
 liftT :: (Tensor t, SingI o) => (Vec m (Vec n (ElemT t) -> ElemT t)) -> Vec n (t o) -> Vec m (t o)
 gmul :: (Tensor t, SingI (Reverse os ++ ns)) => Length ms -> Length os -> Length ns -> t (ms ++ os) -> t (Reverse os ++ ns) -> t (ms ++ ns)
-transp :: (Tensor t, SingI ns) => t ns -> t (Reverse ns)
+transp :: (Tensor t, SingI ns, SingI (Reverse ns)) => t ns -> t (Reverse ns)
 diag :: (Tensor t, SingI ns) => Uniform n ns -> t '[n] -> t ns
 getDiag :: (Tensor t, SingI n) => Uniform n ns -> t (n : (n : ns)) -> t '[n]
 genRand :: (Tensor t, ContGen d, PrimMonad m, SingI ns) => d -> Gen (PrimState m) -> m (t ns)
@@ -264,7 +273,7 @@ ixRows :: (Tensor t, Applicative f) => Length ms -> (Prod (IndexN k) ms -> t ns 
 (!) :: Tensor t => t ns -> Prod (IndexN k) ns -> ElemT t
 type TensorOp = OpPipe TOp
 
--- | A cludge to get around lack of impredicative types in Haskell
+-- | A kludge to get around lack of impredicative types in Haskell
 newtype VFunc n
 VF :: (forall a. Floating a => Vec n a -> a) -> VFunc n
 [getVF] :: VFunc n -> forall a. Floating a => Vec n a -> a
@@ -282,6 +291,8 @@ data TOp :: [[k]] -> [[k]] -> Type
 --   TODO: allow for arbitrary permutation
 [Transp] :: Length ns -> TOp '[ns] '[Reverse ns]
 [Shuffle] :: Prod (Index ns) ms -> TOp ns ms
+
+-- | TODO: replace with <tt>syntactic</tt>?
 data OpPipe :: ([k] -> [k] -> Type) -> [k] -> [k] -> Type
 [OPØ] :: OpPipe f a a
 [Pop] :: Sing a -> Sing b -> Sing d -> f a b -> OpPipe f (b ++ d) c -> OpPipe f (a ++ d) c
@@ -290,6 +301,65 @@ pop :: forall a b c d f. (SingI a, SingI b, SingI d) => Length d -> f a b -> OpP
 (~.) :: (SingI a, SingI b, SingI d) => (Length a, Length d, f a b) -> OpPipe f (b ++ d) c -> OpPipe f (a ++ d) c
 infixr 4 ~.
 instance Type.Class.Higher.Eq1 Data.Finite.Internal.Finite
+
+module TensorOps.BLAS
+data BShape a_a10um
+BV :: !a_a10um -> BShape a_a10um
+BM :: !a_a10um -> !a_a10um -> BShape a_a10um
+type BVSym1 (t_a10CZ :: a1627630162) = BV t_a10CZ
+data BVSym0 (l_a10D0 :: TyFun a1627630162 (BShape a1627630162))
+BVSym0KindInference :: BVSym0
+type BMSym2 (t_a10D2 :: a1627630162) (t_a10D3 :: a1627630162) = BM t_a10D2 t_a10D3
+data BMSym1 (l_a10D7 :: a1627630162) (l_a10D6 :: TyFun a1627630162 (BShape a1627630162))
+BMSym1KindInference :: BMSym1
+data BMSym0 (l_a10D4 :: TyFun a1627630162 (TyFun a1627630162 (BShape a1627630162) -> Type))
+BMSym0KindInference :: BMSym0
+type Compare_1627630999Sym2 (t_a10HT :: BShape a1627630162) (t_a10HU :: BShape a1627630162) = Compare_1627630999 t_a10HT t_a10HU
+data Compare_1627630999Sym1 (l_a10HY :: BShape a1627630162) (l_a10HX :: TyFun (BShape a1627630162) Ordering)
+Compare_1627630999Sym1KindInference :: Compare_1627630999Sym1
+data Compare_1627630999Sym0 (l_a10HV :: TyFun (BShape a1627630162) (TyFun (BShape a1627630162) Ordering -> Type))
+Compare_1627630999Sym0KindInference :: Compare_1627630999Sym0
+type SBShape = (Sing :: BShape a_a10um -> Type)
+type BShapeDimsSym1 (t_a12b3 :: BShape k1627631155) = BShapeDims t_a12b3
+data BShapeDimsSym0 (l_a12b4 :: TyFun (BShape k1627631155) [k1627631155])
+BShapeDimsSym0KindInference :: BShapeDimsSym0
+class NatKind k => BLAS (b :: BShape k -> Type) where type ElemB b :: Type where {
+    type family ElemB b :: Type;
+}
+axpy :: BLAS b => ElemB b -> b (BV n) -> Maybe (b (BV n)) -> b (BV n)
+dot :: BLAS b => b (BV n) -> b (BV n) -> ElemB b
+norm :: BLAS b => b (BV n) -> ElemB b
+ger :: BLAS b => b (BV n) -> b (BV m) -> b (BM n m)
+gemv :: BLAS b => ElemB b -> b (BM n m) -> b (BV m) -> Maybe (ElemB b, b (BV n)) -> b (BV n)
+gemm :: BLAS b => ElemB b -> b (BM n o) -> b (BM o m) -> Maybe (ElemB b, b (BM n m)) -> b (BM n m)
+indexB :: BLAS b => Prod (IndexN k) (BShapeDims s) -> b s -> ElemB b
+transp :: BLAS b => b (BM n m) -> b (BM m n)
+data BTensor :: (k -> Type -> Type) -> (BShape k -> Type) -> [k] -> Type
+[BTS] :: !(ElemB b) -> BTensor v b '[]
+[BTV] :: !(b (BV n)) -> BTensor v b '[n]
+[BTM] :: !(b (BM n m)) -> BTensor v b '[n, m]
+[BTN] :: !(v n (BTensor v b (o : (m : ns)))) -> BTensor v b (n : (o : (m : ns)))
+data ArbiProd :: (k -> Type) -> f k -> Type
+[AP] :: ArbiProd f as
+instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.BShapeDimsSym0
+instance forall k (v :: k -> GHC.Types.Type -> GHC.Types.Type) (b :: TensorOps.BLAS.BShape k -> GHC.Types.Type). (Data.Nested.Vec v, TensorOps.BLAS.BLAS b, TensorOps.NatKind.NatKind k) => TensorOps.Types.Tensor (TensorOps.BLAS.BTensor v b)
+instance GHC.Base.Functor TensorOps.BLAS.BShape
+instance GHC.Classes.Ord a0 => GHC.Classes.Ord (TensorOps.BLAS.BShape a0)
+instance GHC.Classes.Eq a0 => GHC.Classes.Eq (TensorOps.BLAS.BShape a0)
+instance GHC.Show.Show a0 => GHC.Show.Show (TensorOps.BLAS.BShape a0)
+instance Data.Singletons.Prelude.Eq.PEq 'Data.Proxy.Proxy
+instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.BVSym0
+instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.BMSym1
+instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.BMSym0
+instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.Compare_1627630999Sym1
+instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.Compare_1627630999Sym0
+instance Data.Singletons.Prelude.Ord.POrd 'Data.Proxy.Proxy
+instance Data.Singletons.SingKind a0 => Data.Singletons.SingKind (TensorOps.BLAS.BShape a0)
+instance Data.Singletons.Prelude.Eq.SEq a0 => Data.Singletons.Prelude.Eq.SEq (TensorOps.BLAS.BShape a0)
+instance Data.Singletons.Decide.SDecide a0 => Data.Singletons.Decide.SDecide (TensorOps.BLAS.BShape a0)
+instance Data.Singletons.Prelude.Ord.SOrd a0 => Data.Singletons.Prelude.Ord.SOrd (TensorOps.BLAS.BShape a0)
+instance forall a0 (n0 :: a0). Data.Singletons.SingI n0 => Data.Singletons.SingI ('TensorOps.BLAS.BV n0)
+instance forall a0 (n0 :: a0) (n1 :: a0). (Data.Singletons.SingI n0, Data.Singletons.SingI n1) => Data.Singletons.SingI ('TensorOps.BLAS.BM n0 n1)
 
 module TensorOps.Backend.NTensor
 data NTensor :: (k -> Type -> Type) -> Type -> [k] -> Type

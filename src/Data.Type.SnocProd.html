@@ -22,8 +22,8 @@
 </span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
 </span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><a href="Type.Family.List.Util.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
 </span><a name="line-24"></a><span>
-</span><a name="line-25"></a><span class="hs-keyword">data</span><span> </span><a name="SnocProd"><a href="Data.Type.SnocProd.html#SnocProd"><span class="hs-identifier">SnocProd</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><a href="#local-1627554462"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><a href="#local-1627554462"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-26"></a><span>    </span><a name="%D8S"><a href="Data.Type.SnocProd.html#%D8S"><span class="hs-identifier">&#216;S</span></a></a><span>   </span><span class="hs-glyph">::</span><span> </span><a href="Data.Type.SnocProd.html#SnocProd"><span class="hs-identifier hs-type">SnocProd</span></a><span> </span><a href="#local-1627554463"><span class="hs-identifier hs-type">f</span></a><span> </span><span class="hs-char">'[]
+</span><a name="line-25"></a><span class="hs-keyword">data</span><span> </span><a name="SnocProd"><a href="Data.Type.SnocProd.html#SnocProd"><span class="hs-identifier">SnocProd</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><a href="#local-1627559717"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><a href="#local-1627559717"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-26"></a><span>    </span><a name="%D8S"><a href="Data.Type.SnocProd.html#%D8S"><span class="hs-identifier">&#216;S</span></a></a><span>   </span><span class="hs-glyph">::</span><span> </span><a href="Data.Type.SnocProd.html#SnocProd"><span class="hs-identifier hs-type">SnocProd</span></a><span> </span><a href="#local-1627559718"><span class="hs-identifier hs-type">f</span></a><span> </span><span class="hs-char">'[]
     (:&amp;) :: SnocProd f as -&gt; f a -&gt; SnocProd f (as &gt;: a)
 
 snocProdHelp
@@ -60,6 +60,7 @@ snocProdReverse = \case
     &#216;S      -&gt; &#216;
     ss :&amp; s -&gt; s :&lt; snocProdReverse ss
                  \\ snocReverse (snocProdLength ss) s
+-- TODO: might recomputing snocProdLength be slow?
 
 reverseSnocProd
     :: Prod f as
@@ -67,6 +68,13 @@ reverseSnocProd
 reverseSnocProd = \case
     &#216;       -&gt; &#216;S
     x :&lt; xs -&gt; reverseSnocProd xs :&amp; x
+
+-- | An implementation of reverse' for Prod that runs in O(n) instead of
+-- O(n^2)
+prodReverse'
+    :: Prod f as
+    -&gt; Prod f (Reverse as)
+prodReverse' = snocProdReverse . snocProd
 
 
 -- $(singletons [d|
