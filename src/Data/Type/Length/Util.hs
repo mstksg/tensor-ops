@@ -34,15 +34,18 @@ reverse' = unsafeCoerce
 -- reverse' = \case
 --     LZ   -> LZ
 --     LS l -> reverse' l >: (Proxy @(Head ns))
+{-# INLINE reverse' #-}
 
--- TODO: can this be unsafeCoerce?
+-- TODO: is this ok to be unsafeCoerce?
 (>:)
     :: Length ns
     -> Proxy n
     -> Length (ns >: n)
+-- (>:) l _ = unsafeCoerce $ LS l
 (>:) = \case
     LZ   -> \_ -> LS LZ
     LS l -> LS . (l >:)
+{-# INLINE (>:) #-}
 
 data SnocLength :: [a] -> Type where
     SnocZ :: SnocLength '[]

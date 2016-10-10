@@ -14,7 +14,6 @@ module TensorOps.Tensor where
 
 import           Control.Applicative
 import           Control.Monad.Trans.State.Strict
-import           Control.Monad.Trans.Writer.Strict
 import           Data.Functor
 import           Data.Kind
 import           Data.List hiding                  ((\\), zip)
@@ -204,8 +203,8 @@ toRows
     -> [t ns]
 toRows = ($[])
        . appEndo
-       . execWriter
-       . rows (LS LZ) (\xs -> tell (Endo (xs:)) $> xs)
+       . getConst
+       . rows (LS LZ) (\xs -> Const $ Endo (xs:))
 
 ixElems
     :: forall k f (t :: [k] -> Type) ns. (Applicative f, Tensor t, SingI ns)
@@ -232,8 +231,8 @@ itoList
     -> [(Prod (IndexN k) ns, ElemT t)]
 itoList = ($ [])
         . appEndo
-        . execWriter
-        . ixElems (\i x -> tell (Endo ((i,x):)) $> x)
+        . getConst
+        . ixElems (\i x -> Const $ Endo ((i,x):))
 
 toList
     :: (Tensor t, SingI ns)
@@ -241,8 +240,8 @@ toList
     -> [ElemT t]
 toList = ($[])
        . appEndo
-       . execWriter
-       . elems (\x -> tell (Endo (x:)) $> x)
+       . getConst
+       . elems (\x -> Const $ Endo (x:))
 
 unScalar
     :: forall t. Tensor t
