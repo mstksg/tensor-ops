@@ -36,7 +36,7 @@
 </span><a name="line-36"></a><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">Show</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">Eq</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">Ord</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">Functor</span></a><span class="hs-special">)</span><span>
 </span><a name="line-37"></a><span>  </span><span class="hs-glyph">|</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
 </span><a name="line-38"></a><span>
-</span><a name="line-39"></a><span class="hs-keyword">type</span><span> </span><span class="hs-keyword">family</span><span> </span><a name="BShapeDims"><a href="TensorOps.BLAS.html#BShapeDims"><span class="hs-identifier">BShapeDims</span></a></a><span> </span><span class="hs-special">(</span><a name="local-1627634484"><a href="#local-1627634484"><span class="hs-identifier">s</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="TensorOps.BLAS.html#BShape"><span class="hs-identifier hs-type">BShape</span></a><span> </span><a href="#local-1627634483"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><a name="local-1627634485"><a href="#local-1627634485"><span class="hs-identifier">ks</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><a href="#local-1627634483"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier">ks</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier">s</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-39"></a><span class="hs-keyword">type</span><span> </span><span class="hs-keyword">family</span><span> </span><a name="BShapeDims"><a href="TensorOps.BLAS.html#BShapeDims"><span class="hs-identifier">BShapeDims</span></a></a><span> </span><span class="hs-special">(</span><a name="local-1627634486"><a href="#local-1627634486"><span class="hs-identifier">s</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="TensorOps.BLAS.html#BShape"><span class="hs-identifier hs-type">BShape</span></a><span> </span><a href="#local-1627634485"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><a name="local-1627634487"><a href="#local-1627634487"><span class="hs-identifier">ks</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><a href="#local-1627634485"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier">ks</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier">s</span><span> </span><span class="hs-keyword">where</span><span>
 </span><a name="line-40"></a><span>    </span><span class="hs-identifier">BShapeDims</span><span> </span><span class="hs-special">(</span><span class="hs-char">'BV x  ) = '[x]
     BShapeDims ('BM x y) = '[x,y]
 
@@ -126,12 +126,29 @@ dispatchBLAS lM lO lN v r = case (lM, lO, lN) of
       -- matrix-matrix
       (BTM x, BTM y) -&gt; BTM $ gemm 1 x y Nothing
 
+
+-- | General strategy:
+--
+-- *   We can only outsource to BLAS (using 'dispatchBLAS') in the case
+--     that @ns@ has length 0 or 1.  Anything else, fall back to the basic
+--     reverse-indexing method in &quot;Data.Nested&quot;.
+gmulB
+    :: (SingI (Reverse os ++ ns))
+    =&gt; Length ms
+    -&gt; Length os
+    -&gt; Length ns
+    -&gt; BTensor v b (ms         ++ os)
+    -&gt; BTensor v b (Reverse os ++ ns)
+    -&gt; BTensor v b (ms         ++ ns)
+gmulB = undefined
+
 instance forall k (v :: k -&gt; Type -&gt; Type) (b :: BShape k -&gt; Type).
       (Vec v, BLAS b, NatKind k)
       =&gt; Tensor (BTensor v b) where
     type ElemT (BTensor v b) = ElemB b
 
 
+    gmul = gmulB
     -- -- general strategy:
     -- --   * if the ranks match, use the primitives
     -- --   * if not ... um we'll figure that out next
