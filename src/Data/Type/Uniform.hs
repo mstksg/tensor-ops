@@ -20,7 +20,7 @@ import           Type.Family.List
 
 data Uniform :: a -> [a] -> Type where
     UØ :: Uniform a '[]
-    US :: Uniform a as -> Uniform a (a ': as)
+    US :: !(Uniform a as) -> Uniform a (a ': as)
 
 deriving instance Show (Uniform a as)
 

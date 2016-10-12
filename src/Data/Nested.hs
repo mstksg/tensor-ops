@@ -39,7 +39,6 @@ module Data.Nested
   , unScalar, unNest, unVector
   ) where
 
--- import           Data.Type.Product.Util
 import           Control.Applicative
 import           Control.DeepSeq
 import           Data.Distributive
@@ -292,6 +291,7 @@ instance (Vec v, SingI js, Nesting1 Proxy Functor v) => Distributive (Nested v j
     --       s `SCons` ss -> NS . vGen s $ \i ->
     --                         go (fmap (indexNested' (i :< Ø)) xs) ss
 
+-- TODO: rewrite rules?  lazy pattern matches?
 nHead
     :: forall v p j js a. Vec v
     => p j
@@ -471,6 +471,7 @@ gmul' lM lO _ x y = joinNested $ mapNVecSlices f lM x
       . itraverseNested (\i x' -> Const . Sum $ fmap (x' *) (indexNested' (TCP.reverse' i) y))
 {-# INLINE gmul' #-}
 
+-- | Transpose by iteratively sequencing/distributing layers
 transpose
     :: forall v os a.
      ( Nesting1 Proxy Functor      v
@@ -514,6 +515,7 @@ transposeHelp = \case
         in  joinNested y'
               \\ snocReverse lOs' sO
 
+-- | Transpose by populating a new 'Nested' from scratch
 transpose'
     :: Vec v
     => Length os

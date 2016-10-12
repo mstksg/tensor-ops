@@ -4,15 +4,19 @@
 {-# LANGUAGE PolyKinds           #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
+{-# LANGUAGE TypeInType          #-}
 {-# LANGUAGE TypeOperators       #-}
 
 module Type.Family.List.Util where
 
+import           Data.Kind
 import           Data.Proxy
 import           Data.Type.Equality
 import           Data.Type.Length
 import           Type.Class.Witness
 import           Type.Family.List
+import           Type.Family.Nat
+import           Type.Family.Nat.Util
 import           Unsafe.Coerce
 
 reverseSnoc
@@ -75,3 +79,4 @@ appendSnoc = \case
 --     -> Length ms
 --     -> ((n ': ns) :~: ('[n] ++ ns))
 -- appendCons _ _ = Refl
+

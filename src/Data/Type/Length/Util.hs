@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE EmptyCase           #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE PolyKinds           #-}
@@ -11,11 +12,17 @@ module Data.Type.Length.Util where
 
 import           Data.Kind
 import           Data.Proxy
+import           Data.Singletons.Decide
 import           Data.Type.Length
+import           Data.Type.Nat
+import           Data.Type.Product hiding ((:<), (>:), append')
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
+import           Type.Family.Nat
+import           Type.Family.Nat.Util
 import           Unsafe.Coerce
+import qualified Data.Type.Product        as P
 
 append'
     :: Length ns
@@ -92,4 +99,69 @@ snocLengthReverse = \case
     SnocS (s :: SnocLength bs) (p :: Proxy b) ->
       LS (snocLengthReverse s)
         \\ snocReverse (snocLengthLength s) p
+
+-- | A @'MaxLength' n as@ is a witness that the list @as@ has a length of
+-- at most @n@.
+data MaxLength :: N -> [k] -> Type where
+    FLZ :: MaxLength n '[]
+    FLS :: !(MaxLength n as) -> MaxLength ('S n) (a ': as)
+
+data ExactLength :: N -> [k] -> Type where
+    ELZ :: ExactLength 'Z '[]
+    ELS :: !(ExactLength n as) -> ExactLength ('S n) (a ': as)
+
+data Splitting :: N -> ([k] -> Type) -> [k] -> Type where
+    Fewer
+        :: !(MaxLength n as)
+        -> !(f as)
+        -> Splitting n f as
+    Split
+        :: !(ExactLength ('S n) as)
+        -> !(f as)
+        -> !(f bs)
+        -> Splitting n f (as ++ bs)
+
+splitting
+    :: Nat n
+    -> Prod f as
+    -> Splitting n (Prod f) as
+splitting = \case
+  Z_   -> \case
+    Ø         -> Fewer FLZ       Ø
+    x P.:< xs -> Split (ELS ELZ) (x P.:< Ø) xs
+  S_ n -> \case
+    Ø         -> Fewer FLZ Ø
+    x P.:< xs -> case splitting n xs of
+      Fewer m xs'    -> Fewer (FLS m) (x P.:< xs')
+      Split e xs' ys -> Split (ELS e) (x P.:< xs') ys
+
+maxLength
+    :: Nat n
+    -> Length as
+    -> Decision (MaxLength n as)
+maxLength = \case
+  Z_   -> \case
+    LZ   -> Proved    FLZ
+    LS _ -> Disproved (\case)
+  S_ n -> \case
+    LZ   -> Proved FLZ
+    LS l -> case maxLength n l of
+      Proved m    -> Proved (FLS m)
+      Disproved r -> Disproved $ \case
+        FLS m -> r m
+
+exactLength
+    :: Nat n
+    -> Length as
+    -> Decision (ExactLength n as)
+exactLength = \case
+  Z_ -> \case
+    LZ   -> Proved ELZ
+    LS _ -> Disproved (\case)
+  S_ n -> \case
+    LZ   -> Disproved (\case)
+    LS l -> case exactLength n l of
+      Proved e    -> Proved (ELS e)
+      Disproved r -> Disproved $ \case
+        ELS e -> r e
 

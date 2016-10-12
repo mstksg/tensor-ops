@@ -23,11 +23,13 @@ import           Data.Singletons
 import           Data.Singletons.Prelude hiding (Reverse, (++))
 import           Data.Singletons.TH
 import           Data.Type.Length
+import           Data.Type.Length.Util
 import           Data.Type.Product
 import           GHC.TypeLits
 import           TensorOps.NatKind
 import           TensorOps.Types hiding         (transp)
 import           Type.Family.List
+import           Type.Family.Nat
 
 $(singletons [d|
   data BShape a = BV !a | BM !a !a
@@ -87,54 +89,39 @@ data BTensor :: (k -> Type -> Type) -> (BShape k -> Type) -> [k] -> Type where
     BTN :: !(v n (BTensor v b (o ': m ': ns)))
         -> BTensor v b (n ': o ': m ': ns)
 
-data ArbiProd :: (k -> Type) -> f k -> Type where
-    AP :: ArbiProd f as
-
--- dispatchBLAS
---     :: forall b ms os ns v. (Floating (ElemB b), BLAS b)
---     => Length ms
---     -> Length os
---     -> Length ns
---     -> BTensor v b (ms         ++ os)
---     -> BTensor v b (Reverse os ++ ns)
---     -> BTensor v b (ms         ++ ns)
--- dispatchBLAS = \case
---     LZ -> \case
---       LZ -> \case
---         LZ -> \case
---           -- scalar-scalar
---           BTS x -> \case
---             BTS y -> BTS $ x * y
---         LS LZ -> \case
---           -- scalar-vector
---           BTS x -> \case
---             BTV y -> BTV $ axpy x y Nothing
---         LS _  -> error "not in scope?"
-
--- dispatchBLAS lM lO lN = case (lM, lO, lN) of
---     -- dot product
---     (LZ   , LS LZ, LZ   ) -> \case
---       BTV x -> \case
---         BTV y -> BTS $ x `dot` y
---     -- matrix vector
---     (LS LZ, LS LZ, LZ   ) -> \case
---       BTM (x :: b ('BM n m)) -> \case
---         BTV (y :: b ('BV m)) -> BTV $ gemv 1 x y Nothing
---     -- vector matrix
---     (LZ   , LS LZ, LS LZ) -> \case
---       BTV (x :: b ('BV n)) -> \case
---         BTM (y :: b ('BM n m)) -> BTV $ gemv 1 (transp y) x Nothing
---     -- matrix matrix
---     (LS LZ, LS LZ, LS LZ) -> \case
---       BTM (x :: b ('BM n o)) -> \case
---         BTM (y :: b ('BM o m)) -> BTM $ gemm 1 x y Nothing
---     -- outer product
---     (LS LZ, LZ   , LS LZ) -> \case
---       BTV (x :: b ('BV n)) -> \case
---         BTV (y :: b ('BV m)) -> BTM $ ger x y
---     -- scalar scalar
---     (LZ   , LZ  , LZ    ) -> \case
-
+dispatchBLAS
+    :: forall b ms os ns v. (Floating (ElemB b), BLAS b)
+    => MaxLength N1 ms
+    -> MaxLength N1 os
+    -> MaxLength N1 ns
+    -> BTensor v b (ms         ++ os)
+    -> BTensor v b (Reverse os ++ ns)
+    -> BTensor v b (ms         ++ ns)
+dispatchBLAS lM lO lN v r = case (lM, lO, lN) of
+    (FLZ    , FLZ    , FLZ    ) -> case (v, r) of
+      -- scalar-scalar
+      (BTS x, BTS y) -> BTS $ x * y
+    (FLZ    , FLZ    , FLS FLZ) -> case (v, r) of
+      -- scalar-vector
+      (BTS x, BTV y) -> BTV $ axpy x y Nothing
+    (FLZ    , FLS FLZ, FLZ    ) -> case (v, r) of
+      -- dot
+      (BTV x, BTV y) -> BTS $ x `dot` y
+    (FLZ    , FLS FLZ, FLS FLZ) -> case (v, r) of
+      -- vector-matrix
+      (BTV x, BTM y) -> BTV $ gemv 1 (transp y) x Nothing
+    (FLS FLZ, FLZ    , FLZ    ) -> case (v, r) of
+      -- vector-scalar
+      (BTV x, BTS y) -> BTV $ axpy y x Nothing
+    (FLS FLZ, FLZ    , FLS FLZ) -> case (v, r) of
+      -- vector-scalar
+      (BTV x, BTV y) -> BTM $ ger x y
+    (FLS FLZ, FLS FLZ, FLZ    ) -> case (v, r) of
+      -- matrx-vector
+      (BTM x, BTV y) -> BTV $ gemv 1 x y Nothing
+    (FLS FLZ, FLS FLZ, FLS FLZ) -> case (v, r) of
+      -- matrix-matrix
+      (BTM x, BTM y) -> BTM $ gemm 1 x y Nothing
 
 instance forall k (v :: k -> Type -> Type) (b :: BShape k -> Type).
       (Vec v, BLAS b, NatKind k)
