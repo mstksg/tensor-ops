@@ -23,19 +23,21 @@
 </span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">Prelude</span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Reverse</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="hs-operator">++</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TH</span><span>
 </span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>
-</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span>
-</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
-</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.NatKind.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">NatKind</span></a><span>
-</span><a name="line-29"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Types.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span></a><span> </span><span class="hs-keyword">hiding</span><span>         </span><span class="hs-special">(</span><a href="TensorOps.Types.html#transp"><span class="hs-identifier hs-var">transp</span></a><span class="hs-special">)</span><span>
-</span><a name="line-30"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
-</span><a name="line-31"></a><span>
-</span><a name="line-32"></a><span class="hs-operator">$</span><span class="hs-special">(</span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">singletons</span></a><span> </span><span class="hs-special">[</span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">d</span></a><span class="hs-glyph">|</span><span>
-</span><a name="line-33"></a><span>  </span><span class="hs-keyword">data</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">BShape</span></a><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">a</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">BV</span></a><span> </span><span class="hs-glyph">!</span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">a</span></a><span> </span><span class="hs-glyph">|</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">BM</span></a><span> </span><span class="hs-glyph">!</span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">a</span></a><span> </span><span class="hs-glyph">!</span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">a</span></a><span>
-</span><a name="line-34"></a><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">Show</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">Eq</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">Ord</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">Functor</span></a><span class="hs-special">)</span><span>
-</span><a name="line-35"></a><span>  </span><span class="hs-glyph">|</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
-</span><a name="line-36"></a><span>
-</span><a name="line-37"></a><span class="hs-keyword">type</span><span> </span><span class="hs-keyword">family</span><span> </span><a name="BShapeDims"><a href="TensorOps.BLAS.html#BShapeDims"><span class="hs-identifier">BShapeDims</span></a></a><span> </span><span class="hs-special">(</span><a name="local-1627631156"><a href="#local-1627631156"><span class="hs-identifier">s</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="TensorOps.BLAS.html#BShape"><span class="hs-identifier hs-type">BShape</span></a><span> </span><a href="#local-1627631155"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><a name="local-1627631157"><a href="#local-1627631157"><span class="hs-identifier">ks</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><a href="#local-1627631155"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier">ks</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier">s</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-38"></a><span>    </span><span class="hs-identifier">BShapeDims</span><span> </span><span class="hs-special">(</span><span class="hs-char">'BV x  ) = '[x]
+</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Length.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span>
+</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
+</span><a name="line-29"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.NatKind.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">NatKind</span></a><span>
+</span><a name="line-30"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Types.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span></a><span> </span><span class="hs-keyword">hiding</span><span>         </span><span class="hs-special">(</span><a href="TensorOps.Types.html#transp"><span class="hs-identifier hs-var">transp</span></a><span class="hs-special">)</span><span>
+</span><a name="line-31"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
+</span><a name="line-32"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-33"></a><span>
+</span><a name="line-34"></a><span class="hs-operator">$</span><span class="hs-special">(</span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">singletons</span></a><span> </span><span class="hs-special">[</span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">d</span></a><span class="hs-glyph">|</span><span>
+</span><a name="line-35"></a><span>  </span><span class="hs-keyword">data</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">BShape</span></a><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">a</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">BV</span></a><span> </span><span class="hs-glyph">!</span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">a</span></a><span> </span><span class="hs-glyph">|</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">BM</span></a><span> </span><span class="hs-glyph">!</span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">a</span></a><span> </span><span class="hs-glyph">!</span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">a</span></a><span>
+</span><a name="line-36"></a><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">Show</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">Eq</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">Ord</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">Functor</span></a><span class="hs-special">)</span><span>
+</span><a name="line-37"></a><span>  </span><span class="hs-glyph">|</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><a name="line-38"></a><span>
+</span><a name="line-39"></a><span class="hs-keyword">type</span><span> </span><span class="hs-keyword">family</span><span> </span><a name="BShapeDims"><a href="TensorOps.BLAS.html#BShapeDims"><span class="hs-identifier">BShapeDims</span></a></a><span> </span><span class="hs-special">(</span><a name="local-1627634484"><a href="#local-1627634484"><span class="hs-identifier">s</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="TensorOps.BLAS.html#BShape"><span class="hs-identifier hs-type">BShape</span></a><span> </span><a href="#local-1627634483"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><a name="local-1627634485"><a href="#local-1627634485"><span class="hs-identifier">ks</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><a href="#local-1627634483"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier">ks</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier">s</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-40"></a><span>    </span><span class="hs-identifier">BShapeDims</span><span> </span><span class="hs-special">(</span><span class="hs-char">'BV x  ) = '[x]
     BShapeDims ('BM x y) = '[x,y]
 
 genDefunSymbols [''BShapeDims]
@@ -87,54 +89,42 @@ data BTensor :: (k -&gt; Type -&gt; Type) -&gt; (BShape k -&gt; Type) -&gt; [k] 
     BTN :: !(v n (BTensor v b (o ': m ': ns)))
         -&gt; BTensor v b (n ': o ': m ': ns)
 
-data ArbiProd :: (k -&gt; Type) -&gt; f k -&gt; Type where
-    AP :: ArbiProd f as
-
--- dispatchBLAS
---     :: forall b ms os ns v. (Floating (ElemB b), BLAS b)
---     =&gt; Length ms
---     -&gt; Length os
---     -&gt; Length ns
---     -&gt; BTensor v b (ms         ++ os)
---     -&gt; BTensor v b (Reverse os ++ ns)
---     -&gt; BTensor v b (ms         ++ ns)
--- dispatchBLAS = \case
---     LZ -&gt; \case
---       LZ -&gt; \case
---         LZ -&gt; \case
---           -- scalar-scalar
---           BTS x -&gt; \case
---             BTS y -&gt; BTS $ x * y
---         LS LZ -&gt; \case
---           -- scalar-vector
---           BTS x -&gt; \case
---             BTV y -&gt; BTV $ axpy x y Nothing
---         LS _  -&gt; error &quot;not in scope?&quot;
-
--- dispatchBLAS lM lO lN = case (lM, lO, lN) of
---     -- dot product
---     (LZ   , LS LZ, LZ   ) -&gt; \case
---       BTV x -&gt; \case
---         BTV y -&gt; BTS $ x `dot` y
---     -- matrix vector
---     (LS LZ, LS LZ, LZ   ) -&gt; \case
---       BTM (x :: b ('BM n m)) -&gt; \case
---         BTV (y :: b ('BV m)) -&gt; BTV $ gemv 1 x y Nothing
---     -- vector matrix
---     (LZ   , LS LZ, LS LZ) -&gt; \case
---       BTV (x :: b ('BV n)) -&gt; \case
---         BTM (y :: b ('BM n m)) -&gt; BTV $ gemv 1 (transp y) x Nothing
---     -- matrix matrix
---     (LS LZ, LS LZ, LS LZ) -&gt; \case
---       BTM (x :: b ('BM n o)) -&gt; \case
---         BTM (y :: b ('BM o m)) -&gt; BTM $ gemm 1 x y Nothing
---     -- outer product
---     (LS LZ, LZ   , LS LZ) -&gt; \case
---       BTV (x :: b ('BV n)) -&gt; \case
---         BTV (y :: b ('BV m)) -&gt; BTM $ ger x y
---     -- scalar scalar
---     (LZ   , LZ  , LZ    ) -&gt; \case
-
+-- | TODO: add RULES pragmas so that this can be done without checking
+-- lengths at runtime in the common case that the lengths are known at
+-- compile-time.
+dispatchBLAS
+    :: forall b ms os ns v. (Floating (ElemB b), BLAS b)
+    =&gt; MaxLength N1 ms
+    -&gt; MaxLength N1 os
+    -&gt; MaxLength N1 ns
+    -&gt; BTensor v b (ms         ++ os)
+    -&gt; BTensor v b (Reverse os ++ ns)
+    -&gt; BTensor v b (ms         ++ ns)
+dispatchBLAS lM lO lN v r = case (lM, lO, lN) of
+    (FLZ    , FLZ    , FLZ    ) -&gt; case (v, r) of
+      -- scalar-scalar
+      (BTS x, BTS y) -&gt; BTS $ x * y
+    (FLZ    , FLZ    , FLS FLZ) -&gt; case (v, r) of
+      -- scalar-vector
+      (BTS x, BTV y) -&gt; BTV $ axpy x y Nothing
+    (FLZ    , FLS FLZ, FLZ    ) -&gt; case (v, r) of
+      -- dot
+      (BTV x, BTV y) -&gt; BTS $ x `dot` y
+    (FLZ    , FLS FLZ, FLS FLZ) -&gt; case (v, r) of
+      -- vector-matrix
+      (BTV x, BTM y) -&gt; BTV $ gemv 1 (transp y) x Nothing
+    (FLS FLZ, FLZ    , FLZ    ) -&gt; case (v, r) of
+      -- vector-scalar
+      (BTV x, BTS y) -&gt; BTV $ axpy y x Nothing
+    (FLS FLZ, FLZ    , FLS FLZ) -&gt; case (v, r) of
+      -- vector-scalar
+      (BTV x, BTV y) -&gt; BTM $ ger x y
+    (FLS FLZ, FLS FLZ, FLZ    ) -&gt; case (v, r) of
+      -- matrx-vector
+      (BTM x, BTV y) -&gt; BTV $ gemv 1 x y Nothing
+    (FLS FLZ, FLS FLZ, FLS FLZ) -&gt; case (v, r) of
+      -- matrix-matrix
+      (BTM x, BTM y) -&gt; BTM $ gemm 1 x y Nothing
 
 instance forall k (v :: k -&gt; Type -&gt; Type) (b :: BShape k -&gt; Type).
       (Vec v, BLAS b, NatKind k)
