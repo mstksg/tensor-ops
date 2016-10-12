@@ -106,6 +106,8 @@ data MaxLength :: N -&gt; [k] -&gt; Type where
     FLZ :: MaxLength n '[]
     FLS :: !(MaxLength n as) -&gt; MaxLength ('S n) (a ': as)
 
+-- | An @'ExactLength' n as@ is a witness that the list @as@ has a length
+-- of exactly @n@.
 data ExactLength :: N -&gt; [k] -&gt; Type where
     ELZ :: ExactLength 'Z '[]
     ELS :: !(ExactLength n as) -&gt; ExactLength ('S n) (a ': as)

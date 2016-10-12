@@ -131,6 +131,9 @@ snocLengthReverse :: SnocLength as -> Length (Reverse as)
 data MaxLength :: N -> [k] -> Type
 [FLZ] :: MaxLength n '[]
 [FLS] :: !(MaxLength n as) -> MaxLength (S n) (a : as)
+
+-- | An <tt><a>ExactLength</a> n as</tt> is a witness that the list
+--   <tt>as</tt> has a length of exactly <tt>n</tt>.
 data ExactLength :: N -> [k] -> Type
 [ELZ] :: ExactLength Z '[]
 [ELS] :: !(ExactLength n as) -> ExactLength (S n) (a : as)
@@ -142,6 +145,9 @@ maxLength :: Nat n -> Length as -> Decision (MaxLength n as)
 exactLength :: Nat n -> Length as -> Decision (ExactLength n as)
 
 module Data.Type.Uniform
+
+-- | A <tt><a>Uniform</a> a as</tt> is a witness that every item in
+--   <tt>as</tt> is (identically) <tt>a</tt>.
 data Uniform :: a -> [a] -> Type
 [UØ] :: Uniform a '[]
 [US] :: !(Uniform a as) -> Uniform a (a : as)
