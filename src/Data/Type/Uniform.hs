@@ -18,6 +18,8 @@ import           Type.Class.Witness
 import           Type.Family.Constraint
 import           Type.Family.List
 
+-- | A @'Uniform' a as@ is a witness that every item in @as@ is
+-- (identically) @a@.
 data Uniform :: a -> [a] -> Type where
     UØ :: Uniform a '[]
     US :: !(Uniform a as) -> Uniform a (a ': as)

@@ -15,7 +15,8 @@ import           Data.Proxy
 import           Data.Singletons.Decide
 import           Data.Type.Length
 import           Data.Type.Nat
-import           Data.Type.Product hiding ((:<), (>:), append')
+import           Data.Type.Product hiding ((>:), append')
+import           Prelude hiding           (init)
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
@@ -103,9 +104,11 @@ snocLengthReverse = \case
 -- | A @'MaxLength' n as@ is a witness that the list @as@ has a length of
 -- at most @n@.
 data MaxLength :: N -> [k] -> Type where
-    FLZ :: MaxLength n '[]
-    FLS :: !(MaxLength n as) -> MaxLength ('S n) (a ': as)
+    MLZ :: MaxLength n '[]
+    MLS :: !(MaxLength n as) -> MaxLength ('S n) (a ': as)
 
+-- | An @'ExactLength' n as@ is a witness that the list @as@ has a length
+-- of exactly @n@.
 data ExactLength :: N -> [k] -> Type where
     ELZ :: ExactLength 'Z '[]
     ELS :: !(ExactLength n as) -> ExactLength ('S n) (a ': as)
@@ -116,10 +119,10 @@ data Splitting :: N -> ([k] -> Type) -> [k] -> Type where
         -> !(f as)
         -> Splitting n f as
     Split
-        :: !(ExactLength ('S n) as)
+        :: !(ExactLength n as)
         -> !(f as)
-        -> !(f bs)
-        -> Splitting n f (as ++ bs)
+        -> !(f (b ': bs))
+        -> Splitting n f (as ++ (b ': bs))
 
 splitting
     :: Nat n
@@ -127,13 +130,13 @@ splitting
     -> Splitting n (Prod f) as
 splitting = \case
   Z_   -> \case
-    Ø         -> Fewer FLZ       Ø
-    x P.:< xs -> Split (ELS ELZ) (x P.:< Ø) xs
+    Ø       -> Fewer MLZ Ø
+    x :< xs -> Split ELZ Ø (x :< xs)
   S_ n -> \case
-    Ø         -> Fewer FLZ Ø
-    x P.:< xs -> case splitting n xs of
-      Fewer m xs'    -> Fewer (FLS m) (x P.:< xs')
-      Split e xs' ys -> Split (ELS e) (x P.:< xs') ys
+    Ø       -> Fewer MLZ Ø
+    x :< xs -> case splitting n xs of
+      Fewer m xs'    -> Fewer (MLS m) (x :< xs')
+      Split e xs' ys -> Split (ELS e) (x :< xs') ys
 
 maxLength
     :: Nat n
@@ -141,14 +144,14 @@ maxLength
     -> Decision (MaxLength n as)
 maxLength = \case
   Z_   -> \case
-    LZ   -> Proved    FLZ
+    LZ   -> Proved    MLZ
     LS _ -> Disproved (\case)
   S_ n -> \case
-    LZ   -> Proved FLZ
+    LZ   -> Proved MLZ
     LS l -> case maxLength n l of
-      Proved m    -> Proved (FLS m)
+      Proved m    -> Proved (MLS m)
       Disproved r -> Disproved $ \case
-        FLS m -> r m
+        MLS m -> r m
 
 exactLength
     :: Nat n
@@ -164,4 +167,75 @@ exactLength = \case
       Proved e    -> Proved (ELS e)
       Disproved r -> Disproved $ \case
         ELS e -> r e
+
+weakenExactLength
+    :: ExactLength n as
+    -> MaxLength n as
+weakenExactLength = \case
+  ELZ   -> MLZ
+  ELS e -> MLS (weakenExactLength e)
+
+weakenMaxLength
+    :: (n :<=: m)
+    -> MaxLength n as
+    -> MaxLength m as
+weakenMaxLength = \case
+    LTEZ -> \case
+      MLZ   -> MLZ
+    LTES l -> \case
+      MLZ   -> MLZ
+      MLS s -> MLS (weakenMaxLength l s)
+
+data SplittingEnd :: N -> ([k] -> Type) -> [k] -> Type where
+    FewerEnd
+        :: !(MaxLength n as)
+        -> !(f as)
+        -> SplittingEnd n f as
+    SplitEnd
+        :: !(ExactLength n as)
+        -> !(f (b ': bs))
+        -> !(f as)
+        -> SplittingEnd n f ((b ': bs) ++ as)
+
+-- | Pretty sure this is O(n^2) but what can you do you know
+splittingEnd
+    :: Nat n
+    -> Prod f as
+    -> SplittingEnd n (Prod f) as
+splittingEnd n xs = case splitting n xs of
+    Fewer m xs'   -> FewerEnd m xs'
+    Split _ _   _ -> case xs of
+      Ø       -> FewerEnd MLZ Ø
+      y :< ys -> case splittingEnd n ys of
+        FewerEnd m zs     -> case consMaxLength n m of
+          Left  e  -> SplitEnd e  (y :< Ø ) zs
+          Right m' -> FewerEnd m' (y :< zs)
+        SplitEnd e ys' zs -> SplitEnd e (y :< ys') zs
+
+consMaxLength
+    :: Nat n
+    -> MaxLength n as
+    -> Either (ExactLength n as) (MaxLength n (a ': as))
+consMaxLength = \case
+    Z_   -> \case
+      MLZ -> Left ELZ
+    S_ n -> \case
+      MLZ   -> Right (MLS MLZ)
+      MLS m -> case consMaxLength n m of
+        Left e   -> Left  (ELS e)
+        Right m' -> Right (MLS m')
+
+commuteProd
+    :: Length as
+    -> Length cs
+    -> Prod f (as ++ cs)
+    -> Prod f bs
+    -> (Prod f as, Prod f (cs ++  bs))
+commuteProd = \case
+    LZ   -> \_ xs ys -> (Ø, xs `P.append'` ys)
+    LS lA -> \lC -> \case
+      x :< xs -> \ys ->
+        case commuteProd lA lC xs ys of
+          (xs', ys') -> (x :< xs', ys')
+
 

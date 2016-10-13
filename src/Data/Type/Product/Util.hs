@@ -12,24 +12,24 @@
 
 module Data.Type.Product.Util where
 
+-- import           Data.Proxy
+-- import           Data.Type.Length.Util            as TCL
+-- import           Type.Class.Witness
+-- import           Type.Family.List.Util
 import           Control.DeepSeq
 import           Data.Bifunctor
 import           Data.Functor.Identity
-import           Data.Proxy
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
 import           Data.Type.Equality
 import           Data.Type.Index
 import           Data.Type.Length
-import           Data.Type.Length.Util               as TCL
 import           Data.Type.Product     as TCP hiding (reverse')
 import           Data.Type.Uniform
 import           Data.Type.Vector
 import           Prelude hiding                      (replicate)
 import           Type.Class.Known
-import           Type.Class.Witness
 import           Type.Family.List
-import           Type.Family.List.Util
 import           Type.Family.Nat
 
 instance Every NFData (f <$> as) => NFData (Prod f as) where

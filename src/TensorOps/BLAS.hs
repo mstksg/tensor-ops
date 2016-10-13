@@ -89,6 +89,9 @@ data BTensor :: (k -> Type -> Type) -> (BShape k -> Type) -> [k] -> Type where
     BTN :: !(v n (BTensor v b (o ': m ': ns)))
         -> BTensor v b (n ': o ': m ': ns)
 
+-- | TODO: add RULES pragmas so that this can be done without checking
+-- lengths at runtime in the common case that the lengths are known at
+-- compile-time.
 dispatchBLAS
     :: forall b ms os ns v. (Floating (ElemB b), BLAS b)
     => MaxLength N1 ms
@@ -98,30 +101,58 @@ dispatchBLAS
     -> BTensor v b (Reverse os ++ ns)
     -> BTensor v b (ms         ++ ns)
 dispatchBLAS lM lO lN v r = case (lM, lO, lN) of
-    (FLZ    , FLZ    , FLZ    ) -> case (v, r) of
+    (MLZ    , MLZ    , MLZ    ) -> case (v, r) of
       -- scalar-scalar
       (BTS x, BTS y) -> BTS $ x * y
-    (FLZ    , FLZ    , FLS FLZ) -> case (v, r) of
+    (MLZ    , MLZ    , MLS MLZ) -> case (v, r) of
       -- scalar-vector
       (BTS x, BTV y) -> BTV $ axpy x y Nothing
-    (FLZ    , FLS FLZ, FLZ    ) -> case (v, r) of
+    (MLZ    , MLS MLZ, MLZ    ) -> case (v, r) of
       -- dot
       (BTV x, BTV y) -> BTS $ x `dot` y
-    (FLZ    , FLS FLZ, FLS FLZ) -> case (v, r) of
+    (MLZ    , MLS MLZ, MLS MLZ) -> case (v, r) of
       -- vector-matrix
       (BTV x, BTM y) -> BTV $ gemv 1 (transp y) x Nothing
-    (FLS FLZ, FLZ    , FLZ    ) -> case (v, r) of
+    (MLS MLZ, MLZ    , MLZ    ) -> case (v, r) of
       -- vector-scalar
       (BTV x, BTS y) -> BTV $ axpy y x Nothing
-    (FLS FLZ, FLZ    , FLS FLZ) -> case (v, r) of
+    (MLS MLZ, MLZ    , MLS MLZ) -> case (v, r) of
       -- vector-scalar
       (BTV x, BTV y) -> BTM $ ger x y
-    (FLS FLZ, FLS FLZ, FLZ    ) -> case (v, r) of
+    (MLS MLZ, MLS MLZ, MLZ    ) -> case (v, r) of
       -- matrx-vector
       (BTM x, BTV y) -> BTV $ gemv 1 x y Nothing
-    (FLS FLZ, FLS FLZ, FLS FLZ) -> case (v, r) of
+    (MLS MLZ, MLS MLZ, MLS MLZ) -> case (v, r) of
       -- matrix-matrix
       (BTM x, BTM y) -> BTM $ gemm 1 x y Nothing
+
+
+gmulBLAS
+    :: forall b ms os ns v. (Floating (ElemB b), BLAS b)
+    => Length ms
+    -> MaxLength N1 os
+    -> MaxLength N1 ns
+    -> BTensor v b (ms         ++ os)
+    -> BTensor v b (Reverse os ++ ns)
+    -> BTensor v b (ms         ++ ns)
+gmulBLAS lM lO lN v r = undefined
+
+-- | General strategy:
+--
+-- *   We can only outsource to BLAS (using 'dispatchBLAS') in the case
+--     that @os@ and @ns@ have length 0 or 1.  Anything else, fall back to
+--     the basic reverse-indexing method in "Data.Nested".
+-- *   If @ms@ is length 2 or higher, "traverse down" to the length 0 or
+--     1 tail...and then sum them up.
+gmulB
+    :: (SingI (Reverse os ++ ns))
+    => Length ms
+    -> Length os
+    -> Length ns
+    -> BTensor v b (ms         ++ os)
+    -> BTensor v b (Reverse os ++ ns)
+    -> BTensor v b (ms         ++ ns)
+gmulB = undefined
 
 instance forall k (v :: k -> Type -> Type) (b :: BShape k -> Type).
       (Vec v, BLAS b, NatKind k)
@@ -129,6 +160,7 @@ instance forall k (v :: k -> Type -> Type) (b :: BShape k -> Type).
     type ElemT (BTensor v b) = ElemB b
 
 
+    gmul = gmulB
     -- -- general strategy:
     -- --   * if the ranks match, use the primitives
     -- --   * if not ... um we'll figure that out next
