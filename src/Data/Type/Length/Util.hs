@@ -33,6 +33,12 @@ append' = \case
     LZ   -> id
     LS l -> LS . append' l
 
+tail'
+    :: Length (n ': ns)
+    -> Length ns
+tail' = \case
+    LS l -> l
+
 -- TODO: could PROBABLY just be unsafeCoerce?
 reverse'
     :: forall ns. ()
@@ -168,6 +174,13 @@ exactLength = \case
       Disproved r -> Disproved $ \case
         ELS e -> r e
 
+fromMaxLength
+    :: MaxLength n as
+    -> Length as
+fromMaxLength = \case
+    MLZ   -> LZ
+    MLS m -> LS (fromMaxLength m)
+
 weakenExactLength
     :: ExactLength n as
     -> MaxLength n as
@@ -238,4 +251,9 @@ commuteProd = \case
         case commuteProd lA lC xs ys of
           (xs', ys') -> (x :< xs', ys')
 
-
+lengthProd
+    :: Length as
+    -> Prod Proxy as
+lengthProd = \case
+    LZ   -> Ø
+    LS l -> Proxy :< lengthProd l
