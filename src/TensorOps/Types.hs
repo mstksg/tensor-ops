@@ -53,7 +53,7 @@ class NatKind k => Tensor (t :: [k] -> Type) where
             => (Vec m (Vec n (ElemT t) -> ElemT t))
             -> Vec n (t o)
             -> Vec m (t o)
-    gmul    :: SingI (Reverse os ++ ns)
+    gmul    :: (SingI (Reverse os ++ ns), SingI (ms ++ ns))
             => Length ms
             -> Length os
             -> Length ns

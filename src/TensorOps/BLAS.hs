@@ -17,10 +17,13 @@
 {-# LANGUAGE TypeOperators          #-}
 {-# LANGUAGE UndecidableInstances   #-}
 
-module TensorOps.BLAS
-  ( BLAS(..)
-  , BTensor
-  ) where
+module TensorOps.BLAS where
+  -- ( BShape(..)
+  -- , BShapeDims
+  -- , BLAS(..)
+  -- , BTensor
+  -- , Sing(..)
+  -- ) where
 
 -- import           Data.Finite
 -- import           GHC.TypeLits
@@ -290,18 +293,19 @@ bIxRows = \case
           LS (LS lO') -> BTN <$> vGenA s (\i -> f (i :< Ø) (BTV (indexRowB i xs)))
         -- ns ~ '[n,m]
         -- ms ~ '[]
-        s' `SCons` SNil -> case lO of
-          LZ     -> BTM <$> iElemsB (\i -> fmap unScalar . f i . BTS) xs
-          LS lO' -> BTN <$>
-                      vGenA s (\i ->
-                          btn lO <$>
-                            vGenA s' (\j ->
-                                f (i :< j :< Ø) (BTS (indexB (i :< j :< Ø) xs))
-                              )
-                        )
-      -- BTN xs -> fmap (btn (l `TCL.append'` lO))
-      --         . vITraverse (\i -> bIxRows l lO (\is -> f (i :< is)))
-      --         $ xs
+        s' `SCons` ss' -> case ss' of
+          SNil -> case lO of
+            LZ     -> BTM <$> iElemsB (\i -> fmap unScalar . f i . BTS) xs
+            LS lO' -> BTN <$>
+                        vGenA s (\i ->
+                            btn lO <$>
+                              vGenA s' (\j ->
+                                  f (i :< j :< Ø) (BTS (indexB (i :< j :< Ø) xs))
+                                )
+                          )
+      BTN xs -> fmap (btn (singLength ss `TCL.append'` lO))
+              . vITraverse (\i -> bIxRows ss lO (\is -> f (i :< is)))
+              $ xs
 
 indexRowBTensor
     :: forall k (b :: BShape k -> Type) v ns ms.
@@ -565,8 +569,8 @@ gmulB
     -> BTensor v b (ms         ++ ns)
 gmulB sM lO lN v r = case splitting (S_ Z_) (lengthProd lN) of
     Fewer mlN _ -> case splittingEnd (S_ (S_ Z_)) (lengthProd lO) of
-      FewerEnd MLZ             _ -> gmulBLAS' sM MLZ       mlN v r
-      FewerEnd (MLS MLZ)       _ -> gmulBLAS' sM (MLS MLZ) mlN v r
+      FewerEnd MLZ             _ -> gmulBLAS sM MLZ       mlN v r
+      FewerEnd (MLS MLZ)       _ -> gmulBLAS sM (MLS MLZ) mlN v r
       FewerEnd (MLS (MLS MLZ)) _ -> case mlN of
         MLZ -> case r of
           BTM ys -> mapBTM lM LZ (\xs -> BTS $ traceB (gemm 1 xs ys Nothing)) v
@@ -576,6 +580,8 @@ gmulB sM lO lN v r = case splitting (S_ Z_) (lengthProd lN) of
   where
     lM = singLength sM
 
+-- | Naive implementation of 'gmul' (based on the implementation for
+-- 'NTensor') that does not utilize any BLAS capabilities.
 naiveGMul
     :: forall k (b :: BShape k -> Type) v ms os ns.
      ( BLAS b
@@ -602,7 +608,10 @@ naiveGMul sM lO lN v r =
                      (\ys -> gemm x ys eye Nothing)
                      (indexRowBTensor (TCP.reverse' is) r)
 
-gmulBLAS'
+-- | A 'gmul' that runs my dispatching BLAS commands when it can.
+-- Contains the type-level constraint that @os@ and @ns@ have to have
+-- either length 0 or 1.
+gmulBLAS
     :: forall b ms os ns v.
      ( Floating (ElemB b)
      , BLAS b
@@ -617,7 +626,7 @@ gmulBLAS'
     -> BTensor v b (ms         ++ os)
     -> BTensor v b (Reverse os ++ ns)
     -> BTensor v b (ms         ++ ns)
-gmulBLAS' sM mlO mlN v r = case mlO of
+gmulBLAS sM mlO mlN v r = case mlO of
     MLZ -> case splittingEnd (S_ (S_ Z_)) (lengthProd lM) of
       FewerEnd MLZ             _ -> dispatchBLAS MLZ       mlO  mlN v r
       FewerEnd (MLS MLZ)       _ -> dispatchBLAS (MLS MLZ) mlO mlN v r
@@ -665,10 +674,34 @@ gmulBLAS' sM mlO mlN v r = case mlO of
   where
     lM = singLength sM
 
-instance forall k (v :: k -> Type -> Type) (b :: BShape k -> Type).
-      (Vec v, BLAS b, NatKind k)
+instance
+      ( Vec (v :: k -> Type -> Type)
+      , BLAS b
+      , Floating (ElemB b)
+      , Nesting1 Proxy Functor      v
+      , Nesting1 Sing  Applicative  v
+      )
+      -- , Nesting1 Proxy Foldable     v
+      -- , Nesting1 Proxy Traversable  v
+      -- , Nesting1 Sing  Distributive v
+      -- , Eq1 (IndexN k)
+-- instance forall k (v :: k -> Type -> Type) (b :: BShape k -> Type).
+--       ( Vec v, BLAS b, NatKind k, Floating (ElemB b))
       => Tensor (BTensor v b) where
     type ElemT (BTensor v b) = ElemB b
 
 
-    gmul = undefined
+    gmul
+        :: forall ms os ns. SingI (ms ++ ns)
+        => Length ms
+        -> Length os
+        -> Length ns
+        -> BTensor v b (ms         ++ os)
+        -> BTensor v b (Reverse os ++ ns)
+        -> BTensor v b (ms         ++ ns)
+    gmul lM lO lN = gmulB sM lO lN \\ sN
+      where
+        sM :: Sing ms
+        sN :: Sing ns
+        (sM, sN) = splitSing lM sing
+

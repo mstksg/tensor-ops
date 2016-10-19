@@ -123,7 +123,7 @@ gradLift fs xs dtdys =
 -- implementation of liftT would have index''d everything anyways.
 
 inner
-    :: forall t ms ns o. (Tensor t, SingI (o ': ns))
+    :: forall t ms ns o. (Tensor t, SingI (o ': ns), SingI (ms ++ ns))
     => Length ms
     -> Length ns
     -> t (ms >: o)
@@ -133,7 +133,7 @@ inner lM lN x = gmul lM (LS LZ) lN x
                     \\ appendSnoc lM (Proxy @o)
 
 outer
-    :: (Tensor t, SingI ns)
+    :: (Tensor t, SingI ns, SingI (ms ++ ns))
     => Length ms
     -> Length ns
     -> t ms
@@ -143,7 +143,7 @@ outer lM lN x = gmul lM LZ lN x
                     \\ appendNil lM
 
 outerV
-    :: (Tensor t, SingI '[n])
+    :: (Tensor t, SingI '[n], SingI '[m,n])
     => t '[m]
     -> t '[n]
     -> t '[m,n]
@@ -157,21 +157,21 @@ dot
 dot = inner LZ LZ
 
 matVec
-    :: (Tensor t, SingI '[n])
+    :: (Tensor t, SingI '[n], SingI '[m])
     => t '[m, n]
     -> t '[n]
     -> t '[m]
 matVec = inner (LS LZ) LZ
 
 vecMat
-    :: (Tensor t, SingI '[m,n])
+    :: (Tensor t, SingI '[m,n], SingI '[n])
     => t '[m]
     -> t '[m,n]
     -> t '[n]
 vecMat = inner LZ (LS LZ)
 
 matMat
-    :: (Tensor t, SingI '[n,o])
+    :: (Tensor t, SingI '[n,o], SingI '[m,o])
     => t '[m,n]
     -> t '[n,o]
     -> t '[m,o]
