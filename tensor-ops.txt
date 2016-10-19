@@ -345,6 +345,23 @@ module TensorOps.BLAS
 data BShape a_a12nw
 BV :: !a_a12nw -> BShape a_a12nw
 BM :: !a_a12nw -> !a_a12nw -> BShape a_a12nw
+type BVSym1 (t_a12w9 :: a1627637426) = BV t_a12w9
+data BVSym0 (l_a12wa :: TyFun a1627637426 (BShape a1627637426))
+BVSym0KindInference :: BVSym0
+type BMSym2 (t_a12wc :: a1627637426) (t_a12wd :: a1627637426) = BM t_a12wc t_a12wd
+data BMSym1 (l_a12wh :: a1627637426) (l_a12wg :: TyFun a1627637426 (BShape a1627637426))
+BMSym1KindInference :: BMSym1
+data BMSym0 (l_a12we :: TyFun a1627637426 (TyFun a1627637426 (BShape a1627637426) -> Type))
+BMSym0KindInference :: BMSym0
+type Compare_1627638263Sym2 (t_a12B3 :: BShape a1627637426) (t_a12B4 :: BShape a1627637426) = Compare_1627638263 t_a12B3 t_a12B4
+data Compare_1627638263Sym1 (l_a12B8 :: BShape a1627637426) (l_a12B7 :: TyFun (BShape a1627637426) Ordering)
+Compare_1627638263Sym1KindInference :: Compare_1627638263Sym1
+data Compare_1627638263Sym0 (l_a12B5 :: TyFun (BShape a1627637426) (TyFun (BShape a1627637426) Ordering -> Type))
+Compare_1627638263Sym0KindInference :: Compare_1627638263Sym0
+type SBShape = (Sing :: BShape a_a12nw -> Type)
+type BShapeDimsSym1 (t_a1444 :: BShape k1627638419) = BShapeDims t_a1444
+data BShapeDimsSym0 (l_a1445 :: TyFun (BShape k1627638419) [k1627638419])
+BShapeDimsSym0KindInference :: BShapeDimsSym0
 class NatKind k => BLAS (b :: BShape k -> Type) where type ElemB b :: Type where {
     type family ElemB b :: Type;
 }
@@ -365,7 +382,62 @@ eye :: BLAS b => b (BM n n)
 zero :: BLAS b => b s
 zipB :: BLAS b => (ElemB b -> ElemB b -> ElemB b) -> b s -> b s -> b s
 traceB :: BLAS b => b (BM n n) -> ElemB b
+elemsB :: (Applicative f, BLAS b) => (ElemB b -> f (ElemB b)) -> b s -> f (b s)
+bgen :: forall k (b :: BShape k -> Type) (s :: BShape k). BLAS b => (Prod (IndexN k) (BShapeDims s) -> ElemB b) -> b s
+bgenRows :: BLAS b => (IndexN k n -> b (BV m)) -> b (BM n m)
 data BTensor :: (k -> Type -> Type) -> (BShape k -> Type) -> [k] -> Type
+[BTS] :: !(ElemB b) -> BTensor v b '[]
+[BTV] :: !(b (BV n)) -> BTensor v b '[n]
+[BTM] :: !(b (BM n m)) -> BTensor v b '[n, m]
+[BTN] :: !(v n (BTensor v b (o : (m : ns)))) -> BTensor v b (n : (o : (m : ns)))
+unScalar :: BTensor v b '[] -> ElemB b
+unVector :: BTensor v b '[n] -> b (BV n)
+
+-- | TODO: add RULES pragmas so that this can be done without checking
+--   lengths at runtime in the common case that the lengths are known at
+--   compile-time.
+--   
+--   Also, totally forgot about matrix-scalar multiplication here, but
+--   there isn't really any way of making it work without a lot of empty
+--   cases. should probably handle one level up.
+dispatchBLAS :: forall b ms os ns v. (Floating (ElemB b), BLAS b) => MaxLength N1 ms -> MaxLength N1 os -> MaxLength N1 ns -> BTensor v b (ms ++ os) -> BTensor v b (Reverse os ++ ns) -> BTensor v b (ms ++ ns)
+mapRows :: forall k (v :: k -> Type -> Type) ns ms os b. (Vec v, BLAS b) => Sing ns -> Length os -> (BTensor v b ms -> BTensor v b os) -> BTensor v b (ns ++ ms) -> BTensor v b (ns ++ os)
+bRows :: forall k (v :: k -> Type -> Type) ns ms os b f. (Applicative f, Vec v, BLAS b) => Sing ns -> Length os -> (BTensor v b ms -> f (BTensor v b os)) -> BTensor v b (ns ++ ms) -> f (BTensor v b (ns ++ os))
+mapIxRows :: forall k (v :: k -> Type -> Type) ns ms os b. (Vec v, BLAS b) => Sing ns -> Length os -> (Prod (IndexN k) ns -> BTensor v b ms -> BTensor v b os) -> BTensor v b (ns ++ ms) -> BTensor v b (ns ++ os)
+foldMapIxRows :: forall k (v :: k -> Type -> Type) ns ms m b. (Vec v, Monoid m, BLAS b) => Sing ns -> (Prod (IndexN k) ns -> BTensor v b ms -> m) -> BTensor v b (ns ++ ms) -> m
+bIxRows :: forall k (v :: k -> Type -> Type) ns ms os b f. (Applicative f, Vec v, BLAS b) => Sing ns -> Length os -> (Prod (IndexN k) ns -> BTensor v b ms -> f (BTensor v b os)) -> BTensor v b (ns ++ ms) -> f (BTensor v b (ns ++ os))
+indexRowBTensor :: forall k (b :: BShape k -> Type) v ns ms. (BLAS b, Vec v) => Prod (IndexN k) ns -> BTensor v b (ns ++ ms) -> BTensor v b ms
+mapBTensorElems :: (Vec v, BLAS b) => (ElemB b -> ElemB b) -> BTensor v b ns -> BTensor v b ns
+bTensorElems :: forall k (v :: k -> Type -> Type) ns b f. (Applicative f, Vec v, BLAS b) => (ElemB b -> f (ElemB b)) -> BTensor v b ns -> f (BTensor v b ns)
+ifoldMapBTensor :: forall k (v :: k -> Type -> Type) ns m b. (Monoid m, Vec v, BLAS b) => (Prod (IndexN k) ns -> ElemB b -> m) -> BTensor v b ns -> m
+bTensorIxElems :: forall k (v :: k -> Type -> Type) ns b f. (Applicative f, Vec v, BLAS b) => (Prod (IndexN k) ns -> ElemB b -> f (ElemB b)) -> BTensor v b ns -> f (BTensor v b ns)
+zipBTensorElems :: forall v b ns. (BLAS b, Nesting1 Sing Applicative v) => Sing ns -> (ElemB b -> ElemB b -> ElemB b) -> BTensor v b ns -> BTensor v b ns -> BTensor v b ns
+mapBTM :: forall k (v :: k -> Type -> Type) ns n m ms b. (Vec v, BLAS b) => Length ns -> Length ms -> (b (BM n m) -> BTensor v b ms) -> BTensor v b (ns ++ '[n, m]) -> BTensor v b (ns ++ ms)
+foldMapBTM :: (Monoid a, Vec v, BLAS b) => Length ns -> (b (BM n m) -> a) -> BTensor v b (ns ++ '[n, m]) -> a
+traverseBTM :: forall k (v :: k -> Type -> Type) ns n m ms b f. (Applicative f, Vec v, BLAS b) => Length ns -> Length ms -> (b (BM n m) -> f (BTensor v b ms)) -> BTensor v b (ns ++ '[n, m]) -> f (BTensor v b (ns ++ ms))
+imapBTM :: forall k (v :: k -> Type -> Type) ns n m ms b. (Vec v, BLAS b) => Length ns -> Length ms -> (Prod (IndexN k) ns -> b (BM n m) -> BTensor v b ms) -> BTensor v b (ns ++ '[n, m]) -> BTensor v b (ns ++ ms)
+ifoldMapBTM :: (Vec v, Monoid a, BLAS b) => Length ns -> (Prod (IndexN k) ns -> b (BM n m) -> a) -> BTensor v b (ns ++ '[n, m]) -> a
+itraverseBTM :: forall k (v :: k -> Type -> Type) ns n m ms b f. (Applicative f, Vec v, BLAS b) => Length ns -> Length ms -> (Prod (IndexN k) ns -> b (BM n m) -> f (BTensor v b ms)) -> BTensor v b (ns ++ '[n, m]) -> f (BTensor v b (ns ++ ms))
+mapBase :: forall v b ns. (Nesting1 Proxy Functor v) => (ElemB b -> ElemB b) -> (forall n. b (BV n) -> b (BV n)) -> (forall n m. b (BM n m) -> b (BM n m)) -> BTensor v b ns -> BTensor v b ns
+zipBase :: forall v b ns. (Nesting1 Sing Applicative v) => Sing ns -> (ElemB b -> ElemB b -> ElemB b) -> (forall n. b (BV n) -> b (BV n) -> b (BV n)) -> (forall n m. b (BM n m) -> b (BM n m) -> b (BM n m)) -> BTensor v b ns -> BTensor v b ns -> BTensor v b ns
+genBTensorA :: forall k (b :: BShape k -> Type) v (ns :: [k]) f. (Applicative f, BLAS b, Vec v) => Sing ns -> (Prod (IndexN k) ns -> f (ElemB b)) -> f (BTensor v b ns)
+genBTensor :: forall k (b :: BShape k -> Type) v (ns :: [k]). (BLAS b, Vec v) => Sing ns -> (Prod (IndexN k) ns -> ElemB b) -> BTensor v b ns
+indexBTensor :: forall k (b :: BShape k -> Type) v ns. (BLAS b, Vec v) => Prod (IndexN k) ns -> BTensor v b ns -> ElemB b
+btn :: (BLAS b, Vec v) => Length ns -> v n (BTensor v b ns) -> BTensor v b (n : ns)
+
+-- | General strategy:
+--   
+--   <ul>
+--   <li>We can only outsource to BLAS (using <a>dispatchBLAS</a>) in the
+--   case that <tt>os</tt> and <tt>ns</tt> have length 0 or 1. Anything
+--   else, fall back to the basic reverse-indexing method in
+--   <a>Data.Nested</a>.</li>
+--   <li>If <tt>ms</tt> is length 2 or higher, "traverse down" to the
+--   length 0 or 1 tail...and then sum them up.</li>
+--   </ul>
+gmulB :: forall k (b :: BShape k -> Type) v ms os ns. (Floating (ElemB b), SingI ns, BLAS b, Vec v, Nesting1 Proxy Functor v, Nesting1 Sing Applicative v) => Sing ms -> Length os -> Length ns -> BTensor v b (ms ++ os) -> BTensor v b (Reverse os ++ ns) -> BTensor v b (ms ++ ns)
+naiveGMul :: forall k (b :: BShape k -> Type) v ms os ns. (BLAS b, Vec v, Num (ElemB b), Nesting1 Proxy Functor v, Nesting1 Sing Applicative v, SingI ns) => Sing ms -> Length os -> Length ns -> BTensor v b (ms ++ os) -> BTensor v b (Reverse os ++ ns) -> BTensor v b (ms ++ ns)
+gmulBLAS :: forall b ms os ns v. (Floating (ElemB b), BLAS b, Vec v, SingI ns, Nesting1 Proxy Functor v, Nesting1 Sing Applicative v) => Sing ms -> MaxLength N1 os -> MaxLength N1 ns -> BTensor v b (ms ++ os) -> BTensor v b (Reverse os ++ ns) -> BTensor v b (ms ++ ns)
 instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.BShapeDimsSym0
 instance forall k (b :: TensorOps.BLAS.BShape k -> GHC.Types.Type) (v :: k -> GHC.Types.Type -> GHC.Types.Type) (ns :: [k]). (TensorOps.BLAS.BLAS b, Data.Nested.Vec v, Data.Nested.Nesting1 Data.Proxy.Proxy GHC.Base.Functor v, Data.Nested.Nesting1 Data.Singletons.Sing GHC.Base.Applicative v, Data.Singletons.SingI ns, GHC.Num.Num (TensorOps.BLAS.ElemB b)) => GHC.Num.Num (TensorOps.BLAS.BTensor v b ns)
 instance forall k (v :: k -> GHC.Types.Type -> GHC.Types.Type) (b :: TensorOps.BLAS.BShape k -> GHC.Types.Type). (Data.Nested.Vec v, TensorOps.BLAS.BLAS b, TensorOps.NatKind.NatKind k) => TensorOps.Types.Tensor (TensorOps.BLAS.BTensor v b)
