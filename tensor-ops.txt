@@ -342,6 +342,9 @@ infixr 4 ~.
 instance Type.Class.Higher.Eq1 Data.Finite.Internal.Finite
 
 module TensorOps.BLAS
+data BShape a_a12nw
+BV :: !a_a12nw -> BShape a_a12nw
+BM :: !a_a12nw -> !a_a12nw -> BShape a_a12nw
 class NatKind k => BLAS (b :: BShape k -> Type) where type ElemB b :: Type where {
     type family ElemB b :: Type;
 }
