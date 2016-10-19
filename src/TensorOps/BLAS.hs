@@ -17,7 +17,10 @@
 {-# LANGUAGE TypeOperators          #-}
 {-# LANGUAGE UndecidableInstances   #-}
 
-module TensorOps.BLAS where
+module TensorOps.BLAS
+  ( BLAS(..)
+  , BTensor
+  ) where
 
 -- import           Data.Finite
 -- import           GHC.TypeLits
@@ -110,6 +113,7 @@ class NatKind k => BLAS (b :: BShape k -> Type) where
         => (Prod (IndexN k) (BShapeDims s) -> ElemB b -> f (ElemB b))
         -> b s
         -> f (b s)
+    -- faster: bgen by rows?
     bgenA
         :: Applicative f
         => (Prod (IndexN k) (BShapeDims s) -> f (ElemB b))
@@ -345,7 +349,7 @@ zipBTensorElems = \case
                     \\ (nesting1 s :: Wit (Applicative (v k)))
 
 mapBTM
-    :: forall k (v :: k -> Type -> Type) ns n m ms b. Vec v
+    :: forall k (v :: k -> Type -> Type) ns n m ms b. (Vec v, BLAS b)
     => Length ns
     -> Length ms
     -> (b ('BM n m) -> BTensor v b ms)
@@ -362,7 +366,7 @@ foldMapBTM
 foldMapBTM l f = ifoldMapBTM l (\_ -> f)
 
 traverseBTM
-    :: forall k (v :: k -> Type -> Type) ns n m ms b f. (Applicative f, Vec v)
+    :: forall k (v :: k -> Type -> Type) ns n m ms b f. (Applicative f, Vec v, BLAS b)
     => Length ns
     -> Length ms
     -> (b ('BM n m) -> f (BTensor v b ms))
@@ -372,14 +376,14 @@ traverseBTM = \case
     LZ -> \lM f -> \case
       BTM x  -> f x
     LS l -> \lM f -> \case
-      BTV xs -> undefined
-      BTM xs -> undefined
+      BTV xs -> case l of
+      BTM xs -> case l of
       BTN xs -> fmap (btn (l `TCL.append'` lM))
               . vITraverse (\_ -> traverseBTM l lM f)
               $ xs
 
 imapBTM
-    :: forall k (v :: k -> Type -> Type) ns n m ms b. Vec v
+    :: forall k (v :: k -> Type -> Type) ns n m ms b. (Vec v, BLAS b)
     => Length ns
     -> Length ms
     -> (Prod (IndexN k) ns -> b ('BM n m) -> BTensor v b ms)
@@ -397,12 +401,12 @@ ifoldMapBTM = \case
     LZ -> \f -> \case
       BTM xs -> f Ø xs
     LS l -> \f -> \case
-      BTV xs -> case l of
-      BTM xs -> case l of
+      BTV _  -> case l of
+      BTM _  -> case l of
       BTN xs -> vIFoldMap (\i -> ifoldMapBTM l (\is -> f (i :< is))) xs
 
 itraverseBTM
-    :: forall k (v :: k -> Type -> Type) ns n m ms b f. (Applicative f, Vec v)
+    :: forall k (v :: k -> Type -> Type) ns n m ms b f. (Applicative f, Vec v, BLAS b)
     => Length ns
     -> Length ms
     -> (Prod (IndexN k) ns -> b ('BM n m) -> f (BTensor v b ms))
@@ -412,8 +416,8 @@ itraverseBTM = \case
     LZ -> \lM f -> \case
       BTM x  -> f Ø x
     LS l -> \lM f -> \case
-      BTV xs -> undefined
-      BTM xs -> undefined
+      BTV _  -> case l of
+      BTM _  -> case l of
       BTN xs -> fmap (btn (l `TCL.append'` lM))
               . vITraverse (\i -> itraverseBTM l lM (\is ys -> f (i :< is) ys))
               $ xs
@@ -493,12 +497,17 @@ indexBTensor = \case
     i :< js@(_ :< _ :< _) -> \case
       BTN xs -> indexBTensor js (vIndex i xs)
 
-btn :: Length ns
+btn :: (BLAS b, Vec v)
+    => Length ns
     -> v n (BTensor v b ns)
     -> BTensor v b (n ': ns)
 btn = \case
-    LZ        -> \x -> BTV undefined
-    LS LZ     -> \x -> BTM undefined
+    LZ        -> \xs -> BTV $ bgen (\(i :< Ø)  -> case vIndex i xs of
+                                                    BTS x -> x
+                                   )
+    LS LZ     -> \xs -> BTM $ bgen (\(i :< js) -> case vIndex i xs of
+                                                    BTV x -> indexB js x
+                                   )
     LS (LS l) -> BTN
 
 -- | General strategy:
