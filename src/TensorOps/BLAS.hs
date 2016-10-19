@@ -6,6 +6,7 @@
 {-# LANGUAGE KindSignatures         #-}
 {-# LANGUAGE LambdaCase             #-}
 {-# LANGUAGE PolyKinds              #-}
+{-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE TypeApplications       #-}
@@ -17,8 +18,10 @@
 
 module TensorOps.BLAS where
 
+import           Control.Applicative
 import           Data.Finite
 import           Data.Kind
+import           Data.Monoid
 import           Data.Nested
 import           Data.Singletons
 import           Data.Singletons.Prelude hiding (Reverse, (++), Head)
@@ -36,6 +39,7 @@ import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
+import qualified Data.Type.Vector               as TCV
 
 $(singletons [d|
   data BShape a = BV !a | BM !a !a
@@ -54,6 +58,10 @@ genDefunSymbols [''BShapeDims]
 
 class NatKind k => BLAS (b :: BShape k -> Type) where
     type ElemB b :: Type
+    -- liftB
+    --     :: (TCV.Vec n (ElemB b) -> ElemB b)
+    --     -> TCV.Vec n (b s)
+    --     -> b s
     axpy
         :: ElemB b          -- ^ α
         -> b ('BV n)        -- ^ x
@@ -102,6 +110,16 @@ class NatKind k => BLAS (b :: BShape k -> Type) where
         => (Prod (IndexN k) (BShapeDims s) -> f (ElemB b))
         -> f (b s)
     eye :: b ('BM n n)
+    zero :: b s
+    zipB
+        :: (ElemB b -> ElemB b -> ElemB b)
+        -> b s
+        -> b s
+        -> b s
+    -- konstB :: ElemB b -> b s
+    traceB
+        :: b ('BM n n)
+        -> ElemB b
 
 elemsB
     :: (Applicative f, BLAS b)
@@ -110,6 +128,18 @@ elemsB
     -> f (b s)
 elemsB f = iElemsB (\_ x -> f x)
 
+bgen
+    :: forall k (b :: BShape k -> Type) (s :: BShape k). BLAS b
+    => (Prod (IndexN k) (BShapeDims s) -> ElemB b)
+    -> b s
+bgen f = getI $ bgenA (I . f)
+
+-- mapB
+--     :: BLAS b
+--     => (ElemB b -> ElemB b)
+--     -> b s
+--     -> b s
+-- mapB f = liftB (f . getI . TCV.head') . (TCV.:* TCV.ØV) . I
 
 data BTensor :: (k -> Type -> Type) -> (BShape k -> Type) -> [k] -> Type where
     BTS :: !(ElemB b)     -> BTensor v b '[]
@@ -117,6 +147,16 @@ data BTensor :: (k -> Type -> Type) -> (BShape k -> Type) -> [k] -> Type where
     BTM :: !(b ('BM n m)) -> BTensor v b '[n,m]
     BTN :: !(v n (BTensor v b (o ': m ': ns)))
         -> BTensor v b (n ': o ': m ': ns)
+
+instance (BLAS b, Vec v, Nesting1 Proxy Functor v, Nesting1 Sing Applicative v, SingI ns, Num (ElemB b))
+        => Num (BTensor v b ns) where
+    (+) = zipBase sing (+) (\xs ys -> axpy 1 xs (Just ys)) (\xs ys -> gemm 1 xs eye (Just (1, ys)))
+    (-) = zipBase sing (-) (\xs ys -> axpy (-1) ys (Just xs)) (\xs ys -> gemm 1 xs eye (Just (-1, ys)))
+    (*) = zipBTensorElems sing (*)
+    negate = mapBase negate (\xs -> axpy (-1) xs Nothing) (\xs -> gemm 1 xs eye Nothing)
+    abs    = mapBTensorElems abs
+    signum = mapBTensorElems signum
+    fromInteger i = genBTensor sing $ \_ -> fromInteger i
 
 -- | TODO: add RULES pragmas so that this can be done without checking
 -- lengths at runtime in the common case that the lengths are known at
@@ -159,8 +199,85 @@ dispatchBLAS lM lO lN v r = case (lM, lO, lN) of
       -- matrix-matrix
       (BTM x, BTM y) -> BTM $ gemm 1 x y Nothing
 
-
 gmulBLAS
+    :: forall k (b :: BShape k -> Type) ms os ns v.
+     ( Floating (ElemB b)
+     , BLAS b
+     , Vec v
+     , Nesting1 Proxy Functor     v
+     , Nesting1 Sing  Applicative v
+     )
+    => Length ms
+    -> Length os
+    -> MaxLength N1 ns
+    -> BTensor v b (ms         ++ os)
+    -> BTensor v b (Reverse os ++ ns)
+    -> BTensor v b (ms         ++ ns)
+gmulBLAS lM lO mlN v r = case splittingEnd (S_ (S_ Z_)) (lengthProd lO) of
+    FewerEnd MLZ             _ -> gmulBLAS' lM MLZ       mlN v r
+    FewerEnd (MLS MLZ)       _ -> gmulBLAS' lM (MLS MLZ) mlN v r
+    FewerEnd (MLS (MLS MLZ)) _ -> case mlN of
+      MLZ -> case r of
+        BTM ys -> mapBTM lM LZ (\xs -> BTS $ traceB (gemm 1 xs ys Nothing)) v
+      MLS MLZ -> case r of
+        BTN ys -> undefined
+    SplitEnd (ELS (ELS ELZ) :: ExactLength N2 os1) plO0 plO1 -> case mlN of
+      MLZ -> let f  :: (os1 ~ BShapeDims s)
+                    => Prod (IndexN k) qs
+                    -> b s
+                    -> BTensor v b '[]
+                 f is = undefined
+             in  mapRows lM LZ (getSum . ifoldMapBTM (prodLength plO0) (\i -> Sum . f i)) v
+
+-- imapBTM
+--     :: forall k (v :: k -> Type -> Type) ns n m ms os b. Vec v
+--     => Length ns
+--     -> Length ms
+--     -> (Prod (IndexN k) ns -> b (BM n m) -> BTensor v b ms)
+--     -> BTensor v b (ns ++ [n,m])
+--     -> BTensor v b (ns ++ ms)
+-- imapBTM lN lM f = getI . itraverseBTM lN lM (\i -> I . f i)
+
+
+    -- :: forall k (v :: k -> Type -> Type) ns n m ms os b. Vec v
+    -- => Length ns
+    -- -> Length ms
+    -- -> (b (BM n m) -> BTensor v b ms)
+    -- -> BTensor v b (ns ++ [n,m])
+    -- -> BTensor v b (ns ++ ms)
+    -- SplitEnd (ELS ELZ) plO0 plO1 -> case splittingEnd (S_ (S_ Z_)) (lengthProd lM) of
+    --   FewerEnd mlM _ -> undefined
+
+-- gmulBLAS lM lO mlN v r = case lO of
+--     MLZ -> case splittingEnd (S_ (S_ Z_)) (lengthProd lM) of
+--       FewerEnd MLZ             _ -> dispatchBLAS MLZ       mlO  mlN v r
+--       FewerEnd (MLS MLZ)       _ -> dispatchBLAS (MLS MLZ) mlO mlN v r
+--       FewerEnd (MLS (MLS MLZ)) _ -> case v of
+--         BTM xs -> case mlN of
+--           MLZ     -> case r of
+--             BTS y  -> BTM $ gemm y xs eye Nothing
+--           MLS MLZ -> case r of
+--             BTV ys -> undefined
+--       SplitEnd (ELS (ELS ELZ)) lM0 lM1@(Proxy :< Proxy :< Ø) -> case mlN of
+--         MLZ -> case r of
+--           BTS y -> mapBTM (prodLength lM0) (prodLength lM1) (\xs -> BTM $ gemm y xs eye Nothing) v
+--                      \\ appendNil lM
+--         MLS MLZ -> case r of
+--           BTV ys -> undefined
+--     MLS MLZ -> case splittingEnd (S_ Z_) (lengthProd lM) of
+--       FewerEnd mlM _ -> dispatchBLAS mlM mlO mlN v r
+--       SplitEnd (ELS ELZ) plM0 plM1 -> case mlN of
+--         MLZ -> case r of
+--           BTV ys -> let lM0 = prodLength plM0
+--                         lM1 = prodLength plM1
+--                     in  mapBTM lM0 lM1 (\xs -> BTV $ gemv 1 xs ys Nothing) v
+--                           \\ appendNil lM
+--                           \\ appendAssoc (TCL.tail' lM0)
+--                                          lM1
+--                                          (LS LZ :: Length os)
+
+
+gmulBLAS'
     :: forall b ms os ns v. (Floating (ElemB b), BLAS b, Vec v)
     => Length ms
     -> MaxLength N1 os
@@ -168,7 +285,7 @@ gmulBLAS
     -> BTensor v b (ms         ++ os)
     -> BTensor v b (Reverse os ++ ns)
     -> BTensor v b (ms         ++ ns)
-gmulBLAS lM mlO mlN v r = case mlO of
+gmulBLAS' lM mlO mlN v r = case mlO of
     MLZ -> case splittingEnd (S_ (S_ Z_)) (lengthProd lM) of
       FewerEnd MLZ             _ -> dispatchBLAS MLZ       mlO  mlN v r
       FewerEnd (MLS MLZ)       _ -> dispatchBLAS (MLS MLZ) mlO mlN v r
@@ -178,23 +295,85 @@ gmulBLAS lM mlO mlN v r = case mlO of
             BTS y  -> BTM $ gemm y xs eye Nothing
           MLS MLZ -> case r of
             BTV ys -> undefined
-      SplitEnd (ELS (ELS ELZ)) lM0 lM1@(Proxy :< Proxy :< Ø) -> case mlN of
+      SplitEnd (ELS (ELS ELZ)) plM0 plM1 -> case mlN of
         MLZ -> case r of
-          BTS y -> mapBase (prodLength lM0) (prodLength lM1) (\xs -> BTM $ gemm y xs eye Nothing) v
+          BTS y -> mapBTM (prodLength plM0)
+                           (prodLength plM1)
+                           (\xs -> BTM $ gemm y xs eye Nothing)
+                           v
                      \\ appendNil lM
         MLS MLZ -> case r of
           BTV ys -> undefined
     MLS MLZ -> case splittingEnd (S_ Z_) (lengthProd lM) of
-      FewerEnd mlM _ -> dispatchBLAS mlM mlO mlN v r
+      FewerEnd mlM       _         -> dispatchBLAS mlM mlO mlN v r
       SplitEnd (ELS ELZ) plM0 plM1 -> case mlN of
         MLZ -> case r of
           BTV ys -> let lM0 = prodLength plM0
                         lM1 = prodLength plM1
-                    in  mapBase lM0 lM1 (\xs -> BTV $ gemv 1 xs ys Nothing) v
+                    in  mapBTM lM0 lM1 (\xs -> BTV $ gemv 1 xs ys Nothing) v
                           \\ appendNil lM
                           \\ appendAssoc (TCL.tail' lM0)
                                          lM1
                                          (LS LZ :: Length os)
+
+mapRows
+    :: forall k (v :: k -> Type -> Type) ns ms os a b. Vec v
+    => Length ns
+    -> Length os
+    -> (BTensor v b ms -> BTensor v b os)
+    -> BTensor v b (ns ++ ms)
+    -> BTensor v b (ns ++ os)
+mapRows lN lO f = getI . bRows lN lO (I . f)
+
+
+bRows
+    :: forall k (v :: k -> Type -> Type) ns ms os a b f. (Applicative f, Vec v)
+    => Length ns
+    -> Length os
+    -> (BTensor v b ms -> f (BTensor v b os))
+    -> BTensor v b (ns ++ ms)
+    -> f (BTensor v b (ns ++ os))
+bRows lN lO f = bIxRows lN lO (\_ -> f)
+
+mapIxRows
+    :: forall k (v :: k -> Type -> Type) ns ms os a b. Vec v
+    => Length ns
+    -> Length os
+    -> (Prod (IndexN k) ns -> BTensor v b ms -> BTensor v b os)
+    -> BTensor v b (ns ++ ms)
+    -> BTensor v b (ns ++ os)
+mapIxRows lN lO f = getI . bIxRows lN lO (\i -> I . f i)
+
+foldMapIxRows
+    :: forall k (v :: k -> Type -> Type) ns ms m os a b. (Vec v, Monoid m)
+    => Length ns
+    -> (Prod (IndexN k) ns -> BTensor v b ms -> m)
+    -> BTensor v b (ns ++ ms)
+    -> m
+foldMapIxRows l f = getConst . bIxRows l LZ (\i -> Const . f i)
+
+bIxRows
+    :: forall k (v :: k -> Type -> Type) ns ms os a b f. (Applicative f, Vec v)
+    => Length ns
+    -> Length os
+    -> (Prod (IndexN k) ns -> BTensor v b ms -> f (BTensor v b os))
+    -> BTensor v b (ns ++ ms)
+    -> f (BTensor v b (ns ++ os))
+bIxRows = \case
+    LZ   -> \_  f -> f Ø
+    LS l -> \lO f -> \case
+      BTV xs -> undefined
+      BTM xs -> undefined
+      BTN xs -> fmap (btn (l `TCL.append'` lO))
+              . vITraverse (\i -> bIxRows l lO (\is -> f (i :< is)))
+              $ xs
+
+mapBTensorElems
+    :: (Vec v, BLAS b)
+    => (ElemB b -> ElemB b)
+    -> BTensor v b ns
+    -> BTensor v b ns
+mapBTensorElems f = getI . bTensorElems (I . f)
 
 bTensorElems
     :: forall k (v :: k -> Type -> Type) ns n m ms os b f. (Applicative f, Vec v, BLAS b)
@@ -207,58 +386,159 @@ bTensorElems f = \case
     BTM xs -> BTM <$> elemsB f xs
     BTN xs -> BTN <$> vITraverse (\_ x -> bTensorElems f x) xs
 
-mapBase
+zipBTensorElems
+    :: forall v b ns. (BLAS b, Nesting1 Sing Applicative v)
+    => Sing ns
+    -> (ElemB b -> ElemB b -> ElemB b)
+    -> BTensor v b ns
+    -> BTensor v b ns
+    -> BTensor v b ns
+zipBTensorElems = \case
+    SNil -> \f -> \case
+      BTS x -> \case
+        BTS y -> BTS (f x y)
+    _ `SCons` SNil -> \f -> \case
+      BTV xs -> \case
+        BTV ys -> BTV (zipB f xs ys)
+    _ `SCons` (_ `SCons` SNil) -> \f -> \case
+      BTM xs -> \case
+        BTM ys -> BTM (zipB f xs ys)
+    (s :: Sing k) `SCons` ss@(_ `SCons` (_ `SCons` _)) -> \f -> \case
+      BTN xs -> \case
+        BTN ys -> BTN (zipBTensorElems ss f <$> xs <*> ys)
+                    \\ (nesting1 s :: Wit (Applicative (v k)))
+
+mapBTM
     :: forall k (v :: k -> Type -> Type) ns n m ms os b. Vec v
     => Length ns
     -> Length ms
-    -> (b (BM n m) -> BTensor v b ms)
+    -> (b ('BM n m) -> BTensor v b ms)
     -> BTensor v b (ns ++ [n,m])
     -> BTensor v b (ns ++ ms)
-mapBase lN lM f = getI . traverseBase lN lM (I . f)
+mapBTM lN lM f = getI . traverseBTM lN lM (I . f)
 
-traverseBase
+foldMapBTM
+    :: (Monoid a, Vec v)
+    => Length ns
+    -> (b ('BM n m) -> a)
+    -> BTensor v b (ns ++ [n,m])
+    -> a
+foldMapBTM l f = ifoldMapBTM l (\_ -> f)
+
+traverseBTM
     :: forall k (v :: k -> Type -> Type) ns n m ms os b f. (Applicative f, Vec v)
     => Length ns
     -> Length ms
-    -> (b (BM n m) -> f (BTensor v b ms))
+    -> (b ('BM n m) -> f (BTensor v b ms))
     -> BTensor v b (ns ++ [n,m])
     -> f (BTensor v b (ns ++ ms))
-traverseBase = \case
+traverseBTM = \case
     LZ -> \lM f -> \case
       BTM x  -> f x
     LS l -> \lM f -> \case
       BTV xs -> undefined
       BTM xs -> undefined
       BTN xs -> fmap (btn (l `TCL.append'` lM))
-              . vITraverse (\_ -> traverseBase l lM f)
+              . vITraverse (\_ -> traverseBTM l lM f)
               $ xs
 
-imapBase
+imapBTM
     :: forall k (v :: k -> Type -> Type) ns n m ms os b. Vec v
     => Length ns
     -> Length ms
-    -> (Prod (IndexN k) ns -> b (BM n m) -> BTensor v b ms)
+    -> (Prod (IndexN k) ns -> b ('BM n m) -> BTensor v b ms)
     -> BTensor v b (ns ++ [n,m])
     -> BTensor v b (ns ++ ms)
-imapBase lN lM f = getI . itraverseBase lN lM (\i -> I . f i)
+imapBTM lN lM f = getI . itraverseBTM lN lM (\i -> I . f i)
 
-itraverseBase
+ifoldMapBTM
+    :: (Vec v, Monoid a)
+    => Length ns
+    -> (Prod (IndexN k) ns -> b (BM n m) -> a)
+    -> BTensor v b (ns ++ [n,m])
+    -> a
+ifoldMapBTM = \case
+    LZ -> \f -> \case
+      BTM xs -> f Ø xs
+    LS l -> \f -> \case
+      BTN xs -> vIFoldMap (\i -> ifoldMapBTM l (\is -> f (i :< is))) xs
+
+itraverseBTM
     :: forall k (v :: k -> Type -> Type) ns n m ms os b f. (Applicative f, Vec v)
     => Length ns
     -> Length ms
     -> (Prod (IndexN k) ns -> b (BM n m) -> f (BTensor v b ms))
     -> BTensor v b (ns ++ [n,m])
     -> f (BTensor v b (ns ++ ms))
-itraverseBase = \case
+itraverseBTM = \case
     LZ -> \lM f -> \case
       BTM x  -> f Ø x
     LS l -> \lM f -> \case
-      -- BTN xs -> fmap BTN . vITraverse (\i -> itraverseBase l (\is ys -> f (i :< is) ys)) $ xs
       BTV xs -> undefined
       BTM xs -> undefined
       BTN xs -> fmap (btn (l `TCL.append'` lM))
-              . vITraverse (\i -> itraverseBase l lM (\is ys -> f (i :< is) ys))
+              . vITraverse (\i -> itraverseBTM l lM (\is ys -> f (i :< is) ys))
               $ xs
+
+mapBase
+    :: forall v b ns. (Nesting1 Proxy Functor v)
+    => (ElemB b -> ElemB b)
+    -> (forall n. b ('BV n) -> b ('BV n))
+    -> (forall n m. b ('BM n m) -> b ('BM n m))
+    -> BTensor v b ns
+    -> BTensor v b ns
+mapBase f g h = \case
+    BTS x  -> BTS (f x)
+    BTV xs -> BTV (g xs)
+    BTM xs -> BTM (h xs)
+    BTN (xs :: v k (BTensor v b (n ': m ': os))) -> BTN (mapBase f g h <$> xs)
+                \\ (nesting1 Proxy :: Wit (Functor (v k)))
+
+zipBase
+    :: forall v b ns. (Nesting1 Sing Applicative v)
+    => Sing ns
+    -> (ElemB b -> ElemB b -> ElemB b)
+    -> (forall n. b ('BV n) -> b ('BV n) -> b ('BV n))
+    -> (forall n m. b ('BM n m) -> b ('BM n m) -> b ('BM n m))
+    -> BTensor v b ns
+    -> BTensor v b ns
+    -> BTensor v b ns
+zipBase = \case
+    SNil -> \f _ _ -> \case
+      BTS x -> \case
+        BTS y -> BTS (f x y)
+    _ `SCons` SNil -> \_ g _ -> \case
+      BTV xs -> \case
+        BTV ys -> BTV (g xs ys)
+    _ `SCons` (_ `SCons` SNil) -> \_ _ h -> \case
+      BTM xs -> \case
+        BTM ys -> BTM (h xs ys)
+    (s :: Sing k) `SCons` ss@(_ `SCons` (_ `SCons` _)) -> \f g h -> \case
+      BTN xs -> \case
+        BTN ys -> BTN $ zipBase ss f g h <$> xs <*> ys
+                    \\ (nesting1 s :: Wit (Applicative (v k)))
+
+genBTensorA
+    :: forall k (b :: BShape k -> Type) v (ns :: [k]) f. (Applicative f, BLAS b, Vec v)
+    => Sing ns
+    -> (Prod (IndexN k) ns -> f (ElemB b))
+    -> f (BTensor v b ns)
+genBTensorA = \case
+    SNil                                   -> \f ->
+        BTS <$> f Ø
+    _ `SCons` SNil                         -> \f ->
+        BTV <$> bgenA f
+    _ `SCons` (_ `SCons` SNil)             -> \f ->
+        BTM <$> bgenA f
+    s `SCons` ss@(_ `SCons` (_ `SCons` _)) -> \f ->
+        BTN <$> vGenA s (\i -> genBTensorA ss (\is -> f (i :< is)))
+
+genBTensor
+    :: forall k (b :: BShape k -> Type) v (ns :: [k]). (BLAS b, Vec v)
+    => Sing ns
+    -> (Prod (IndexN k) ns -> ElemB b)
+    -> BTensor v b ns
+genBTensor s f = getI $ genBTensorA s (I . f)
 
 btn :: Length ns
     -> v n (BTensor v b ns)

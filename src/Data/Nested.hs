@@ -34,7 +34,7 @@ module Data.Nested
   , diagNV
   , joinNested
   , nIxRows
-  , vGen, itraverseNested
+  , vGen, vIFoldMap, itraverseNested
   , liftNested
   , unScalar, unNest, unVector
   ) where
@@ -91,6 +91,13 @@ vGen
     -> v j a
 vGen s f = getI $ vGenA s (I . f)
 {-# INLINE vGen #-}
+
+vIFoldMap
+    :: (Monoid m, Vec v)
+    => (IndexN k j -> a -> m)
+    -> v j a
+    -> m
+vIFoldMap f = getConst . vITraverse (\i -> Const . f i)
 
 instance Vec (Flip2 VS.VectorT I) where
     vHead _ = getI . VS.head . getFlip2

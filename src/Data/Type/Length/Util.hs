@@ -181,6 +181,13 @@ fromMaxLength = \case
     MLZ   -> LZ
     MLS m -> LS (fromMaxLength m)
 
+fromExactLength
+    :: ExactLength n as
+    -> Length as
+fromExactLength = \case
+    ELZ   -> LZ
+    ELS m -> LS (fromExactLength m)
+
 weakenExactLength
     :: ExactLength n as
     -> MaxLength n as
