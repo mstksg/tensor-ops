@@ -112,6 +112,7 @@ appendSnoc :: Length ms -> p n -> ((ms >: n) :~: (ms ++ '[n]))
 
 module Data.Type.Length.Util
 append' :: Length ns -> Length ms -> Length (ns ++ ms)
+tail' :: Length (n : ns) -> Length ns
 reverse' :: forall ns. Length ns -> Length (Reverse ns)
 (>:) :: Length ns -> Proxy n -> Length (ns >: n)
 data SnocLength :: [a] -> Type
@@ -129,8 +130,8 @@ snocLengthReverse :: SnocLength as -> Length (Reverse as)
 -- | A <tt><a>MaxLength</a> n as</tt> is a witness that the list
 --   <tt>as</tt> has a length of at most <tt>n</tt>.
 data MaxLength :: N -> [k] -> Type
-[FLZ] :: MaxLength n '[]
-[FLS] :: !(MaxLength n as) -> MaxLength (S n) (a : as)
+[MLZ] :: MaxLength n '[]
+[MLS] :: !(MaxLength n as) -> MaxLength (S n) (a : as)
 
 -- | An <tt><a>ExactLength</a> n as</tt> is a witness that the list
 --   <tt>as</tt> has a length of exactly <tt>n</tt>.
@@ -143,6 +144,19 @@ data Splitting :: N -> ([k] -> Type) -> [k] -> Type
 splitting :: Nat n -> Prod f as -> Splitting n (Prod f) as
 maxLength :: Nat n -> Length as -> Decision (MaxLength n as)
 exactLength :: Nat n -> Length as -> Decision (ExactLength n as)
+fromMaxLength :: MaxLength n as -> Length as
+fromExactLength :: ExactLength n as -> Length as
+weakenExactLength :: ExactLength n as -> MaxLength n as
+weakenMaxLength :: (n :<=: m) -> MaxLength n as -> MaxLength m as
+data SplittingEnd :: N -> ([k] -> Type) -> [k] -> Type
+[FewerEnd] :: !(MaxLength n as) -> !(f as) -> SplittingEnd n f as
+[SplitEnd] :: !(ExactLength n as) -> !(f (b : bs)) -> !(f as) -> SplittingEnd n f ((b : bs) ++ as)
+
+-- | Pretty sure this is O(n^2) but what can you do you know
+splittingEnd :: Nat n -> Prod f as -> SplittingEnd n (Prod f) as
+consMaxLength :: Nat n -> MaxLength n as -> Either (ExactLength n as) (MaxLength n (a : as))
+commuteProd :: Length as -> Length cs -> Prod f (as ++ cs) -> Prod f bs -> (Prod f as, Prod f (cs ++ bs))
+lengthProd :: Length as -> Prod Proxy as
 
 module Data.Type.Uniform
 
@@ -255,6 +269,7 @@ diagNV :: (Vec v, Nesting1 Proxy Functor v) => Sing n -> Uniform n ms -> Nested 
 joinNested :: forall v ns ms a. Nesting1 Proxy Functor v => Nested v ns (Nested v ms a) -> Nested v (ns ++ ms) a
 nIxRows :: forall k (v :: k -> Type -> Type) ns ms a b f. (Nesting1 Proxy Functor v, Applicative f, Vec v) => Length ns -> (Prod (IndexN k) ns -> Nested v ms a -> f b) -> Nested v (ns ++ ms) a -> f (Nested v ns b)
 vGen :: Vec (v :: k -> Type -> Type) => Sing j -> (IndexN k j -> a) -> v j a
+vIFoldMap :: (Monoid m, Vec v) => (IndexN k j -> a -> m) -> v j a -> m
 itraverseNested :: forall k (v :: k -> Type -> Type) (ns :: [k]) a b f. (Applicative f, Vec v) => (Prod (IndexN k) ns -> a -> f b) -> Nested v ns a -> f (Nested v ns b)
 liftNested :: Distributive (Nested v ns) => (Vec m (Vec n a -> a)) -> Vec n (Nested v ns a) -> Vec m (Nested v ns a)
 unScalar :: Nested v '[] a -> a
@@ -327,26 +342,6 @@ infixr 4 ~.
 instance Type.Class.Higher.Eq1 Data.Finite.Internal.Finite
 
 module TensorOps.BLAS
-data BShape a_a11m4
-BV :: !a_a11m4 -> BShape a_a11m4
-BM :: !a_a11m4 -> !a_a11m4 -> BShape a_a11m4
-type BVSym1 (t_a11uH :: a1627633492) = BV t_a11uH
-data BVSym0 (l_a11uI :: TyFun a1627633492 (BShape a1627633492))
-BVSym0KindInference :: BVSym0
-type BMSym2 (t_a11uK :: a1627633492) (t_a11uL :: a1627633492) = BM t_a11uK t_a11uL
-data BMSym1 (l_a11uP :: a1627633492) (l_a11uO :: TyFun a1627633492 (BShape a1627633492))
-BMSym1KindInference :: BMSym1
-data BMSym0 (l_a11uM :: TyFun a1627633492 (TyFun a1627633492 (BShape a1627633492) -> Type))
-BMSym0KindInference :: BMSym0
-type Compare_1627634329Sym2 (t_a11zB :: BShape a1627633492) (t_a11zC :: BShape a1627633492) = Compare_1627634329 t_a11zB t_a11zC
-data Compare_1627634329Sym1 (l_a11zG :: BShape a1627633492) (l_a11zF :: TyFun (BShape a1627633492) Ordering)
-Compare_1627634329Sym1KindInference :: Compare_1627634329Sym1
-data Compare_1627634329Sym0 (l_a11zD :: TyFun (BShape a1627633492) (TyFun (BShape a1627633492) Ordering -> Type))
-Compare_1627634329Sym0KindInference :: Compare_1627634329Sym0
-type SBShape = (Sing :: BShape a_a11m4 -> Type)
-type BShapeDimsSym1 (t_a132C :: BShape k1627634485) = BShapeDims t_a132C
-data BShapeDimsSym0 (l_a132D :: TyFun (BShape k1627634485) [k1627634485])
-BShapeDimsSym0KindInference :: BShapeDimsSym0
 class NatKind k => BLAS (b :: BShape k -> Type) where type ElemB b :: Type where {
     type family ElemB b :: Type;
 }
@@ -357,27 +352,19 @@ ger :: BLAS b => b (BV n) -> b (BV m) -> b (BM n m)
 gemv :: BLAS b => ElemB b -> b (BM n m) -> b (BV m) -> Maybe (ElemB b, b (BV n)) -> b (BV n)
 gemm :: BLAS b => ElemB b -> b (BM n o) -> b (BM o m) -> Maybe (ElemB b, b (BM n m)) -> b (BM n m)
 indexB :: BLAS b => Prod (IndexN k) (BShapeDims s) -> b s -> ElemB b
+indexRowB :: BLAS b => IndexN k n -> b (BM n m) -> b (BV m)
 transp :: BLAS b => b (BM n m) -> b (BM m n)
+iRowsB :: (BLAS b, Applicative f) => (IndexN k n -> b (BV m) -> f (b (BV o))) -> b (BM n m) -> f (b (BM n o))
+iElemsB :: (BLAS b, Applicative f) => (Prod (IndexN k) (BShapeDims s) -> ElemB b -> f (ElemB b)) -> b s -> f (b s)
+bgenA :: (BLAS b, Applicative f) => (Prod (IndexN k) (BShapeDims s) -> f (ElemB b)) -> f (b s)
+bgenRowsA :: (BLAS b, Applicative f) => (IndexN k n -> f (b (BV m))) -> f (b (BM n m))
+eye :: BLAS b => b (BM n n)
+zero :: BLAS b => b s
+zipB :: BLAS b => (ElemB b -> ElemB b -> ElemB b) -> b s -> b s -> b s
+traceB :: BLAS b => b (BM n n) -> ElemB b
 data BTensor :: (k -> Type -> Type) -> (BShape k -> Type) -> [k] -> Type
-[BTS] :: !(ElemB b) -> BTensor v b '[]
-[BTV] :: !(b (BV n)) -> BTensor v b '[n]
-[BTM] :: !(b (BM n m)) -> BTensor v b '[n, m]
-[BTN] :: !(v n (BTensor v b (o : (m : ns)))) -> BTensor v b (n : (o : (m : ns)))
-
--- | TODO: add RULES pragmas so that this can be done without checking
---   lengths at runtime in the common case that the lengths are known at
---   compile-time.
-dispatchBLAS :: forall b ms os ns v. (Floating (ElemB b), BLAS b) => MaxLength N1 ms -> MaxLength N1 os -> MaxLength N1 ns -> BTensor v b (ms ++ os) -> BTensor v b (Reverse os ++ ns) -> BTensor v b (ms ++ ns)
-
--- | General strategy:
---   
---   <ul>
---   <li>We can only outsource to BLAS (using <a>dispatchBLAS</a>) in the
---   case that <tt>ns</tt> has length 0 or 1. Anything else, fall back to
---   the basic reverse-indexing method in <a>Data.Nested</a>.</li>
---   </ul>
-gmulB :: (SingI (Reverse os ++ ns)) => Length ms -> Length os -> Length ns -> BTensor v b (ms ++ os) -> BTensor v b (Reverse os ++ ns) -> BTensor v b (ms ++ ns)
 instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.BShapeDimsSym0
+instance forall k (b :: TensorOps.BLAS.BShape k -> GHC.Types.Type) (v :: k -> GHC.Types.Type -> GHC.Types.Type) (ns :: [k]). (TensorOps.BLAS.BLAS b, Data.Nested.Vec v, Data.Nested.Nesting1 Data.Proxy.Proxy GHC.Base.Functor v, Data.Nested.Nesting1 Data.Singletons.Sing GHC.Base.Applicative v, Data.Singletons.SingI ns, GHC.Num.Num (TensorOps.BLAS.ElemB b)) => GHC.Num.Num (TensorOps.BLAS.BTensor v b ns)
 instance forall k (v :: k -> GHC.Types.Type -> GHC.Types.Type) (b :: TensorOps.BLAS.BShape k -> GHC.Types.Type). (Data.Nested.Vec v, TensorOps.BLAS.BLAS b, TensorOps.NatKind.NatKind k) => TensorOps.Types.Tensor (TensorOps.BLAS.BTensor v b)
 instance GHC.Base.Functor TensorOps.BLAS.BShape
 instance GHC.Classes.Ord a0 => GHC.Classes.Ord (TensorOps.BLAS.BShape a0)
@@ -387,8 +374,8 @@ instance Data.Singletons.Prelude.Eq.PEq 'Data.Proxy.Proxy
 instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.BVSym0
 instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.BMSym1
 instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.BMSym0
-instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.Compare_1627634329Sym1
-instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.Compare_1627634329Sym0
+instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.Compare_1627638263Sym1
+instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.Compare_1627638263Sym0
 instance Data.Singletons.Prelude.Ord.POrd 'Data.Proxy.Proxy
 instance Data.Singletons.SingKind a0 => Data.Singletons.SingKind (TensorOps.BLAS.BShape a0)
 instance Data.Singletons.Prelude.Eq.SEq a0 => Data.Singletons.Prelude.Eq.SEq (TensorOps.BLAS.BShape a0)
