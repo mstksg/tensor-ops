@@ -28,7 +28,7 @@ module TensorOps.BLAS
 import           Control.Applicative
 import           Data.Kind
 import           Data.Monoid
-import           Data.Nested
+import           Data.Nested hiding             (unScalar, unVector)
 import           Data.Singletons
 import           Data.Singletons.Prelude hiding (Reverse, Head)
 import           Data.Singletons.TH
@@ -113,11 +113,15 @@ class NatKind k => BLAS (b :: BShape k -> Type) where
         => (Prod (IndexN k) (BShapeDims s) -> ElemB b -> f (ElemB b))
         -> b s
         -> f (b s)
-    -- faster: bgen by rows?
+    -- faster: can we merge bgen and bgenRowsA?
     bgenA
         :: Applicative f
         => (Prod (IndexN k) (BShapeDims s) -> f (ElemB b))
         -> f (b s)
+    bgenRowsA
+        :: Applicative f
+        => (IndexN k n -> f (b ('BV m)))
+        -> f (b ('BM n m))
     eye :: b ('BM n n)
     zero :: b s
     zipB
@@ -143,12 +147,30 @@ bgen
     -> b s
 bgen f = getI $ bgenA (I . f)
 
+bgenRows
+    :: BLAS b
+    => (IndexN k n -> b ('BV m))
+    -> b ('BM n m)
+bgenRows f = getI $ bgenRowsA (I . f)
+
 data BTensor :: (k -> Type -> Type) -> (BShape k -> Type) -> [k] -> Type where
     BTS :: !(ElemB b)     -> BTensor v b '[]
     BTV :: !(b ('BV n))   -> BTensor v b '[n]
     BTM :: !(b ('BM n m)) -> BTensor v b '[n,m]
     BTN :: !(v n (BTensor v b (o ': m ': ns)))
         -> BTensor v b (n ': o ': m ': ns)
+
+unScalar
+    :: BTensor v b '[]
+    -> ElemB b
+unScalar = \case
+    BTS x -> x
+
+unVector
+    :: BTensor v b '[n]
+    -> b ('BV n)
+unVector = \case
+    BTV xs -> xs
 
 instance (BLAS b, Vec v, Nesting1 Proxy Functor v, Nesting1 Sing Applicative v, SingI ns, Num (ElemB b))
         => Num (BTensor v b ns) where
@@ -252,22 +274,30 @@ bIxRows = \case
         -- ms ~ '[]
         LZ -> case lO of
           -- ns ++ os ~ '[n]
-          LZ     -> BTV <$> iElemsB (\i -> fmap (\(BTS x) -> x) . f i . BTS) xs
-          LS lO' -> undefined
+          LZ        -> BTV <$> iElemsB (\i -> fmap unScalar . f i . BTS) xs
+          -- ns ++ os ~ '[n,m]
+          LS LZ     -> BTM <$> bgenRowsA (\i -> unVector <$> f (i :< Ø) (BTS $ indexB (i :< Ø) xs))
+          LS (LS _) -> BTN <$> vGenA undefined (\i -> f (i :< Ø) (BTS $ indexB (i :< Ø) xs))
       BTM xs -> case l of
         -- ns ~ '[n]
         -- ms ~ '[m]
         LZ    -> case lO of
           -- ns ++ os ~ '[n]
-          LZ          -> BTV <$> bgenA (\is@(i :< Ø) -> (\(BTS x) -> x) <$> f is (BTV (indexRowB i xs)))
+          LZ          -> BTV <$> bgenA (\is@(i :< Ø) -> unScalar <$> f is (BTV (indexRowB i xs)))
           -- ns ++ os ~ '[n,o]
-          LS LZ       -> BTM <$> iRowsB (\i -> fmap (\(BTV x) -> x) . f (i :< Ø) . BTV) xs
-          LS (LS lO') -> undefined
+          LS LZ       -> BTM <$> iRowsB (\i -> fmap unVector . f (i :< Ø) . BTV) xs
+          LS (LS lO') -> BTN <$> vGenA undefined (\i -> f (i :< Ø) (BTV (indexRowB i xs)))
         -- ns ~ '[n,m]
         -- ms ~ '[]
         LS LZ -> case lO of
-          LZ     -> BTM <$> iElemsB (\i -> fmap (\(BTS x) -> x) . f i . BTS) xs
-          LS lO' -> undefined
+          LZ     -> BTM <$> iElemsB (\i -> fmap unScalar . f i . BTS) xs
+          LS lO' -> BTN <$>
+                      vGenA undefined (\i ->
+                          btn lO <$>
+                            vGenA undefined (\j ->
+                                f (i :< j :< Ø) (BTS (indexB (i :< j :< Ø) xs))
+                              )
+                        )
       BTN xs -> fmap (btn (l `TCL.append'` lO))
               . vITraverse (\i -> bIxRows l lO (\is -> f (i :< is)))
               $ xs
@@ -505,9 +535,9 @@ btn = \case
     LZ        -> \xs -> BTV $ bgen (\(i :< Ø)  -> case vIndex i xs of
                                                     BTS x -> x
                                    )
-    LS LZ     -> \xs -> BTM $ bgen (\(i :< js) -> case vIndex i xs of
-                                                    BTV x -> indexB js x
-                                   )
+    LS LZ     -> \xs -> BTM $ bgenRows (\i -> case vIndex i xs of
+                                          BTV x -> x
+                                       )
     LS (LS l) -> BTN
 
 -- | General strategy:
