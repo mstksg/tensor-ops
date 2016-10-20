@@ -190,21 +190,22 @@ generate
 generate = getI . generateA . fmap I
 
 rows
-    :: (Tensor t, Applicative f)
+    :: (Tensor t, Applicative f, SingI (ms ++ os))
     => Length ms
+    -> Length os
     -> (t ns -> f (t os))
     -> t (ms ++ ns)
     -> f (t (ms ++ os))
-rows l f = ixRows l (\_ -> f)
+rows lM lO f = ixRows lM lO (\_ -> f)
 
 toRows
-    :: Tensor t
+    :: (Tensor t, SingI n)
     => t (n ': ns)
     -> [t ns]
 toRows = ($[])
        . appEndo
        . getConst
-       . rows (LS LZ) (\xs -> Const $ Endo (xs:))
+       . rows (LS LZ) LZ (\xs -> Const $ Endo (xs:))
 
 ixElems
     :: forall k f (t :: [k] -> Type) ns. (Applicative f, Tensor t, SingI ns)
@@ -212,7 +213,7 @@ ixElems
     -> t ns
     -> f (t ns)
 ixElems f = (\\ appendNil l) $
-    ixRows l $ \i x ->
+    ixRows l LZ $ \i x ->
       konst <$> f i (unScalar (x :: t '[])) :: f (t '[])
   where
     l :: Length ns

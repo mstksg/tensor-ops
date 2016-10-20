@@ -207,10 +207,11 @@ instance
     ixRows
         :: Applicative f
         => Length ms
+        -> Length os
         -> (Prod (IndexN k) ms -> NTensor v a ns -> f (NTensor v a os))
         -> NTensor v a (ms ++ ns)
         -> f (NTensor v a (ms ++ os))
-    ixRows l f = ntNVec $ fmap joinNested . nIxRows l (\i -> nvecNT (f i))
+    ixRows l _ f = ntNVec $ fmap joinNested . nIxRows l (\i -> nvecNT (f i))
     {-# INLINE ixRows #-}
 
 

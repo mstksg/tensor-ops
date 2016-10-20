@@ -79,8 +79,9 @@ class NatKind k => Tensor (t :: [k] -> Type) where
               => (Prod (IndexN k) ns -> f (ElemT t))
               -> f (t ns)
     ixRows
-        :: Applicative f
+        :: (Applicative f, SingI (ms ++ os))
         => Length ms
+        -> Length os
         -> (Prod (IndexN k) ms -> t ns -> f (t os))
         -> t (ms ++ ns)
         -> f (t (ms ++ os))

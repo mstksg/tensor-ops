@@ -33,7 +33,7 @@ import           Data.Kind
 import           Data.Monoid
 import           Data.Nested hiding             (unScalar, unVector)
 import           Data.Singletons
-import           Data.Singletons.Prelude hiding (Reverse, Head)
+import           Data.Singletons.Prelude hiding (Reverse, Head, sReverse)
 import           Data.Singletons.TH
 import           Data.Type.Combinator
 import           Data.Type.Length               as TCL
@@ -42,8 +42,9 @@ import           Data.Type.Nat
 import           Data.Type.Product              as TCP
 import           Data.Type.Product.Util         as TCP
 import           Data.Type.Sing
+import           Data.Type.SnocProd
 import           TensorOps.NatKind
-import           TensorOps.Types hiding         (transp)
+import           TensorOps.Types
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
@@ -106,7 +107,7 @@ class NatKind k => BLAS (b :: BShape k -> Type) where
         :: IndexN k n
         -> b ('BM n m)
         -> b ('BV m)
-    transp
+    transpB
         :: b ('BM n m)
         -> b ('BM m n)
     iRowsB
@@ -227,7 +228,8 @@ dispatchBLAS lM lO lN v r = case (lM, lO, lN) of
       (BTV x, BTV y) -> BTS $ x `dot` y
     (MLZ    , MLS MLZ, MLS MLZ) -> case (v, r) of
       -- vector-matrix
-      (BTV x, BTM y) -> BTV $ gemv 1 (transp y) x Nothing
+      -- TODO: transpose?
+      (BTV x, BTM y) -> BTV $ gemv 1 (transpB y) x Nothing
     (MLS MLZ, MLZ    , MLZ    ) -> case (v, r) of
       -- vector-scalar
       (BTV x, BTS y) -> BTV $ axpy y x Nothing
@@ -419,11 +421,14 @@ liftBTensor = \case
         in  BTM <$> liftB fs xs'
     (s :: Sing k) `SCons` ss@(_ `SCons` (_ `SCons` _)) -> \fs xs ->
         let xs' = unBTN <$> xs
-        in  (\\ (nesting1 s :: Wit (Distributive (v k)))) $
+        in  (\\ (nesting1 s     :: Wit (Distributive (v k)))) $
               flip fmap fs $ \f ->
                 BTN . fmap (getI . TCV.head') $
                   TCV.liftVecD (liftBTensor ss (I f TCV.:* TCV.ØV))
                                xs'
+            -- (\\ (nesting1 Proxy :: Wit (Traversable  (v k)))) $
+            --   fmap BTN . sequenceA . TCV.liftVecD (liftBTensor ss fs)
+            --     $ xs'
 
 mapBTM
     :: forall k (v :: k -> Type -> Type) ns n m ms b. (Vec v, BLAS b)
@@ -716,6 +721,19 @@ gmulBLAS sM mlO mlN v r = case mlO of
   where
     lM = singLength sM
 
+transpBTensor
+    :: (BLAS b, Vec v)
+    => Sing ns
+    -> BTensor v b ns
+    -> BTensor v b (Reverse ns)
+transpBTensor s = \case
+    BTS x      -> BTS x
+    BTV xs     -> BTV xs
+    BTM xs     -> BTM $ transpB xs
+    xs@(BTN _) -> (\\ reverseReverse (singLength s)) $
+                    genBTensor (sReverse s) $ \i ->
+                      indexBTensor (TCP.reverse' i) xs
+
 instance
       ( Vec (v :: k -> Type -> Type)
       , BLAS b
@@ -724,13 +742,7 @@ instance
       , Nesting1 Sing  Applicative  v
       , Nesting1 Sing  Distributive v
       )
-      -- , Nesting1 Proxy Foldable     v
-      -- , Nesting1 Proxy Traversable  v
-      -- , Nesting1 Sing  Distributive v
-      -- , Eq1 (IndexN k)
--- instance forall k (v :: k -> Type -> Type) (b :: BShape k -> Type).
---       ( Vec v, BLAS b, NatKind k, Floating (ElemB b))
-      => Tensor (BTensor v b) where
+  => Tensor (BTensor v b) where
     type ElemT (BTensor v b) = ElemB b
 
     liftT
@@ -754,3 +766,20 @@ instance
         sN :: Sing ns
         (sM, sN) = splitSing lM sing
 
+    transp = transpBTensor sing
+
+    generateA = genBTensorA sing
+
+    ixRows
+        :: forall f ms os ns. (Applicative f, SingI (ms ++ os))
+        => Length ms
+        -> Length os
+        -> (Prod (IndexN k) ms -> BTensor v b ns -> f (BTensor v b os))
+        -> BTensor v b (ms ++ ns)
+        -> f (BTensor v b (ms ++ os))
+    ixRows lM lO = bIxRows sM lO
+      where
+        sM :: Sing ms
+        sM = takeSing lM lO (sing :: Sing (ms ++ os))
+
+    (!) = flip indexBTensor

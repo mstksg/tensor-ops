@@ -63,6 +63,16 @@ splitSing = \case
     LS l -> \case
       s `SCons` ss -> first (s `SCons`) (splitSing l ss)
 
+takeSing
+    :: Length ns
+    -> Length ms
+    -> Sing (ns ++ ms)
+    -> Sing ns
+takeSing = \case
+    LZ   -> \_ _ -> SNil
+    LS l -> \lM -> \case
+      s `SCons` ss -> s `SCons` takeSing l lM ss
+
 singProdNat
     :: forall (as :: [N]). ()
     => Sing as
