@@ -27,8 +27,8 @@ module TensorOps.BLAS where
 
 -- import           Data.Finite
 -- import           GHC.TypeLits
--- import qualified Data.Type.Vector            as TCV
 import           Control.Applicative
+import           Data.Distributive
 import           Data.Kind
 import           Data.Monoid
 import           Data.Nested hiding             (unScalar, unVector)
@@ -48,6 +48,8 @@ import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
+import qualified Data.Type.Vector               as TCV
+import qualified Data.Type.Vector.Util          as TCV
 
 $(singletons [d|
   data BShape a = BV !a | BM !a !a
@@ -66,10 +68,10 @@ genDefunSymbols [''BShapeDims]
 
 class NatKind k => BLAS (b :: BShape k -> Type) where
     type ElemB b :: Type
-    -- liftB
-    --     :: (TCV.Vec n (ElemB b) -> ElemB b)
-    --     -> TCV.Vec n (b s)
-    --     -> b s
+    liftB
+        :: TCV.Vec m (TCV.Vec n (ElemB b) -> ElemB b)
+        -> TCV.Vec n (b s)
+        -> TCV.Vec m (b s)
     axpy
         :: ElemB b          -- ^ α
         -> b ('BV n)        -- ^ x
@@ -175,6 +177,18 @@ unVector
     -> b ('BV n)
 unVector = \case
     BTV xs -> xs
+
+unMatrix
+    :: BTensor v b '[n,m]
+    -> b ('BM n m)
+unMatrix = \case
+    BTM xs -> xs
+
+unBTN
+    :: BTensor v b (n ': o ': m ': ns)
+    -> v n (BTensor v b (o ': m ': ns))
+unBTN = \case
+    BTN xs -> xs
 
 instance (BLAS b, Vec v, Nesting1 Proxy Functor v, Nesting1 Sing Applicative v, SingI ns, Num (ElemB b))
         => Num (BTensor v b ns) where
@@ -382,6 +396,34 @@ zipBTensorElems = \case
       BTN xs -> \case
         BTN ys -> BTN (zipBTensorElems ss f <$> xs <*> ys)
                     \\ (nesting1 s :: Wit (Applicative (v k)))
+
+liftBTensor
+    :: forall v b ns m n.
+     ( BLAS b
+     , Nesting1 Proxy Functor      v
+     , Nesting1 Sing  Distributive v
+     )
+    => Sing ns
+    -> TCV.Vec m (TCV.Vec n (ElemB b) -> ElemB b)
+    -> TCV.Vec n (BTensor v b ns)
+    -> TCV.Vec m (BTensor v b ns)
+liftBTensor = \case
+    SNil                       -> \fs xs ->
+        let xs' = unScalar <$> xs
+        in  BTS . ($ xs') <$> fs
+    _ `SCons` SNil             -> \fs xs ->
+        let xs' = unVector <$> xs
+        in  BTV <$> liftB fs xs'
+    _ `SCons` (_ `SCons` SNil) -> \fs xs ->
+        let xs' = unMatrix <$> xs
+        in  BTM <$> liftB fs xs'
+    (s :: Sing k) `SCons` ss@(_ `SCons` (_ `SCons` _)) -> \fs xs ->
+        let xs' = unBTN <$> xs
+        in  (\\ (nesting1 s :: Wit (Distributive (v k)))) $
+              flip fmap fs $ \f ->
+                BTN . fmap (getI . TCV.head') $
+                  TCV.liftVecD (liftBTensor ss (I f TCV.:* TCV.ØV))
+                               xs'
 
 mapBTM
     :: forall k (v :: k -> Type -> Type) ns n m ms b. (Vec v, BLAS b)
@@ -680,6 +722,7 @@ instance
       , Floating (ElemB b)
       , Nesting1 Proxy Functor      v
       , Nesting1 Sing  Applicative  v
+      , Nesting1 Sing  Distributive v
       )
       -- , Nesting1 Proxy Foldable     v
       -- , Nesting1 Proxy Traversable  v
@@ -690,6 +733,12 @@ instance
       => Tensor (BTensor v b) where
     type ElemT (BTensor v b) = ElemB b
 
+    liftT
+        :: SingI ns
+        => TCV.Vec m (TCV.Vec n (ElemB b) -> ElemB b)
+        -> TCV.Vec n (BTensor v b ns)
+        -> TCV.Vec m (BTensor v b ns)
+    liftT = liftBTensor sing
 
     gmul
         :: forall ms os ns. SingI (ms ++ ns)
