@@ -681,12 +681,6 @@ instance
       , Nesting1 Proxy Functor      v
       , Nesting1 Sing  Applicative  v
       )
-      -- , Nesting1 Proxy Foldable     v
-      -- , Nesting1 Proxy Traversable  v
-      -- , Nesting1 Sing  Distributive v
-      -- , Eq1 (IndexN k)
--- instance forall k (v :: k -> Type -> Type) (b :: BShape k -> Type).
---       ( Vec v, BLAS b, NatKind k, Floating (ElemB b))
       => Tensor (BTensor v b) where
     type ElemT (BTensor v b) = ElemB b
 

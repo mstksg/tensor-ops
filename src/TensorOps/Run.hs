@@ -30,10 +30,11 @@ runTOp
     -> Prod t ms
 runTOp sNs sMs = (\\ witSings sNs) $
                  (\\ witSings sMs) $ \case
-    Lift uNs uMs f -> case uMs of
-                        UØ   -> \_ -> Ø
-                        US _ -> vecToProd getI uMs . liftT (getVF <$> f) . prodToVec I uNs
-                                  \\ uniformLength uMs
+    Lift uNs f -> _ . liftT f . prodToVec I uNs
+    -- case uMs of
+    --                 UØ   -> \_ -> Ø
+    --                 US _ -> vecToProd getI uMs . liftT (getVF <$> f) . prodToVec I uNs
+    --                           \\ uniformLength uMs
     GMul lM lO lN  -> \case
       x :< y :< Ø -> only (gmul lM lO lN x y)
     Transp _       -> only . transp . head'

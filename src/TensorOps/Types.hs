@@ -50,9 +50,9 @@ class NatKind k => Tensor (t :: [k] -> Type) where
     -- TODO: can we detach Vec from liftT ?
     liftT   :: SingI o
             -- => (Vec n (ElemT t) -> Vec m (ElemT t))
-            => (Vec m (Vec n (ElemT t) -> ElemT t))
+            => Vec n (ElemT t) -> ElemT t
             -> Vec n (t o)
-            -> Vec m (t o)
+            -> t o
     gmul    :: (SingI (Reverse os ++ ns), SingI (ms ++ ns))
             => Length ms
             -> Length os
@@ -91,17 +91,14 @@ class NatKind k => Tensor (t :: [k] -> Type) where
 type TensorOp = OpPipe TOp
 
 -- | A kludge to get around lack of impredicative types in Haskell
-newtype VFunc n = VF { getVF :: forall a. Floating a => Vec n a -> a }
+-- newtype VFunc n = VF { getVF :: forall a. Floating a => Vec n a -> a }
 
 data TOp :: [[k]] -> [[k]] -> Type where
-    -- | Lift any `R^N -> R^M` function over every element in a n-tensor list,
-    -- producing a m-tensor list.
-    Lift    :: Uniform o ns
-            -> Uniform o ms
-            -- -> (forall a. Floating a => Vec (Len ns) a -> Vec (Len ms) a)
-            -- -> (forall a. Floating a => Vec (Len ms) (Vec (Len ns) a -> a))
-            -> Vec (Len ms) (VFunc (Len ns))
-            -> TOp ns ms
+    -- | Lift any `R^N -> R` function element-by-element in a list of
+    -- tensors of the same size, to produce a single tensor of that size
+    Lift    :: Uniform n ns
+            -> (forall a. Floating a => Vec m a -> a)
+            -> TOp ns '[n]
     -- | Generalized tensor product
     GMul    :: Length ms
             -> Length os

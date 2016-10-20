@@ -26,12 +26,10 @@ import           Type.Family.List.Util
 import           Type.Family.Nat
 
 konst
-    :: forall n ns. ()
-    => Uniform n ns
-    -> (forall a. Floating a => a)
-    -> TOp '[] ns
-konst u x = Lift UØ u (vrep (I (VF $ \ØV -> x)))
-              \\ uniformLength u
+    :: forall o. ()
+    => (forall a. Floating a => a)
+    -> TOp '[] '[o]
+konst x = Lift UØ (I (\ØV -> x))
 {-# INLINE konst #-}
 
 map :: (forall a. Floating a => a -> a)

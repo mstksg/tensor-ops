@@ -127,15 +127,15 @@ instance
       , Nesting1 Sing  Distributive v
       , Eq1 (IndexN k)
       ) => Tensor (NTensor v a) where
-    type ElemT  (NTensor v a) = a
+    type ElemT (NTensor v a) = a
 
-    liftT
-        :: forall (n :: TCN.N) (m :: TCN.N) (o :: [k]). SingI o
-        => (TCV.Vec m (TCV.Vec n a -> a))
-        -> TCV.Vec n (NTensor v a o)
-        -> TCV.Vec m (NTensor v a o)
-    liftT f = fmap NTensor . liftNested f . fmap getNVec
-    {-# INLINE liftT #-}
+    -- liftT
+    --     :: forall (n :: TCN.N) (m :: TCN.N) (o :: [k]). SingI o
+    --     => (TCV.Vec m (TCV.Vec n a -> a))
+    --     -> TCV.Vec n (NTensor v a o)
+    --     -> TCV.Vec m (NTensor v a o)
+    -- liftT f = fmap NTensor . liftNested f . fmap getNVec
+    -- {-# INLINE liftT #-}
 
     transp
         :: forall ns. (SingI ns, SingI (Reverse ns))
