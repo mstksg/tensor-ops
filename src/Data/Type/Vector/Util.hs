@@ -120,7 +120,7 @@ vgenA = \case
 
 uniformVec
     :: Eq (f a)
-    => VecT (S m) f a
+    => VecT ('S m) f a
     -> Maybe (f a)
 uniformVec = \case
     x :* xs | getAll (vfoldMap (All . (== x)) xs) -> Just x

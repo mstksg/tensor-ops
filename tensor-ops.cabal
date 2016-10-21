@@ -29,8 +29,9 @@ library
                        Data.Vector.Sized
                        GHC.TypeLits.Util
                        TensorOps.BLAS
-                       TensorOps.Backend.NTensor
+                       TensorOps.BLAS.HMat
                        TensorOps.Backend.BTensor
+                       TensorOps.Backend.NTensor
                        TensorOps.Gradient
                        TensorOps.NatKind
                        TensorOps.Run
@@ -45,6 +46,7 @@ library
                      , distributive
                      , finite-typelits
                      , foldl
+                     , hmatrix >= 0.18
                      , mwc-random
                      , primitive
                      , reflection

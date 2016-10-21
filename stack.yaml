@@ -37,6 +37,13 @@ resolver: lts-7.2
 # will not be run. This is useful for tweaking upstream packages.
 packages:
 - '.'
+- location:
+    git: https://github.com/albertoruiz/hmatrix
+    commit: b32b37472559f202995e894f9a627871737d4619
+  subdirs:
+  - packages/base
+  extra-dep: true
+
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)

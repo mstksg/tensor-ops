@@ -50,9 +50,9 @@ import           Data.Type.Combinator
 import           Data.Type.Combinator.Util
 import           Data.Type.Index
 import           Data.Type.Length                    as TCL
-import           Data.Type.Length.Util               as TCL
+-- import           Data.Type.Length.Util               as TCL
 import           Data.Type.Product                   as TCP
-import           Data.Type.Product.Util              as TCP
+-- import           Data.Type.Product.Util              as TCP
 import           Data.Type.Sing
 import           Data.Type.SnocProd
 import           Data.Type.Uniform
@@ -454,11 +454,7 @@ gmul'
     :: forall ms os ns v a.
      ( Nesting1 Proxy Functor      v
      , Nesting1 Sing  Applicative  v
-     , Nesting1 Proxy Foldable     v
-     , Nesting1 Proxy Traversable  v
-     , Nesting1 Sing  Distributive v
      , SingI ns
-     , SingI (Reverse os)
      , Num a
      , Vec v
      )
@@ -468,7 +464,7 @@ gmul'
     -> Nested v (ms         ++ os) a
     -> Nested v (Reverse os ++ ns) a
     -> Nested v (ms         ++ ns) a
-gmul' lM lO _ x y = joinNested $ mapNVecSlices f lM x
+gmul' lM _ _ x y = joinNested $ mapNVecSlices f lM x
   where
     f   :: Nested v os a
         -> Nested v ns a

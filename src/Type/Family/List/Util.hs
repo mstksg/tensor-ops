@@ -15,8 +15,6 @@ import           Data.Type.Equality
 import           Data.Type.Length
 import           Type.Class.Witness
 import           Type.Family.List
-import           Type.Family.Nat
-import           Type.Family.Nat.Util
 import           Unsafe.Coerce
 
 reverseSnoc

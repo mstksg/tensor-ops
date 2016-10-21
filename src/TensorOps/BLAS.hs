@@ -67,9 +67,9 @@ class NatKind k => BLAS (b :: BShape k -> Type) where
     dot :: b ('BV n)        -- ^ x
         -> b ('BV n)        -- ^ y
         -> ElemB b          -- ^ x' y
-    norm
-        :: b ('BV n)        -- ^ x
-        -> ElemB b          -- ^ ||x||
+    -- norm
+    --     :: b ('BV n)        -- ^ x
+    --     -> ElemB b          -- ^ ||x||
     ger :: b ('BV n)        -- ^ x
         -> b ('BV m)        -- ^ y
         -> b ('BM n m)      -- ^ x y'
@@ -106,13 +106,14 @@ class NatKind k => BLAS (b :: BShape k -> Type) where
         => (Prod (IndexN k) (BShapeDims s) -> ElemB b -> f (ElemB b))
         -> b s
         -> f (b s)
-    -- faster: can we merge bgen and bgenRowsA?
+    -- TODO: can we merge bgen and bgenRowsA?
     bgenA
         :: Applicative f
-        => (Prod (IndexN k) (BShapeDims s) -> f (ElemB b))
+        => Sing s
+        -> (Prod (IndexN k) (BShapeDims s) -> f (ElemB b))
         -> f (b s)
     bgenRowsA
-        :: Applicative f
+        :: (Applicative f, SingI n, SingI m)
         => (IndexN k n -> f (b ('BV m)))
         -> f (b ('BM n m))
     eye :: b ('BM n n)
@@ -139,12 +140,13 @@ elemsB f = iElemsB (\_ x -> f x)
 
 bgen
     :: forall k (b :: BShape k -> Type) (s :: BShape k). BLAS b
-    => (Prod (IndexN k) (BShapeDims s) -> ElemB b)
+    => Sing s
+    -> (Prod (IndexN k) (BShapeDims s) -> ElemB b)
     -> b s
-bgen f = getI $ bgenA (I . f)
+bgen s f = getI $ bgenA s (I . f)
 
 bgenRows
-    :: BLAS b
+    :: (BLAS b, SingI n, SingI m)
     => (IndexN k n -> b ('BV m))
     -> b ('BM n m)
 bgenRows f = getI $ bgenRowsA (I . f)
