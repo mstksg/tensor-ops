@@ -77,6 +77,27 @@ curryV
 curryV f x xs = f (x :* xs)
 {-# INLINE curryV #-}
 
+curryV'
+    :: (Vec ('S n) a -> b)
+    -> a
+    -> Vec n a
+    -> b
+curryV' f x xs = f (I x :* xs)
+{-# INLINE curryV' #-}
+
+curryV2'
+    :: (Vec N2 a -> b)
+    -> a -> a -> b
+curryV2' f x y = f (I x :* I y :* ØV)
+{-# INLINE curryV2' #-}
+
+curryV3'
+    :: (Vec N3 a -> b)
+    -> a -> a -> a -> b
+curryV3' f x y z = f (I x :* I y :* I z :* ØV)
+{-# INLINE curryV3' #-}
+
+
 uncurryV
     :: (f a -> VecT n f a -> b)
     -> VecT ('S n) f a
@@ -84,6 +105,14 @@ uncurryV
 uncurryV f = \case
     x :* xs -> f x xs
 {-# INLINE uncurryV #-}
+
+uncurryV'
+    :: (a -> Vec n a -> b)
+    -> Vec ('S n) a
+    -> b
+uncurryV' f = \case
+    I x :* xs -> f x xs
+{-# INLINE uncurryV' #-}
 
 append'
     :: VecT n f a

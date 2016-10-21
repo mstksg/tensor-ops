@@ -14,27 +14,63 @@ module TensorOps.BLAS.HMat where
 import           Data.Kind
 import           Data.Singletons
 import           Data.Singletons.TypeLits
-import           Data.Type.Product
+import           Data.Type.Combinator
+import           Data.Type.Vector            (Vec, VecT(..))
+import           Data.Type.Vector.Util       (curryV2', curryV3')
 import           Numeric.LinearAlgebra
-import           Numeric.LinearAlgebra.Data as LA
+import           Numeric.LinearAlgebra.Data  as LA
+import           Numeric.LinearAlgebra.Devel
 import           TensorOps.BLAS
-import qualified Data.Finite                as DF
-import qualified Data.Finite.Internal       as DF
-import qualified Data.Vector                as V
-import qualified Data.Vector.Storable       as VS
+import qualified Data.Finite                 as DF
+import qualified Data.Finite.Internal        as DF
+import qualified Data.Vector.Storable        as VS
 
 data HMat :: Type -> BShape Nat -> Type where
-    HMV :: !(Vector a) -> HMat a ('BV n)
-    HMM :: !(Matrix a) -> HMat a ('BM n m)
+    HMV :: { unHMV :: !(Vector a) } -> HMat a ('BV n)
+    HMM :: { unHMM :: !(Matrix a) } -> HMat a ('BM n m)
 
-unHMV :: HMat a ('BV n) -> Vector a
-unHMV (HMV x) = x
-
-unHMM :: HMat a ('BM n m) -> Matrix a
-unHMM (HMM x) = x
+liftB'
+    :: (Numeric a)
+    => Sing s
+    -> (Vec n a -> a)
+    -> Vec n (HMat a s)
+    -> HMat a s
+liftB' s f xs = bgen s $ \i -> f (indexB i <$> xs)
 
 instance (Container Vector a, Numeric a) => BLAS (HMat a) where
     type ElemB (HMat a) = a
+
+    -- TODO: rewrite rules
+    -- write in parallel?
+    liftB
+        :: forall n m s. ()
+        => Sing s
+        -> Vec m (Vec n a -> a)
+        -> Vec n (HMat a s)
+        -> Vec m (HMat a s)
+    liftB s fs xs = fmap go fs
+      where
+        go :: (Vec n a -> a) -> HMat a s
+        go f = case xs of
+          ØV -> case s of
+            SBV sN    -> HMV $ konst (f ØV) ( fromIntegral (fromSing sN) )
+            SBM sN sM -> HMM $ konst (f ØV) ( fromIntegral (fromSing sN)
+                                            , fromIntegral (fromSing sM)
+                                            )
+          I x :* ØV -> case x of
+            HMV x' -> HMV (cmap (f . (:* ØV) . I) x')
+            HMM x' -> HMM (cmap (f . (:* ØV) . I) x')
+          I x :* I y :* ØV -> case x of
+            HMV x' -> case y of
+              HMV y' -> HMV $ VS.zipWith (curryV2' f) x' y'
+            HMM x' -> case y of
+              HMM y' -> HMM $ liftMatrix2 (VS.zipWith (curryV2' f)) x' y'
+          I x :* I y :* I z :* ØV -> case x of
+            HMV x' -> case y of
+              HMV y' -> case z of
+                HMV z' -> HMV $ VS.zipWith3 (curryV3' f) x' y' z'
+            _ -> liftB' s f xs
+          _ -> liftB' s f xs
 
     axpy α (HMV x) my
         = HMV
@@ -58,9 +94,9 @@ instance (Container Vector a, Numeric a) => BLAS (HMat a) where
         . scale α
         $ b
     indexB = \case
-        i :< Ø -> \case
+        PBV i -> \case
           HMV x -> x `atIndex` fromInteger (DF.getFinite i)
-        i :< j :< Ø -> \case
+        PBM i j -> \case
           HMM x -> x `atIndex` ( fromInteger (DF.getFinite i)
                                , fromInteger (DF.getFinite j)
                                )
@@ -73,13 +109,13 @@ instance (Container Vector a, Numeric a) => BLAS (HMat a) where
                      $ x
     iElemsB f = \case
         HMV x -> fmap (HMV . fromList)
-               . traverse (\(i,e) -> f (DF.Finite i :< Ø) e)
+               . traverse (\(i,e) -> f (PBV (DF.Finite i)) e)
                . zip [0..]
                . LA.toList
                $ x
         HMM x -> fmap (HMM . fromLists)
                . traverse (\(i,rs) ->
-                     traverse (\(j, e) -> f (DF.Finite i :< DF.Finite j :< Ø) e)
+                     traverse (\(j, e) -> f (PBM (DF.Finite i) (DF.Finite j)) e)
                    . zip [0..]
                    $ rs
                  )
@@ -89,11 +125,11 @@ instance (Container Vector a, Numeric a) => BLAS (HMat a) where
     -- TODO: can be implemented in parallel maybe?
     bgenA = \case
       SBV sN -> \f -> fmap (HMV . fromList)
-                    . traverse (\i -> f (DF.Finite i :< Ø))
+                    . traverse (\i -> f (PBV (DF.Finite i)))
                     $ [0 .. fromSing sN - 1]
       SBM sN sM -> \f -> fmap (HMM . fromLists)
                        . traverse (\(i, js) ->
-                           traverse (\j -> f (DF.Finite i :< DF.Finite j :< Ø)) js
+                           traverse (\j -> f (PBM (DF.Finite i) (DF.Finite j))) js
                          )
                        . zip [0 .. fromSing sM - 1]
                        $ repeat [0 .. fromSing sN - 1]
@@ -104,3 +140,8 @@ instance (Container Vector a, Numeric a) => BLAS (HMat a) where
     bgenRowsA f = fmap (HMM . fromRows)
                 . traverse (fmap unHMV . f . DF.Finite)
                 $ [0 .. fromSing (sing @Nat @n) - 1]
+
+    eye = HMM . ident . fromIntegral . fromSing
+    diagB = HMM . diag . unHMV
+    getDiagB = HMV . takeDiag . unHMM
+    traceB = sumElements . takeDiag . unHMM

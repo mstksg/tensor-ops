@@ -20,10 +20,13 @@
 module TensorOps.BLAS
   ( BShape(..)
   , BShapeDims
+  , BShapeP(..)
+  , bShapeProd, pbvProd, pbmProd
   , BLAS(..)
   , Sing(..)
   , SBShape
   , elemsB
+  , zipB
   , bgen
   , bgenRows
   ) where
@@ -35,6 +38,7 @@ import           Data.Singletons.TH
 import           Data.Type.Combinator
 import           Data.Type.Product              as TCP
 import           Data.Type.Sing
+import           Data.Type.Vector               (VecT(..), Vec)
 import           TensorOps.NatKind
 import qualified Data.Type.Vector               as TCV
 
@@ -49,6 +53,30 @@ type family BShapeDims (s :: BShape k) = (ks :: [k]) | ks -> s where
 
 genDefunSymbols [''BShapeDims]
 
+data BShapeP :: (k -> Type) -> BShape k -> Type where
+    PBV :: { unPBV :: !(f a) } -> BShapeP f ('BV a)
+    PBM :: { unPBMn :: f a
+           , unPBMm :: f b
+           } -> BShapeP f ('BM a b)
+
+-- TODO: rewrite rules
+bShapeProd
+    :: BShapeP f s
+    -> Prod f (BShapeDims s)
+bShapeProd = \case
+    PBV x   -> x :< Ø
+    PBM x y -> x :< y :< Ø
+
+pbvProd
+    :: BShapeP f ('BV a)
+    -> Prod f '[a]
+pbvProd (PBV x) = x :< Ø
+
+pbmProd
+    :: BShapeP f ('BM a b)
+    -> Prod f '[a,b]
+pbmProd (PBM x y) = x :< y :< Ø
+
 -- bShapeDims :: BShape a -> [a]
 -- bShapeDims (BV x  ) = [x]
 -- bShapeDims (BM x y) = [x,y]
@@ -56,9 +84,10 @@ genDefunSymbols [''BShapeDims]
 class NatKind k => BLAS (b :: BShape k -> Type) where
     type ElemB b :: Type
     liftB
-        :: TCV.Vec m (TCV.Vec n (ElemB b) -> ElemB b)
-        -> TCV.Vec n (b s)
-        -> TCV.Vec m (b s)
+        :: Sing s
+        -> Vec m (Vec n (ElemB b) -> ElemB b)
+        -> Vec n (b s)
+        -> Vec m (b s)
     axpy
         :: ElemB b          -- ^ α
         -> b ('BV n)        -- ^ x
@@ -79,6 +108,7 @@ class NatKind k => BLAS (b :: BShape k -> Type) where
         -> b ('BV m)        -- ^ x
         -> Maybe (ElemB b, b ('BV n))        -- ^ β, y
         -> b ('BV n)        -- ^ α A x + β y
+    -- TODO: better way to scale matrices
     gemm
         :: ElemB b          -- ^ α
         -> b ('BM n o)      -- ^ A
@@ -86,7 +116,7 @@ class NatKind k => BLAS (b :: BShape k -> Type) where
         -> Maybe (ElemB b, b ('BM n m))      -- ^ β, C
         -> b ('BM n m)      -- ^ α A B + β C
     indexB
-        :: Prod (IndexN k) (BShapeDims s)
+        :: BShapeP (IndexN k) s
         -> b s
         -> ElemB b
     indexRowB
@@ -103,33 +133,31 @@ class NatKind k => BLAS (b :: BShape k -> Type) where
         -> f (b ('BM n o))
     iElemsB
         :: Applicative f
-        => (Prod (IndexN k) (BShapeDims s) -> ElemB b -> f (ElemB b))
+        => (BShapeP (IndexN k) s -> ElemB b -> f (ElemB b))
         -> b s
         -> f (b s)
     -- TODO: can we merge bgen and bgenRowsA?
     bgenA
         :: Applicative f
         => Sing s
-        -> (Prod (IndexN k) (BShapeDims s) -> f (ElemB b))
+        -> (BShapeP (IndexN k) s -> f (ElemB b))
         -> f (b s)
     bgenRowsA
-        :: (Applicative f, SingI n, SingI m)
+        :: (Applicative f, SingI n)
         => (IndexN k n -> f (b ('BV m)))
         -> f (b ('BM n m))
-    eye :: b ('BM n n)
-    zero :: b s
-    zipB
-        :: (ElemB b -> ElemB b -> ElemB b)
-        -> b s
-        -> b s
-        -> b s
-    -- konstB :: ElemB b -> b s
+    eye :: Sing n
+        -> b ('BM n n)
     traceB
         :: b ('BM n n)
         -> ElemB b
     diagB
         :: b ('BV n)
         -> b ('BM n n)
+    getDiagB
+        :: b ('BM n n)
+        -> b ('BV n)
+    -- zero :: b s
 
 elemsB
     :: (Applicative f, BLAS b)
@@ -141,13 +169,23 @@ elemsB f = iElemsB (\_ x -> f x)
 bgen
     :: forall k (b :: BShape k -> Type) (s :: BShape k). BLAS b
     => Sing s
-    -> (Prod (IndexN k) (BShapeDims s) -> ElemB b)
+    -> (BShapeP (IndexN k) s -> ElemB b)
     -> b s
 bgen s f = getI $ bgenA s (I . f)
 
 bgenRows
-    :: (BLAS b, SingI n, SingI m)
+    :: (BLAS b, SingI n)
     => (IndexN k n -> b ('BV m))
     -> b ('BM n m)
 bgenRows f = getI $ bgenRowsA (I . f)
 
+zipB
+    :: BLAS b
+    => Sing s
+    -> (ElemB b -> ElemB b -> ElemB b)
+    -> b s
+    -> b s
+    -> b s
+zipB s f x y = getI . TCV.head'
+             $ liftB s (I (\(I x' :* I y' :* ØV) -> f x' y') :* ØV)
+                       (I x :* I y :* ØV)
