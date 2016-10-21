@@ -16,8 +16,8 @@
 
 module TensorOps.Backend.NTensor
   ( NTensor
-  , LTensor
-  , VTensor
+  , NTensorL
+  , NTensorV
   )
   where
 
@@ -216,5 +216,5 @@ instance
     {-# INLINE ixRows #-}
 
 
-type LTensor = NTensor (Flip2 TCV.VecT   I) Double
-type VTensor = NTensor (Flip2 VS.VectorT I) Double
+type NTensorL = NTensor (Flip2 TCV.VecT   I) Double
+type NTensorV = NTensor (Flip2 VS.VectorT I) Double

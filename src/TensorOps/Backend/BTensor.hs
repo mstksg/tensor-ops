@@ -13,9 +13,12 @@
 
 module TensorOps.Backend.BTensor
   ( BTensor
+  , BTensorL, BTensorV
+  , HMat
   ) where
 
 import           Control.Applicative
+import           Control.DeepSeq
 import           Data.Distributive
 import           Data.Kind
 import           Data.Monoid
@@ -23,6 +26,7 @@ import           Data.Nested hiding             (unScalar, unVector)
 import           Data.Singletons
 import           Data.Singletons.Prelude hiding (Reverse, Head, sReverse, (:-))
 import           Data.Type.Combinator
+import           Data.Type.Combinator.Util
 import           Data.Type.Length               as TCL
 import           Data.Type.Length.Util          as TCL
 import           Data.Type.Nat
@@ -32,6 +36,7 @@ import           Data.Type.Sing
 import           Data.Type.Uniform
 import           Statistics.Distribution
 import           TensorOps.BLAS
+import           TensorOps.BLAS.HMat
 import           TensorOps.NatKind
 import           TensorOps.Types
 import           Type.Class.Higher
@@ -42,6 +47,7 @@ import           Type.Family.List.Util
 import           Type.Family.Nat
 import qualified Data.Type.Vector               as TCV
 import qualified Data.Type.Vector.Util          as TCV
+import qualified Data.Vector.Sized              as VS
 
 
 data BTensor :: (k -> Type -> Type) -> (BShape k -> Type) -> [k] -> Type where
@@ -50,6 +56,14 @@ data BTensor :: (k -> Type -> Type) -> (BShape k -> Type) -> [k] -> Type where
     BTM :: { unMatrix :: !(b ('BM n m)) } -> BTensor v b '[n,m]
     BTN :: { unNested :: !(v n (BTensor v b (o ': m ': ns))) }
         -> BTensor v b (n ': o ': m ': ns)
+
+type BTensorL = BTensor (Flip2 TCV.VecT   I)
+type BTensorV = BTensor (Flip2 VS.VectorT I)
+
+instance (NFData (ElemB b), Nesting Proxy NFData v, Nesting Proxy NFData b) => NFData (BTensor v b js) where
+    rnf = \case
+      BTS x  -> deepseq x  ()
+      BTV xs -> deepseq xs ()
 
 instance ( BLAS b
          , Vec v

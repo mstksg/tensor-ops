@@ -9,7 +9,9 @@
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module TensorOps.BLAS.HMat where
+module TensorOps.BLAS.HMat
+  ( HMat
+  ) where
 
 import           Data.Kind
 import           Data.Singletons

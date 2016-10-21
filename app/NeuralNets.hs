@@ -17,6 +17,7 @@ import           Control.DeepSeq
 import           Control.Exception
 import           Control.Monad
 import           Control.Monad.Primitive
+import           Data.Foldable
 import           Data.Kind
 import           Data.List hiding                ((\\))
 import           Data.Maybe
@@ -33,11 +34,13 @@ import           Data.Type.Product               as TCP
 import           Data.Type.Product.Util
 import           Data.Type.Sing
 import           Data.Type.Uniform
+import           Data.Witherable
 import           Options.Applicative
 import           Prelude hiding                  ((.), id)
 import           Statistics.Distribution.Normal
 import           Statistics.Distribution.Uniform
 import           System.Random.MWC
+import           TensorOps.Backend.BTensor
 import           TensorOps.Backend.NTensor
 import           TensorOps.Gradient
 import           TensorOps.NatKind
@@ -48,6 +51,8 @@ import           Type.Class.Higher
 import           Type.Class.Witness hiding       (inner)
 import           Type.Family.List
 import           Type.Family.List.Util
+import qualified Data.Map.Strict                 as M
+import qualified Data.Set                        as S
 import qualified TensorOps.TOp                   as TO
 import qualified TensorOps.Tensor                as TT
 
@@ -217,11 +222,11 @@ netTest _ rate n hs g = withSingI (sFromNat @k (SNat @1)) $
     v `inCircle` (o, r) = let d = TT.zip2 (-) v o
                           in  TT.unScalar (d `TT.dot` d) <= r**2
 
+
 data Opts = O { oRate    :: Double
               , oSamples :: Int
               , oNetwork :: [Integer]
-              , oNoList  :: Bool
-              , oNoVect :: Bool
+              , oTests   :: S.Set TestT
               }
 
 opts :: Parser Opts
@@ -240,8 +245,7 @@ opts = O <$> option auto
               <> help "List of hidden layer sizes"
               <> value [8,8] <> showDefault
                )
-         <*> switch ( long "nolist" <> help "Do not run the nested linked list backend")
-         <*> switch ( long "novect" <> help "Do not run the nested vector backend")
+         <*> filterAOf witherSet parseTest allTests
 
 main :: IO ()
 main = withSystemRandom $ \g -> do
@@ -254,12 +258,31 @@ main = withSystemRandom $ \g -> do
                             )
 
     printf "rate: %f | samps: %d | layers: %s\n" oRate oSamples (show oNetwork)
-    unless oNoList $ do
-      putStrLn "Training nested linked list network..."
-      putStrLn =<< netTest (Proxy @LTensor) oRate oSamples oNetwork g
-    unless oNoVect $ do
-      putStrLn "Training nested vector network..."
-      putStrLn =<< netTest (Proxy @VTensor) oRate oSamples oNetwork g
+
+    forM_ oTests $ \t -> do
+      printf "Training %s network ...\n" (ttLong t)
+      let tester :: Double -> Int -> [Integer] -> GenIO -> IO String
+          tester = case t of
+            TTNested TVList -> netTest (Proxy @NTensorL)
+            TTNested TVVect -> netTest (Proxy @NTensorV)
+            TTBLAS   TBHMat -> netTest (Proxy @(BTensorV (HMat Double)))
+      print ()
+
+--       r <- case t of
+--         TTNested TVList -> netTest (Proxy @LTensor) oRate oSamples oNetwork g
+--     -> Double
+--     -> Int
+--     -> [Integer]
+--     -> GenIO
+-- --     -> IO String
+--       putStrLn =<< netTest
+
+    -- unless oNoList $ do
+    --   putStrLn "Training nested linked list network..."
+    --   putStrLn =<< netTest (Proxy @LTensor) oRate oSamples oNetwork g
+    -- unless oNoVect $ do
+    --   putStrLn "Training nested vector network..."
+    --   putStrLn =<< netTest (Proxy @VTensor) oRate oSamples oNetwork g
 
 time
     :: NFData a
@@ -273,3 +296,49 @@ time x = do
 
 
 
+witherSet
+    :: Ord b => Filter (S.Set a) (S.Set b) a b
+witherSet f = fmap S.fromList . wither f . S.toList
+
+data TestT = TTNested TestV
+           | TTBLAS   TestB
+           deriving (Show, Eq, Ord)
+data TestV = TVList
+           | TVVect
+           deriving (Show, Eq, Ord)
+data TestB = TBHMat
+           deriving (Show, Eq, Ord)
+
+allTests :: S.Set TestT
+allTests = S.fromList $ ([TTNested] <*> [TVList, TVVect]) ++ [TTBLAS TBHMat]
+
+parseTest :: TestT -> Parser Bool
+parseTest t = switch ( long (ttShort t)
+                    <> help (printf "Test \"%s\" backend" (ttLong t))
+                     )
+
+ttShort
+    :: TestT
+    -> String
+ttShort = \case
+    TTNested v -> 'B' : 'n' : tvShort v
+    TTBLAS   b -> 'B' : 'b' : tbShort b
+  where
+    tvShort = \case
+      TVList -> "l"
+      TVVect -> "v"
+    tbShort = \case
+      TBHMat -> ""
+
+ttLong
+    :: TestT
+    -> String
+ttLong = \case
+    TTNested v -> printf "Nested %s" (tvLong v)
+    TTBLAS   b -> printf "BLAS %s" (tbLong b)
+  where
+    tvLong = \case
+      TVList -> "List"
+      TVVect -> "Vector"
+    tbLong = \case
+      TBHMat -> "HMatrix"
