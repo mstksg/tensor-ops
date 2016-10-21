@@ -1,0 +1,728 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE EmptyCase            #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE FlexibleContexts     #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE GADTs                #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE InstanceSigs         #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE KindSignatures       #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase           #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE RankNTypes           #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables  #-}</span><span>
+</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies         #-}</span><span>
+</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE TypeInType           #-}</span><span>
+</span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators        #-}</span><span>
+</span><a name="line-12"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><a name="line-13"></a><span>
+</span><a name="line-14"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Backend</span><span class="hs-operator">.</span><span class="hs-identifier">BTensor</span><span>
+</span><a name="line-15"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="TensorOps.Backend.BTensor.html#BTensor"><span class="hs-identifier hs-type">BTensor</span></a><span>
+</span><a name="line-16"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Backend.BTensor.html#BTensorL"><span class="hs-identifier hs-type">BTensorL</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.Backend.BTensor.html#BTensorV"><span class="hs-identifier hs-type">BTensorV</span></a><span>
+</span><a name="line-17"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.HMat.html#HMat"><span class="hs-identifier hs-type">HMat</span></a><span>
+</span><a name="line-18"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-19"></a><span>
+</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Applicative</span><span>
+</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">DeepSeq</span><span>
+</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Distributive</span><span>
+</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
+</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Monoid</span><span>
+</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Nested.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Nested</span></a><span> </span><span class="hs-keyword">hiding</span><span>             </span><span class="hs-special">(</span><a href="Data.Nested.html#unScalar"><span class="hs-identifier hs-var">unScalar</span></a><span class="hs-special">,</span><span> </span><a href="Data.Nested.html#unVector"><span class="hs-identifier hs-var">unVector</span></a><span class="hs-special">)</span><span>
+</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
+</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">Prelude</span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Reverse</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Head</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">sReverse</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="hs-operator hs-type">:-</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
+</span><a name="line-29"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Combinator.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-30"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCL</span><span>
+</span><a name="line-31"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Length.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>          </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCL</span><span>
+</span><a name="line-32"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-33"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span>              </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCP</span><span>
+</span><a name="line-34"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Product.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>         </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCP</span><span>
+</span><a name="line-35"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Sing.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Sing</span></a><span>
+</span><a name="line-36"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Uniform.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Uniform</span></a><span>
+</span><a name="line-37"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Statistics</span><span class="hs-operator">.</span><span class="hs-identifier">Distribution</span><span>
+</span><a name="line-38"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.BLAS.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">BLAS</span></a><span>
+</span><a name="line-39"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.BLAS.HMat.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">BLAS</span><span class="hs-operator">.</span><span class="hs-identifier">HMat</span></a><span>
+</span><a name="line-40"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.NatKind.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">NatKind</span></a><span>
+</span><a name="line-41"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Types.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span></a><span>
+</span><a name="line-42"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span>
+</span><a name="line-43"></a><span class="hs-keyword">import</span><span>           </span><a href="Type.Class.Higher.Util.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-44"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
+</span><a name="line-45"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
+</span><a name="line-46"></a><span class="hs-keyword">import</span><span>           </span><a href="Type.Family.List.Util.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-47"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-48"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
+</span><a name="line-49"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="Data.Type.Vector.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>          </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
+</span><a name="line-50"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="Data.Vector.Sized.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span></a><span>              </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">VS</span><span>
+</span><a name="line-51"></a><span>
+</span><a name="line-52"></a><span>
+</span><a name="line-53"></a><span class="hs-keyword">data</span><span> </span><a name="BTensor"><a href="TensorOps.Backend.BTensor.html#BTensor"><span class="hs-identifier">BTensor</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><a href="#local-1627709194"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><a href="TensorOps.BLAS.html#BShape"><span class="hs-identifier hs-type">BShape</span></a><span> </span><a href="#local-1627709194"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><a href="#local-1627709194"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-54"></a><span>    </span><a name="BTS"><a href="TensorOps.Backend.BTensor.html#BTS"><span class="hs-identifier">BTS</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">{</span><span> </span><a name="unScalar"><a href="TensorOps.Backend.BTensor.html#unScalar"><span class="hs-identifier">unScalar</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><a href="TensorOps.BLAS.html#ElemB"><span class="hs-identifier hs-type">ElemB</span></a><span> </span><a href="#local-1627709195"><span class="hs-identifier hs-type">b</span></a><span class="hs-special">)</span><span>     </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Backend.BTensor.html#BTensor"><span class="hs-identifier hs-type">BTensor</span></a><span> </span><a href="#local-1627709196"><span class="hs-identifier hs-type">v</span></a><span> </span><a href="#local-1627709195"><span class="hs-identifier hs-type">b</span></a><span> </span><span class="hs-char">'[]
+    BTV :: { unVector :: !(b ('BV n))   } -&gt; BTensor v b '[n]
+    BTM :: { unMatrix :: !(b ('BM n m)) } -&gt; BTensor v b '[n,m]
+    BTN :: { unNested :: !(v n (BTensor v b (o ': m ': ns))) }
+        -&gt; BTensor v b (n ': o ': m ': ns)
+
+type BTensorL = BTensor (Flip2 TCV.VecT   I)
+type BTensorV = BTensor (Flip2 VS.VectorT I)
+
+-- instance (NFData (ElemB b), Nesting Proxy NFData v, Nesting Proxy NFData b) =&gt; NFData (BTensor v b js) where
+--     rnf = \case
+--       BTS x  -&gt; deepseq x  ()
+--       BTV xs -&gt; deepseq xs ()
+
+instance ( BLAS b
+         , Vec v
+         , Nesting1 Proxy Functor v
+         , Nesting1 Sing Applicative v
+         , SingI ns
+         , Num (ElemB b)
+         )
+        =&gt; Num (BTensor v b ns) where
+    (+) = zipBase sing
+                  (+)
+                  (\_          xs ys -&gt; axpy 1 xs (Just ys))
+                  (\(SBM _ sM) xs ys -&gt; gemm 1 xs (eye sM) (Just (1, ys)))
+    (-) = zipBase sing
+                  (-)
+                  (\_          xs ys -&gt; axpy (-1) ys (Just xs))
+                  (\(SBM _ sM) xs ys -&gt; gemm 1 xs (eye sM) (Just (-1, ys)))
+    (*) = zipBTensorElems sing (*)
+    negate = mapBase sing
+                     negate
+                     (\_          xs -&gt; axpy (-1) xs Nothing)
+                     (\(SBM _ sM) xs -&gt; gemm 1 xs (eye sM) Nothing)
+    abs    = mapBTensorElems abs
+    signum = mapBTensorElems signum
+    fromInteger i = genBTensor sing $ \_ -&gt; fromInteger i
+
+-- | TODO: add RULES pragmas so that this can be done without checking
+-- lengths at runtime in the common case that the lengths are known at
+-- compile-time.
+--
+-- Also, totally forgot about matrix-scalar multiplication here, but there
+-- isn't really any way of making it work without a lot of empty cases.
+-- should probably handle one level up.
+dispatchBLAS
+    :: forall b ms os ns v. (Floating (ElemB b), BLAS b)
+    =&gt; MaxLength N1 ms
+    -&gt; MaxLength N1 os
+    -&gt; MaxLength N1 ns
+    -&gt; BTensor v b (ms         ++ os)
+    -&gt; BTensor v b (Reverse os ++ ns)
+    -&gt; BTensor v b (ms         ++ ns)
+dispatchBLAS lM lO lN v r = case (lM, lO, lN) of
+    (MLZ    , MLZ    , MLZ    ) -&gt; case (v, r) of
+      -- scalar-scalar
+      (BTS x, BTS y) -&gt; BTS $ x * y
+    (MLZ    , MLZ    , MLS MLZ) -&gt; case (v, r) of
+      -- scalar-vector
+      (BTS x, BTV y) -&gt; BTV $ axpy x y Nothing
+    (MLZ    , MLS MLZ, MLZ    ) -&gt; case (v, r) of
+      -- dot
+      (BTV x, BTV y) -&gt; BTS $ x `dot` y
+    (MLZ    , MLS MLZ, MLS MLZ) -&gt; case (v, r) of
+      -- vector-matrix
+      -- TODO: transpose?
+      (BTV x, BTM y) -&gt; BTV $ gemv 1 (transpB y) x Nothing
+    (MLS MLZ, MLZ    , MLZ    ) -&gt; case (v, r) of
+      -- vector-scalar
+      (BTV x, BTS y) -&gt; BTV $ axpy y x Nothing
+    (MLS MLZ, MLZ    , MLS MLZ) -&gt; case (v, r) of
+      -- vector-scalar
+      (BTV x, BTV y) -&gt; BTM $ ger x y
+    (MLS MLZ, MLS MLZ, MLZ    ) -&gt; case (v, r) of
+      -- matrx-vector
+      (BTM x, BTV y) -&gt; BTV $ gemv 1 x y Nothing
+    (MLS MLZ, MLS MLZ, MLS MLZ) -&gt; case (v, r) of
+      -- matrix-matrix
+      (BTM x, BTM y) -&gt; BTM $ gemm 1 x y Nothing
+
+mapRows
+    :: forall k (v :: k -&gt; Type -&gt; Type) ns ms os b. (Vec v, BLAS b)
+    =&gt; Sing ns
+    -&gt; Length os
+    -&gt; (BTensor v b ms -&gt; BTensor v b os)
+    -&gt; BTensor v b (ns ++ ms)
+    -&gt; BTensor v b (ns ++ os)
+mapRows sN lO f = getI . bRows sN lO (I . f)
+
+
+bRows
+    :: forall k (v :: k -&gt; Type -&gt; Type) ns ms os b f. (Applicative f, Vec v, BLAS b)
+    =&gt; Sing ns
+    -&gt; Length os
+    -&gt; (BTensor v b ms -&gt; f (BTensor v b os))
+    -&gt; BTensor v b (ns ++ ms)
+    -&gt; f (BTensor v b (ns ++ os))
+bRows sN lO f = bIxRows sN lO (\_ -&gt; f)
+
+mapIxRows
+    :: forall k (v :: k -&gt; Type -&gt; Type) ns ms os b. (Vec v, BLAS b)
+    =&gt; Sing ns
+    -&gt; Length os
+    -&gt; (Prod (IndexN k) ns -&gt; BTensor v b ms -&gt; BTensor v b os)
+    -&gt; BTensor v b (ns ++ ms)
+    -&gt; BTensor v b (ns ++ os)
+mapIxRows sN lO f = getI . bIxRows sN lO (\i -&gt; I . f i)
+
+foldMapIxRows
+    :: forall k (v :: k -&gt; Type -&gt; Type) ns ms m b. (Vec v, Monoid m, BLAS b)
+    =&gt; Sing ns
+    -&gt; (Prod (IndexN k) ns -&gt; BTensor v b ms -&gt; m)
+    -&gt; BTensor v b (ns ++ ms)
+    -&gt; m
+foldMapIxRows s f = getConst . bIxRows s LZ (\i -&gt; Const . f i)
+
+bIxRows
+    :: forall k (v :: k -&gt; Type -&gt; Type) ns ms os b f. (Applicative f, Vec v, BLAS b)
+    =&gt; Sing ns
+    -&gt; Length os
+    -&gt; (Prod (IndexN k) ns -&gt; BTensor v b ms -&gt; f (BTensor v b os))
+    -&gt; BTensor v b (ns ++ ms)
+    -&gt; f (BTensor v b (ns ++ os))
+bIxRows = \case
+    SNil   -&gt; \_  f -&gt; f &#216;
+    s `SCons` ss -&gt; \lO f -&gt; \case
+      BTV xs -&gt; case ss of
+        -- ns ~ '[n]
+        -- ms ~ '[]
+        SNil -&gt; case lO of
+          -- ns ++ os ~ '[n]
+          LZ        -&gt; BTV &lt;$&gt; iElemsB (\i -&gt; fmap unScalar . f (pbvProd i) . BTS) xs
+          -- ns ++ os ~ '[n,m]
+          LS LZ     -&gt; BTM &lt;$&gt; bgenRowsA (\i -&gt; unVector &lt;$&gt; f (i :&lt; &#216;) (BTS $ indexB (PBV i) xs))
+                         \\ s
+          LS (LS _) -&gt; BTN &lt;$&gt; vGenA s (\i -&gt; f (i :&lt; &#216;) (BTS $ indexB (PBV i) xs))
+      BTM xs -&gt; case ss of
+        -- ns ~ '[n]
+        -- ms ~ '[m]
+        SNil -&gt; case lO of
+          -- ns ++ os ~ '[n]
+          LZ        -&gt; BTV &lt;$&gt; bgenA (SBV s) (\(PBV i) -&gt; unScalar &lt;$&gt; f (i :&lt; &#216;) (BTV (indexRowB i xs)))
+          -- ns ++ os ~ '[n,o]
+          LS LZ     -&gt; BTM &lt;$&gt; iRowsB (\i -&gt; fmap unVector . f (i :&lt; &#216;) . BTV) xs
+          LS (LS _) -&gt; BTN &lt;$&gt; vGenA s (\i -&gt; f (i :&lt; &#216;) (BTV (indexRowB i xs)))
+        -- ns ~ '[n,m]
+        -- ms ~ '[]
+        s' `SCons` ss' -&gt; (\\ s') $ case ss' of
+          SNil -&gt; case lO of
+            LZ   -&gt; BTM &lt;$&gt; iElemsB (\i -&gt; fmap unScalar . f (pbmProd i) . BTS) xs
+            LS _ -&gt; BTN &lt;$&gt;
+                      vGenA s (\i -&gt;
+                          btn lO &lt;$&gt;
+                            vGenA s' (\j -&gt;
+                                f (i :&lt; j :&lt; &#216;) (BTS (indexB (PBM i j) xs))
+                              )
+                        )
+      BTN xs -&gt; (\\ s) $
+          fmap (btn (singLength ss `TCL.append'` lO))
+        . vITraverse (\i -&gt; bIxRows ss lO (\is -&gt; f (i :&lt; is)))
+        $ xs
+
+indexRowBTensor
+    :: forall k (b :: BShape k -&gt; Type) v ns ms.
+     ( BLAS b
+     , Vec v
+     )
+    =&gt; Prod (IndexN k) ns
+    -&gt; BTensor v b (ns ++ ms)
+    -&gt; BTensor v b ms
+indexRowBTensor = \case
+    &#216;       -&gt; id
+    i :&lt; is -&gt; \case
+      BTV xs -&gt; case is of
+        &#216;      -&gt; BTS $ indexB    (PBV i)   xs
+      BTM xs -&gt; case is of
+        &#216;      -&gt; BTV $ indexRowB i         xs
+        j :&lt; &#216; -&gt; BTS $ indexB    (PBM i j) xs
+      BTN xs -&gt; indexRowBTensor is (vIndex i xs)
+
+mapBTensorElems
+    :: (Vec v, BLAS b)
+    =&gt; (ElemB b -&gt; ElemB b)
+    -&gt; BTensor v b ns
+    -&gt; BTensor v b ns
+mapBTensorElems f = getI . bTensorElems (I . f)
+
+bTensorElems
+    :: forall k (v :: k -&gt; Type -&gt; Type) ns b f. (Applicative f, Vec v, BLAS b)
+    =&gt; (ElemB b -&gt; f (ElemB b))
+    -&gt; BTensor v b ns
+    -&gt; f (BTensor v b ns)
+bTensorElems f = \case
+    BTS x  -&gt; BTS &lt;$&gt; f x
+    BTV xs -&gt; BTV &lt;$&gt; elemsB f xs
+    BTM xs -&gt; BTM &lt;$&gt; elemsB f xs
+    BTN xs -&gt; BTN &lt;$&gt; vITraverse (\_ x -&gt; bTensorElems f x) xs
+
+ifoldMapBTensor
+    :: forall k (v :: k -&gt; Type -&gt; Type) ns m b. (Monoid m, Vec v, BLAS b)
+    =&gt; (Prod (IndexN k) ns -&gt; ElemB b -&gt; m)
+    -&gt; BTensor v b ns
+    -&gt; m
+ifoldMapBTensor f = getConst . bTensorIxElems (\i -&gt; Const . f i)
+
+bTensorIxElems
+    :: forall k (v :: k -&gt; Type -&gt; Type) ns b f. (Applicative f, Vec v, BLAS b)
+    =&gt; (Prod (IndexN k) ns -&gt; ElemB b -&gt; f (ElemB b))
+    -&gt; BTensor v b ns
+    -&gt; f (BTensor v b ns)
+bTensorIxElems f = \case
+    BTS x  -&gt; BTS &lt;$&gt; f &#216; x
+    BTV xs -&gt; BTV &lt;$&gt; iElemsB (f . pbvProd) xs
+    BTM xs -&gt; BTM &lt;$&gt; iElemsB (f . pbmProd) xs
+    BTN xs -&gt; BTN &lt;$&gt; vITraverse (\i -&gt; bTensorIxElems (\is -&gt; f (i :&lt; is))) xs
+
+zipBTensorElems
+    :: forall v b ns. (BLAS b, Nesting1 Sing Applicative v)
+    =&gt; Sing ns
+    -&gt; (ElemB b -&gt; ElemB b -&gt; ElemB b)
+    -&gt; BTensor v b ns
+    -&gt; BTensor v b ns
+    -&gt; BTensor v b ns
+zipBTensorElems = \case
+    SNil -&gt; \f -&gt; \case
+      BTS x -&gt; \case
+        BTS y -&gt; BTS (f x y)
+    sN `SCons` SNil -&gt; \f -&gt; \case
+      BTV xs -&gt; \case
+        BTV ys -&gt; BTV (zipB (SBV sN) f xs ys)
+    sN `SCons` (sM `SCons` SNil) -&gt; \f -&gt; \case
+      BTM xs -&gt; \case
+        BTM ys -&gt; BTM (zipB (SBM sN sM) f xs ys)
+    (s :: Sing k) `SCons` ss@(_ `SCons` (_ `SCons` _)) -&gt; \f -&gt; \case
+      BTN xs -&gt; \case
+        BTN ys -&gt; BTN (zipBTensorElems ss f &lt;$&gt; xs &lt;*&gt; ys)
+                    \\ (nesting1 s :: Wit (Applicative (v k)))
+
+liftBTensor
+    :: forall v b ns m n.
+     ( BLAS b
+     , Nesting1 Proxy Functor      v
+     , Nesting1 Sing  Distributive v
+     )
+    =&gt; Sing ns
+    -&gt; TCV.Vec m (TCV.Vec n (ElemB b) -&gt; ElemB b)
+    -&gt; TCV.Vec n (BTensor v b ns)
+    -&gt; TCV.Vec m (BTensor v b ns)
+liftBTensor = \case
+    SNil                         -&gt; \fs xs -&gt;
+        let xs' = unScalar &lt;$&gt; xs
+        in  BTS . ($ xs') &lt;$&gt; fs
+    sN `SCons` SNil              -&gt; \fs xs -&gt;
+        let xs' = unVector &lt;$&gt; xs
+        in  BTV &lt;$&gt; liftB (SBV sN)    fs xs'
+    sN `SCons` (sM `SCons` SNil) -&gt; \fs xs -&gt;
+        let xs' = unMatrix &lt;$&gt; xs
+        in  BTM &lt;$&gt; liftB (SBM sN sM) fs xs'
+    (s :: Sing k) `SCons` ss@(_ `SCons` (_ `SCons` _)) -&gt; \fs xs -&gt;
+        let xs' = unNested &lt;$&gt; xs
+        in  (\\ (nesting1 s     :: Wit (Distributive (v k)))) $
+              flip fmap fs $ \f -&gt;
+                BTN . fmap (getI . TCV.head') $
+                  TCV.liftVecD (liftBTensor ss (I f TCV.:* TCV.&#216;V))
+                               xs'
+            -- (\\ (nesting1 Proxy :: Wit (Traversable  (v k)))) $
+            --   fmap BTN . sequenceA . TCV.liftVecD (liftBTensor ss fs)
+            --     $ xs'
+
+mapBTM
+    :: forall k (v :: k -&gt; Type -&gt; Type) ns n m ms b. (Vec v, BLAS b)
+    =&gt; Sing ns
+    -&gt; Length ms
+    -&gt; (b ('BM n m) -&gt; BTensor v b ms)
+    -&gt; BTensor v b (ns ++ [n,m])
+    -&gt; BTensor v b (ns ++ ms)
+mapBTM sN lM f = getI . traverseBTM sN lM (I . f)
+
+foldMapBTM
+    :: (Monoid a, Vec v, BLAS b)
+    =&gt; Length ns
+    -&gt; (b ('BM n m) -&gt; a)
+    -&gt; BTensor v b (ns ++ [n,m])
+    -&gt; a
+foldMapBTM l f = ifoldMapBTM l (\_ -&gt; f)
+
+traverseBTM
+    :: forall k (v :: k -&gt; Type -&gt; Type) ns n m ms b f. (Applicative f, Vec v, BLAS b)
+    =&gt; Sing ns
+    -&gt; Length ms
+    -&gt; (b ('BM n m) -&gt; f (BTensor v b ms))
+    -&gt; BTensor v b (ns ++ [n,m])
+    -&gt; f (BTensor v b (ns ++ ms))
+traverseBTM = \case
+    SNil         -&gt; \_ f -&gt; \case
+      BTM x  -&gt; f x
+    s `SCons` ss -&gt; \lM f -&gt; \case
+      BTV _  -&gt; case ss of
+      BTM _  -&gt; case ss of
+      BTN xs -&gt; (\\ s) $
+          fmap (btn (singLength ss `TCL.append'` lM))
+        . vITraverse (\_ -&gt; traverseBTM ss lM f)
+        $ xs
+
+imapBTM
+    :: forall k (v :: k -&gt; Type -&gt; Type) ns n m ms b. (Vec v, BLAS b)
+    =&gt; Sing ns
+    -&gt; Length ms
+    -&gt; (Prod (IndexN k) ns -&gt; b ('BM n m) -&gt; BTensor v b ms)
+    -&gt; BTensor v b (ns ++ [n,m])
+    -&gt; BTensor v b (ns ++ ms)
+imapBTM sN lM f = getI . itraverseBTM sN lM (\i -&gt; I . f i)
+
+ifoldMapBTM
+    :: (Vec v, Monoid a, BLAS b)
+    =&gt; Length ns
+    -&gt; (Prod (IndexN k) ns -&gt; b ('BM n m) -&gt; a)
+    -&gt; BTensor v b (ns ++ [n,m])
+    -&gt; a
+ifoldMapBTM = \case
+    LZ -&gt; \f -&gt; \case
+      BTM xs -&gt; f &#216; xs
+    LS l -&gt; \f -&gt; \case
+      BTV _  -&gt; case l of
+      BTM _  -&gt; case l of
+      BTN xs -&gt; vIFoldMap (\i -&gt; ifoldMapBTM l (\is -&gt; f (i :&lt; is))) xs
+
+itraverseBTM
+    :: forall k (v :: k -&gt; Type -&gt; Type) ns n m ms b f. (Applicative f, Vec v, BLAS b)
+    =&gt; Sing ns
+    -&gt; Length ms
+    -&gt; (Prod (IndexN k) ns -&gt; b ('BM n m) -&gt; f (BTensor v b ms))
+    -&gt; BTensor v b (ns ++ [n,m])
+    -&gt; f (BTensor v b (ns ++ ms))
+itraverseBTM = \case
+    SNil         -&gt; \_ f -&gt; \case
+      BTM x  -&gt; f &#216; x
+    s `SCons` ss -&gt; \lM f -&gt; \case
+      BTV _  -&gt; case ss of
+      BTM _  -&gt; case ss of
+      BTN xs -&gt; (\\ s) $
+          fmap (btn (singLength ss `TCL.append'` lM))
+        . vITraverse (\i -&gt; itraverseBTM ss lM (\is ys -&gt; f (i :&lt; is) ys))
+        $ xs
+
+mapBase
+    :: forall v b ns. (Nesting1 Proxy Functor v)
+    =&gt; Sing ns
+    -&gt; (ElemB b -&gt; ElemB b)
+    -&gt; (forall n. Sing n -&gt; b ('BV n) -&gt; b ('BV n))
+    -&gt; (forall n m. Sing ('BM n m) -&gt; b ('BM n m) -&gt; b ('BM n m))
+    -&gt; BTensor v b ns
+    -&gt; BTensor v b ns
+mapBase = \case
+    SNil -&gt; \f _ _ -&gt; \case
+      BTS x  -&gt; BTS (f x)
+    sN `SCons` SNil -&gt; \_ g _ -&gt; \case
+      BTV xs -&gt; BTV (g sN          xs)
+    sN `SCons` (sM `SCons` SNil) -&gt; \_ _ h -&gt; \case
+      BTM xs -&gt; BTM (h (SBM sN sM) xs)
+    (_ :: Sing k) `SCons` ss@(_ `SCons` (_ `SCons` _)) -&gt; \f g h -&gt; \case
+      BTN xs -&gt; BTN (mapBase ss f g h &lt;$&gt; xs)
+                  \\ (nesting1 Proxy :: Wit (Functor (v k)))
+
+zipBase
+    :: forall v b ns. (Nesting1 Sing Applicative v)
+    =&gt; Sing ns
+    -&gt; (ElemB b -&gt; ElemB b -&gt; ElemB b)
+    -&gt; (forall n. Sing n -&gt; b ('BV n) -&gt; b ('BV n) -&gt; b ('BV n))
+    -&gt; (forall n m. Sing ('BM n m) -&gt; b ('BM n m) -&gt; b ('BM n m) -&gt; b ('BM n m))
+    -&gt; BTensor v b ns
+    -&gt; BTensor v b ns
+    -&gt; BTensor v b ns
+zipBase = \case
+    SNil -&gt; \f _ _ -&gt; \case
+      BTS x -&gt; \case
+        BTS y -&gt; BTS (f x y)
+    sN `SCons` SNil -&gt; \_ g _ -&gt; \case
+      BTV xs -&gt; \case
+        BTV ys -&gt; BTV (g sN          xs ys)
+    sN `SCons` (sM `SCons` SNil) -&gt; \_ _ h -&gt; \case
+      BTM xs -&gt; \case
+        BTM ys -&gt; BTM (h (SBM sN sM) xs ys)
+    (s :: Sing k) `SCons` ss@(_ `SCons` (_ `SCons` _)) -&gt; \f g h -&gt; \case
+      BTN xs -&gt; \case
+        BTN ys -&gt; BTN $ zipBase ss f g h &lt;$&gt; xs &lt;*&gt; ys
+                    \\ (nesting1 s :: Wit (Applicative (v k)))
+
+genBTensorA
+    :: forall k (b :: BShape k -&gt; Type) v (ns :: [k]) f. (Applicative f, BLAS b, Vec v)
+    =&gt; Sing ns
+    -&gt; (Prod (IndexN k) ns -&gt; f (ElemB b))
+    -&gt; f (BTensor v b ns)
+genBTensorA = \case
+    SNil                                   -&gt; \f -&gt;
+        BTS &lt;$&gt; f &#216;
+    sN `SCons` SNil                        -&gt; \f -&gt;
+        BTV &lt;$&gt; bgenA (SBV sN)    (f . pbvProd)
+    sN `SCons` (sM `SCons` SNil)           -&gt; \f -&gt;
+        BTM &lt;$&gt; bgenA (SBM sN sM) (f . pbmProd)
+    s `SCons` ss@(_ `SCons` (_ `SCons` _)) -&gt; \f -&gt;
+        BTN &lt;$&gt; vGenA s (\i -&gt; genBTensorA ss (\is -&gt; f (i :&lt; is)))
+
+genBTensor
+    :: forall k (b :: BShape k -&gt; Type) v (ns :: [k]). (BLAS b, Vec v)
+    =&gt; Sing ns
+    -&gt; (Prod (IndexN k) ns -&gt; ElemB b)
+    -&gt; BTensor v b ns
+genBTensor s f = getI $ genBTensorA s (I . f)
+
+indexBTensor
+    :: forall k (b :: BShape k -&gt; Type) v ns. (BLAS b, Vec v)
+    =&gt; Prod (IndexN k) ns
+    -&gt; BTensor v b ns
+    -&gt; ElemB b
+indexBTensor = \case
+    &#216;      -&gt; \case
+      BTS x  -&gt; x
+    i :&lt; &#216; -&gt; \case
+      BTV xs -&gt; indexB (PBV i) xs
+    i :&lt; j :&lt; &#216; -&gt; \case
+      BTM xs -&gt; indexB (PBM i j) xs
+    i :&lt; js@(_ :&lt; _ :&lt; _) -&gt; \case
+      BTN xs -&gt; indexBTensor js (vIndex i xs)
+
+btn :: (BLAS b, Vec v, SingI n)
+    =&gt; Length ns
+    -&gt; v n (BTensor v b ns)
+    -&gt; BTensor v b (n ': ns)
+btn = \case
+    LZ        -&gt; \xs -&gt;
+      BTV $ bgen sing (unScalar . (`vIndex` xs) . unPBV)
+    LS LZ     -&gt; \xs -&gt;
+      BTM $ bgenRows  (unVector . (`vIndex` xs))
+    LS (LS _) -&gt; BTN
+
+-- | General strategy:
+--
+-- *   We can only outsource to BLAS (using 'dispatchBLAS') in the case
+--     that @os@ and @ns@ have length 0 or 1.  Anything else, fall back to
+--     the basic reverse-indexing method in &quot;Data.Nested&quot;.
+-- *   If @ms@ is length 2 or higher, &quot;traverse down&quot; to the length 0 or
+--     1 tail...and then sum them up.
+gmulB
+    :: forall k (b :: BShape k -&gt; Type) v ms os ns.
+     ( Floating (ElemB b)
+     , SingI ns
+     , BLAS b
+     , Vec v
+     , Nesting1 Proxy Functor     v
+     , Nesting1 Sing  Applicative v
+     )
+    =&gt; Sing ms
+    -&gt; Length os
+    -&gt; Length ns
+    -&gt; BTensor v b (ms         ++ os)
+    -&gt; BTensor v b (Reverse os ++ ns)
+    -&gt; BTensor v b (ms         ++ ns)
+gmulB sM lO lN v r = case splitting (S_ Z_) (lengthProd lN) of
+    Fewer mlN _ -&gt; case splittingEnd (S_ (S_ Z_)) (lengthProd lO) of
+      FewerEnd MLZ             _ -&gt; gmulBLAS sM MLZ       mlN v r
+      FewerEnd (MLS MLZ)       _ -&gt; gmulBLAS sM (MLS MLZ) mlN v r
+      FewerEnd (MLS (MLS MLZ)) _ -&gt; case mlN of
+        MLZ -&gt; case r of
+          BTM ys -&gt; mapBTM sM LZ (\xs -&gt; BTS $ traceB (gemm 1 xs ys Nothing)) v
+        MLS MLZ -&gt; naiveGMul sM lO lN v r
+      SplitEnd _ _ _ -&gt; naiveGMul sM lO lN v r
+    Split _ _ _ -&gt; naiveGMul sM lO lN v r
+
+-- | Naive implementation of 'gmul' (based on the implementation for
+-- 'NTensor') that does not utilize any BLAS capabilities.
+naiveGMul
+    :: forall k (b :: BShape k -&gt; Type) v ms os ns.
+     ( BLAS b
+     , Vec v
+     , Num (ElemB b)
+     , Nesting1 Proxy Functor     v
+     , Nesting1 Sing  Applicative v
+     , SingI ns
+     )
+    =&gt; Sing ms
+    -&gt; Length os
+    -&gt; Length ns
+    -&gt; BTensor v b (ms         ++ os)
+    -&gt; BTensor v b (Reverse os ++ ns)
+    -&gt; BTensor v b (ms         ++ ns)
+naiveGMul sM _ lN v r =
+    mapRows sM lN (getSum . ifoldMapBTensor (\i -&gt; Sum . f i)) v
+  where
+    f  :: Prod (IndexN k) os
+       -&gt; ElemB b
+       -&gt; BTensor v b ns
+    f is x = mapBase sing
+                     (x *)
+                     (\_ ys -&gt; axpy x ys Nothing)
+                     (\(SBM _ s) ys -&gt; gemm x ys (eye s) Nothing)
+                     (indexRowBTensor (TCP.reverse' is) r)
+
+-- | A 'gmul' that runs my dispatching BLAS commands when it can.
+-- Contains the type-level constraint that @os@ and @ns@ have to have
+-- either length 0 or 1.
+gmulBLAS
+    :: forall b ms os ns v.
+     ( Floating (ElemB b)
+     , BLAS b
+     , Vec v
+     , SingI ns
+     , Nesting1 Proxy Functor     v
+     , Nesting1 Sing  Applicative v
+     )
+    =&gt; Sing ms
+    -&gt; MaxLength N1 os
+    -&gt; MaxLength N1 ns
+    -&gt; BTensor v b (ms         ++ os)
+    -&gt; BTensor v b (Reverse os ++ ns)
+    -&gt; BTensor v b (ms         ++ ns)
+gmulBLAS sM mlO mlN v r = case mlO of
+    MLZ -&gt; case splittingEnd (S_ (S_ Z_)) spM of
+      FewerEnd MLZ             _ -&gt; dispatchBLAS MLZ       mlO  mlN v r
+      FewerEnd (MLS MLZ)       _ -&gt; dispatchBLAS (MLS MLZ) mlO mlN v r
+      FewerEnd (MLS (MLS MLZ)) (_ :&lt; s :&lt; &#216;) -&gt; case v of
+        BTM xs -&gt; case mlN of
+          MLZ     -&gt; case r of
+            BTS y  -&gt; BTM $ gemm y xs (eye s) Nothing
+          -- TODO: can this be made non-naive?
+          -- ms ~ '[m1,m2]
+          -- os ~ '[]
+          -- ns ~ '[n]
+          MLS MLZ -&gt; naiveGMul sM LZ (fromMaxLength mlN) v r
+      SplitEnd (ELS (ELS ELZ)) spM0 spM1@(_ :&lt; s :&lt; &#216;) -&gt; case mlN of
+        MLZ -&gt; case r of
+          BTS y -&gt; mapBTM (prodSing   spM0)
+                          (prodLength spM1)
+                          (\xs -&gt; BTM $ gemm y xs (eye s) Nothing)
+                          v
+                     \\ appendNil lM
+        -- TODO: can this be made non-naive?
+        -- ms ~ (ms0 ++ '[m1,m2])
+        -- os ~ '[]
+        -- ns ~ '[n]
+        MLS MLZ -&gt; naiveGMul sM LZ (fromMaxLength mlN) v r
+    MLS MLZ -&gt; case splittingEnd (S_ Z_) spM of
+      FewerEnd mlM       _         -&gt; dispatchBLAS mlM mlO mlN v r
+      SplitEnd (ELS ELZ) spM0 spM1 -&gt;
+        let sM0 = prodSing spM0
+            lM0 = prodLength spM0
+            lM1 = prodLength spM1
+        in  (\\ appendAssoc (TCL.tail' lM0)
+                            lM1
+                            (LS LZ :: Length os)
+            ) $ case mlN of
+          MLZ -&gt; case r of
+            BTV ys -&gt; mapBTM sM0 lM1 (\xs -&gt; BTV $ gemv 1 xs ys Nothing) v
+                        \\ appendNil lM
+          MLS MLZ -&gt; case r of
+            BTM ys -&gt; mapBTM sM0
+                            (lM1 `TCL.append'` (LS LZ :: Length ns))
+                            (\xs -&gt; BTM $ gemm 1 xs ys Nothing)
+                            v
+                        \\ appendAssoc (TCL.tail' lM0)
+                                       lM1
+                                       (LS LZ :: Length ns)
+  where
+    spM = singProd sM
+    lM = singLength sM
+
+diagBTensor
+    :: forall k (b :: BShape k -&gt; Type) v n ns.
+     ( SingI (n ': ns)
+     , BLAS b
+     , Vec v
+     , Num (ElemB b)
+     , Eq (IndexN k n)
+     )
+    =&gt; Uniform n ns
+    -&gt; BTensor v b '[n]
+    -&gt; BTensor v b (n ': ns)
+diagBTensor = \case
+    U&#216;    -&gt; id
+    US U&#216; -&gt; \case
+      BTV xs -&gt; BTM $ diagB xs
+    u@(US (US _)) -&gt; \(BTV xs) -&gt;
+      genBTensor sing (\i -&gt; case TCV.uniformVec (prodToVec I (US u) i) of
+                               Nothing -&gt; 0
+                               Just (I i') -&gt; indexB (PBV i') xs
+                      )
+
+transpBTensor
+    :: (BLAS b, Vec v)
+    =&gt; Sing ns
+    -&gt; BTensor v b ns
+    -&gt; BTensor v b (Reverse ns)
+transpBTensor s = \case
+    BTS x      -&gt; BTS x
+    BTV xs     -&gt; BTV xs
+    BTM xs     -&gt; BTM $ transpB xs
+    xs@(BTN _) -&gt; (\\ reverseReverse (singLength s)) $
+                    genBTensor (sReverse s) $ \i -&gt;
+                      indexBTensor (TCP.reverse' i) xs
+
+instance
+      ( Vec (v :: k -&gt; Type -&gt; Type)
+      , BLAS b
+      , Floating (ElemB b)
+      , Nesting1 Proxy Functor      v
+      , Nesting1 Sing  Applicative  v
+      , Nesting1 Sing  Distributive v
+      , Eq1 (IndexN k)
+      )
+  =&gt; Tensor (BTensor v b) where
+    type ElemT (BTensor v b) = ElemB b
+
+    liftT
+        :: SingI ns
+        =&gt; TCV.Vec m (TCV.Vec n (ElemB b) -&gt; ElemB b)
+        -&gt; TCV.Vec n (BTensor v b ns)
+        -&gt; TCV.Vec m (BTensor v b ns)
+    liftT = liftBTensor sing
+
+    gmul
+        :: forall ms os ns. SingI (ms ++ ns)
+        =&gt; Length ms
+        -&gt; Length os
+        -&gt; Length ns
+        -&gt; BTensor v b (ms         ++ os)
+        -&gt; BTensor v b (Reverse os ++ ns)
+        -&gt; BTensor v b (ms         ++ ns)
+    gmul lM lO lN = gmulB sM lO lN \\ sN
+      where
+        sM :: Sing ms
+        sN :: Sing ns
+        (sM, sN) = splitSing lM sing
+
+    diag
+        :: forall n ns. SingI (n ': ns)
+        =&gt; Uniform n ns
+        -&gt; BTensor v b '[n]
+        -&gt; BTensor v b (n ': ns)
+    diag = diagBTensor
+             \\ (produceEq1 :: Eq1 (IndexN k) :- Eq (IndexN k n))
+
+    getDiag
+        :: SingI n
+        =&gt; Uniform n ns
+        -&gt; BTensor v b (n ': n ': ns)
+        -&gt; BTensor v b '[n]
+    getDiag = \case
+      U&#216;   -&gt; \case
+        BTM xs -&gt; BTV $ getDiagB xs
+      u@(US _) -&gt; \xs -&gt;
+        genBTensor sing $ \(i :&lt; &#216;) -&gt;
+          indexBTensor (TCP.replicate i (US (US u))) xs
+
+    transp = transpBTensor sing
+
+    generateA = genBTensorA sing
+
+    genRand d g = generateA (\_ -&gt; realToFrac &lt;$&gt; genContVar d g)
+
+    ixRows
+        :: forall f ms os ns. (Applicative f, SingI (ms ++ os))
+        =&gt; Length ms
+        -&gt; Length os
+        -&gt; (Prod (IndexN k) ms -&gt; BTensor v b ns -&gt; f (BTensor v b os))
+        -&gt; BTensor v b (ms ++ ns)
+        -&gt; f (BTensor v b (ms ++ os))
+    ixRows lM lO = bIxRows sM lO
+      where
+        sM :: Sing ms
+        sM = takeSing lM lO (sing :: Sing (ms ++ os))
+
+    (!) = flip indexBTensor
+
+</span></pre></body></html>

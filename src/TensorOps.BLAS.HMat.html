@@ -1,0 +1,150 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds            #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE FlexibleContexts     #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE GADTs                #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE InstanceSigs         #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE KindSignatures       #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase           #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables  #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications     #-}</span><span>
+</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies         #-}</span><span>
+</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><a name="line-11"></a><span>
+</span><a name="line-12"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">BLAS</span><span class="hs-operator">.</span><span class="hs-identifier">HMat</span><span>
+</span><a name="line-13"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="TensorOps.BLAS.HMat.html#HMat"><span class="hs-identifier hs-type">HMat</span></a><span>
+</span><a name="line-14"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-15"></a><span>
+</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
+</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
+</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
+</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
+</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>            </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Vec</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">VecT</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Vector.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>       </span><span class="hs-special">(</span><a href="Data.Type.Vector.Util.html#curryV2%27"><span class="hs-identifier hs-var">curryV2'</span></a><span class="hs-special">,</span><span> </span><a href="Data.Type.Vector.Util.html#curryV3%27"><span class="hs-identifier hs-var">curryV3'</span></a><span class="hs-special">)</span><span>
+</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">LinearAlgebra</span><span>
+</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">LinearAlgebra</span><span class="hs-operator">.</span><span class="hs-identifier">Data</span><span>  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">LA</span><span>
+</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">LinearAlgebra</span><span class="hs-operator">.</span><span class="hs-identifier">Devel</span><span>
+</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.BLAS.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">BLAS</span></a><span>
+</span><a name="line-26"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span>                 </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">DF</span><span>
+</span><a name="line-27"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span class="hs-operator">.</span><span class="hs-identifier">Internal</span><span>        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">DF</span><span>
+</span><a name="line-28"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Storable</span><span>        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">VS</span><span>
+</span><a name="line-29"></a><span>
+</span><a name="line-30"></a><span class="hs-keyword">data</span><span> </span><a name="HMat"><a href="TensorOps.BLAS.HMat.html#HMat"><span class="hs-identifier">HMat</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.BLAS.html#BShape"><span class="hs-identifier hs-type">BShape</span></a><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-31"></a><span>    </span><a name="HMV"><a href="TensorOps.BLAS.HMat.html#HMV"><span class="hs-identifier">HMV</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">{</span><span> </span><a name="unHMV"><a href="TensorOps.BLAS.HMat.html#unHMV"><span class="hs-identifier">unHMV</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Vector</span><span> </span><a href="#local-1627668297"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.BLAS.HMat.html#HMat"><span class="hs-identifier hs-type">HMat</span></a><span> </span><a href="#local-1627668297"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-special">(</span><span class="hs-char">'BV n)
+    HMM :: { unHMM :: !(Matrix a) } -&gt; HMat a ('BM n m)
+
+liftB'
+    :: (Numeric a)
+    =&gt; Sing s
+    -&gt; (Vec n a -&gt; a)
+    -&gt; Vec n (HMat a s)
+    -&gt; HMat a s
+liftB' s f xs = bgen s $ \i -&gt; f (indexB i &lt;$&gt; xs)
+
+instance (Container Vector a, Numeric a) =&gt; BLAS (HMat a) where
+    type ElemB (HMat a) = a
+
+    -- TODO: rewrite rules
+    -- write in parallel?
+    liftB
+        :: forall n m s. ()
+        =&gt; Sing s
+        -&gt; Vec m (Vec n a -&gt; a)
+        -&gt; Vec n (HMat a s)
+        -&gt; Vec m (HMat a s)
+    liftB s fs xs = fmap go fs
+      where
+        go :: (Vec n a -&gt; a) -&gt; HMat a s
+        go f = case xs of
+          &#216;V -&gt; case s of
+            SBV sN    -&gt; HMV $ konst (f &#216;V) ( fromIntegral (fromSing sN) )
+            SBM sN sM -&gt; HMM $ konst (f &#216;V) ( fromIntegral (fromSing sN)
+                                            , fromIntegral (fromSing sM)
+                                            )
+          I x :* &#216;V -&gt; case x of
+            HMV x' -&gt; HMV (cmap (f . (:* &#216;V) . I) x')
+            HMM x' -&gt; HMM (cmap (f . (:* &#216;V) . I) x')
+          I x :* I y :* &#216;V -&gt; case x of
+            HMV x' -&gt; case y of
+              HMV y' -&gt; HMV $ VS.zipWith (curryV2' f) x' y'
+            HMM x' -&gt; case y of
+              HMM y' -&gt; HMM $ liftMatrix2 (VS.zipWith (curryV2' f)) x' y'
+          I x :* I y :* I z :* &#216;V -&gt; case x of
+            HMV x' -&gt; case y of
+              HMV y' -&gt; case z of
+                HMV z' -&gt; HMV $ VS.zipWith3 (curryV3' f) x' y' z'
+            _ -&gt; liftB' s f xs
+          _ -&gt; liftB' s f xs
+
+    axpy &#945; (HMV x) my
+        = HMV
+        . maybe id (add . unHMV) my
+        . scale &#945;
+        $ x
+    dot (HMV x) (HMV y)
+        = x &lt;.&gt; y
+    ger (HMV x) (HMV y)
+        = HMM $ x `outer` y
+    gemv &#945; (HMM a) (HMV x) m&#946;y
+        = HMV
+        . maybe id (\(&#946;, HMV y) -&gt; add (scale &#946; y)) m&#946;y
+        . (a #&gt;)
+        . scale &#945;
+        $ x
+    gemm &#945; (HMM a) (HMM b) m&#946;c
+        = HMM
+        . maybe id (\(&#946;, HMM c) -&gt; add (scale &#946; c)) m&#946;c
+        . (a &lt;&gt;)
+        . scale &#945;
+        $ b
+    indexB = \case
+        PBV i -&gt; \case
+          HMV x -&gt; x `atIndex` fromInteger (DF.getFinite i)
+        PBM i j -&gt; \case
+          HMM x -&gt; x `atIndex` ( fromInteger (DF.getFinite i)
+                               , fromInteger (DF.getFinite j)
+                               )
+    indexRowB i (HMM x) = HMV (x ! fromInteger (DF.getFinite i))
+    transpB (HMM x) = HMM (tr x)
+    iRowsB f (HMM x) = fmap (HMM . fromRows)
+                     . traverse (\(i,r) -&gt; unHMV &lt;$&gt; f (DF.Finite i) (HMV r))
+                     . zip [0..]
+                     . toRows
+                     $ x
+    iElemsB f = \case
+        HMV x -&gt; fmap (HMV . fromList)
+               . traverse (\(i,e) -&gt; f (PBV (DF.Finite i)) e)
+               . zip [0..]
+               . LA.toList
+               $ x
+        HMM x -&gt; fmap (HMM . fromLists)
+               . traverse (\(i,rs) -&gt;
+                     traverse (\(j, e) -&gt; f (PBM (DF.Finite i) (DF.Finite j)) e)
+                   . zip [0..]
+                   $ rs
+                 )
+               . zip [0..]
+               . toLists
+               $ x
+    -- TODO: can be implemented in parallel maybe?
+    bgenA = \case
+      SBV sN -&gt; \f -&gt; fmap (HMV . fromList)
+                    . traverse (\i -&gt; f (PBV (DF.Finite i)))
+                    $ [0 .. fromSing sN - 1]
+      SBM sN sM -&gt; \f -&gt; fmap (HMM . fromLists)
+                       . traverse (\(i, js) -&gt;
+                           traverse (\j -&gt; f (PBM (DF.Finite i) (DF.Finite j))) js
+                         )
+                       . zip [0 .. fromSing sM - 1]
+                       $ repeat [0 .. fromSing sN - 1]
+    bgenRowsA
+        :: forall f n m. (Applicative f, SingI n)
+        =&gt; (DF.Finite n -&gt; f (HMat a ('BV m)))
+        -&gt; f (HMat a ('BM n m))
+    bgenRowsA f = fmap (HMM . fromRows)
+                . traverse (fmap unHMV . f . DF.Finite)
+                $ [0 .. fromSing (sing @Nat @n) - 1]
+
+    eye = HMM . ident . fromIntegral . fromSing
+    diagB = HMM . diag . unHMV
+    getDiagB = HMV . takeDiag . unHMM
+    traceB = sumElements . takeDiag . unHMM
+</span></pre></body></html>
