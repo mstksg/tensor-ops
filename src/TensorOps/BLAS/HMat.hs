@@ -142,8 +142,8 @@ instance (Container Vector a, Numeric a) => BLAS (HMat a) where
                        . traverse (\(i, js) ->
                            traverse (\j -> f (PBM (DF.Finite i) (DF.Finite j))) js
                          )
-                       . zip [0 .. fromSing sM - 1]
-                       $ repeat [0 .. fromSing sN - 1]
+                       . zip [0 .. fromSing sN - 1]
+                       $ repeat [0 .. fromSing sM - 1]
     bgenRowsA
         :: forall f n m. (Applicative f, SingI n)
         => (DF.Finite n -> f (HMat a ('BV m)))
