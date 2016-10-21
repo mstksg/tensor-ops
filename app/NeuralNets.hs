@@ -51,7 +51,6 @@ import           Type.Class.Higher
 import           Type.Class.Witness hiding       (inner)
 import           Type.Family.List
 import           Type.Family.List.Util
-import qualified Data.Map.Strict                 as M
 import qualified Data.Set                        as S
 import qualified TensorOps.TOp                   as TO
 import qualified TensorOps.Tensor                as TT
@@ -266,23 +265,7 @@ main = withSystemRandom $ \g -> do
             TTNested TVList -> netTest (Proxy @NTensorL)
             TTNested TVVect -> netTest (Proxy @NTensorV)
             TTBLAS   TBHMat -> netTest (Proxy @(BTensorV (HMat Double)))
-      print ()
-
---       r <- case t of
---         TTNested TVList -> netTest (Proxy @LTensor) oRate oSamples oNetwork g
---     -> Double
---     -> Int
---     -> [Integer]
---     -> GenIO
--- --     -> IO String
---       putStrLn =<< netTest
-
-    -- unless oNoList $ do
-    --   putStrLn "Training nested linked list network..."
-    --   putStrLn =<< netTest (Proxy @LTensor) oRate oSamples oNetwork g
-    -- unless oNoVect $ do
-    --   putStrLn "Training nested vector network..."
-    --   putStrLn =<< netTest (Proxy @VTensor) oRate oSamples oNetwork g
+      putStrLn =<< tester oRate oSamples oNetwork g
 
 time
     :: NFData a

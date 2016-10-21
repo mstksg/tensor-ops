@@ -13,6 +13,7 @@ module TensorOps.BLAS.HMat
   ( HMat
   ) where
 
+import           Control.DeepSeq
 import           Data.Kind
 import           Data.Singletons
 import           Data.Singletons.TypeLits
@@ -23,6 +24,7 @@ import           Numeric.LinearAlgebra
 import           Numeric.LinearAlgebra.Data  as LA
 import           Numeric.LinearAlgebra.Devel
 import           TensorOps.BLAS
+import           Type.Class.Higher.Util
 import qualified Data.Finite                 as DF
 import qualified Data.Finite.Internal        as DF
 import qualified Data.Vector.Storable        as VS
@@ -30,6 +32,13 @@ import qualified Data.Vector.Storable        as VS
 data HMat :: Type -> BShape Nat -> Type where
     HMV :: { unHMV :: !(Vector a) } -> HMat a ('BV n)
     HMM :: { unHMM :: !(Matrix a) } -> HMat a ('BM n m)
+
+instance (VS.Storable a, NFData a) => NFData (HMat a s) where
+    rnf = \case
+      HMV xs -> rnf xs
+      HMM xs -> rnf xs
+
+instance (VS.Storable a, NFData a) => NFData1 (HMat a)
 
 liftB'
     :: (Numeric a)

@@ -1,15 +1,16 @@
-{-# LANGUAGE EmptyCase            #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE GADTs                #-}
-{-# LANGUAGE InstanceSigs         #-}
-{-# LANGUAGE KindSignatures       #-}
-{-# LANGUAGE LambdaCase           #-}
-{-# LANGUAGE RankNTypes           #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE TypeInType           #-}
-{-# LANGUAGE TypeOperators        #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE EmptyCase             #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE InstanceSigs          #-}
+{-# LANGUAGE KindSignatures        #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeInType            #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 module TensorOps.Backend.BTensor
   ( BTensor
@@ -60,10 +61,32 @@ data BTensor :: (k -> Type -> Type) -> (BShape k -> Type) -> [k] -> Type where
 type BTensorL = BTensor (Flip2 TCV.VecT   I)
 type BTensorV = BTensor (Flip2 VS.VectorT I)
 
-instance (NFData (ElemB b), Nesting Proxy NFData v, Nesting Proxy NFData b) => NFData (BTensor v b js) where
+instance (NFData (ElemB b), NFData1 b, Nesting Proxy NFData v) => Nesting1 Proxy NFData (BTensor v b) where
+    nesting1 _ = Wit
+
+instance (NFData (ElemB b), NFData1 b, Nesting Proxy NFData v) => NFData (BTensor v b js) where
     rnf = \case
-      BTS x  -> deepseq x  ()
-      BTV xs -> deepseq xs ()
+      BTS x  -> rnf  x
+      BTV xs -> rnf1 xs
+      BTM xs -> rnf1 xs
+      BTN (xs :: v n (BTensor v b (o ': m ': ns))) ->
+        rnf xs \\ (nesting Proxy :: NFData (BTensor v b (o ': m ': ns))
+                                 :- NFData (v n (BTensor v b (o ': m ': ns)))
+                  )
+
+instance (NFData (ElemB b), NFData1 b, Nesting Proxy NFData v) => NFData1 (BTensor v b)
+
+
+-- instance (NFData (ElemB b), NFData1 b, Nesting Proxy NFData v) => NFData (BTensor v b js) where
+--     rnf = \case
+--       BTS x  -> deepseq x  ()
+--       BTV xs -> rnf1 xs
+--       BTM xs -> rnf1 xs
+--       BTN (xs :: v n (BTensor v b (o ': m ': ns)))
+--              -> deepseq xs ()
+--                   \\ (nesting Proxy :: NFData (BTensor v b (o ': m ': ns))
+--                                     :- NFData (v n (BTensor v b (o ': m ': ns)))
+--                      )
 
 instance ( BLAS b
          , Vec v

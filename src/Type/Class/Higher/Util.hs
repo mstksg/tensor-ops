@@ -1,13 +1,15 @@
-{-# LANGUAGE PolyKinds     #-}
-{-# LANGUAGE RankNTypes    #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE PolyKinds         #-}
+{-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE TypeOperators     #-}
 
 module Type.Class.Higher.Util where
 
+import           Control.DeepSeq
 import           Control.Monad
 import           Data.Monoid
-import           Type.Class.Witness
 import           Type.Class.Higher
+import           Type.Class.Witness
 
 traverse1_
     :: (Foldable1 t, Applicative h)
@@ -40,4 +42,17 @@ all1 p = getAll . foldMap1 (All . p)
 produceEq1 :: Eq1 f :- Eq (f a)
 produceEq1 = Sub undefined
 
+class NFData1 f where
+    rnf1 :: f a -> ()
+    default rnf1 :: NFData (f a) => f a -> ()
+    rnf1 = rnf
+
+deepseq1 :: NFData1 f => f a -> b -> b
+deepseq1 x y = rnf1 x `seq` y
+
+-- nfData1 :: NFData1 f :- NFData (f a)
+-- nfData1 = 
+
 -- data EqDic :: a
+
+

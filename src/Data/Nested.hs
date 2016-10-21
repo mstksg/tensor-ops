@@ -39,6 +39,8 @@ module Data.Nested
   , unScalar, unNest, unVector
   ) where
 
+-- import           Data.Type.Length.Util            as TCL
+-- import           Data.Type.Product.Util           as TCP
 import           Control.Applicative
 import           Control.DeepSeq
 import           Data.Distributive
@@ -50,13 +52,12 @@ import           Data.Type.Combinator
 import           Data.Type.Combinator.Util
 import           Data.Type.Index
 import           Data.Type.Length                    as TCL
--- import           Data.Type.Length.Util               as TCL
 import           Data.Type.Product                   as TCP
--- import           Data.Type.Product.Util              as TCP
 import           Data.Type.Sing
 import           Data.Type.SnocProd
 import           Data.Type.Uniform
 import           TensorOps.NatKind
+import           Type.Class.Higher.Util
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
