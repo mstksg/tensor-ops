@@ -41,6 +41,14 @@ import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
 
+{-# RULES
+"realToFrac/Double->Double" realToFrac = id :: Double -> Double
+    #-}
+
+{-# RULES
+"realToFrac/Float->Float" realToFrac = id :: Float -> Float
+    #-}
+
 
 class NatKind k => Tensor (t :: [k] -> Type) where
     type ElemT t  :: Type
@@ -63,10 +71,10 @@ class NatKind k => Tensor (t :: [k] -> Type) where
     transp  :: (SingI ns, SingI (Reverse ns))
             => t ns
             -> t (Reverse ns)
-    diag    :: SingI ns
+    diag    :: SingI (n ': ns)
             => Uniform n ns
             -> t '[n]
-            -> t ns
+            -> t (n ': ns)
     getDiag :: SingI n
             => Uniform n ns
             -> t (n ': n ': ns)
@@ -173,3 +181,4 @@ infixr 4 ~.
 (_, lD, x) ~. y = pop lD x y
 
 instance Eq1 Finite
+

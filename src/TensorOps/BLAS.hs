@@ -25,15 +25,13 @@ module TensorOps.BLAS where
   -- , Sing(..)
   -- ) where
 
--- import           Data.Finite
--- import           GHC.TypeLits
 import           Control.Applicative
 import           Data.Distributive
 import           Data.Kind
 import           Data.Monoid
 import           Data.Nested hiding             (unScalar, unVector)
 import           Data.Singletons
-import           Data.Singletons.Prelude hiding (Reverse, Head, sReverse)
+import           Data.Singletons.Prelude hiding (Reverse, Head, sReverse, (:-))
 import           Data.Singletons.TH
 import           Data.Type.Combinator
 import           Data.Type.Length               as TCL
@@ -42,9 +40,12 @@ import           Data.Type.Nat
 import           Data.Type.Product              as TCP
 import           Data.Type.Product.Util         as TCP
 import           Data.Type.Sing
-import           Data.Type.SnocProd
+import           Data.Type.Uniform
+import           Statistics.Distribution
 import           TensorOps.NatKind
 import           TensorOps.Types
+import           Type.Class.Higher
+import           Type.Class.Higher.Util
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
@@ -140,6 +141,9 @@ class NatKind k => BLAS (b :: BShape k -> Type) where
     traceB
         :: b ('BM n n)
         -> ElemB b
+    diagB
+        :: b ('BV n)
+        -> b ('BM n n)
 
 elemsB
     :: (Applicative f, BLAS b)
@@ -303,22 +307,22 @@ bIxRows = \case
         -- ms ~ '[m]
         SNil -> case lO of
           -- ns ++ os ~ '[n]
-          LZ          -> BTV <$> bgenA (\is@(i :< Ø) -> unScalar <$> f is (BTV (indexRowB i xs)))
+          LZ        -> BTV <$> bgenA (\is@(i :< Ø) -> unScalar <$> f is (BTV (indexRowB i xs)))
           -- ns ++ os ~ '[n,o]
-          LS LZ       -> BTM <$> iRowsB (\i -> fmap unVector . f (i :< Ø) . BTV) xs
-          LS (LS lO') -> BTN <$> vGenA s (\i -> f (i :< Ø) (BTV (indexRowB i xs)))
+          LS LZ     -> BTM <$> iRowsB (\i -> fmap unVector . f (i :< Ø) . BTV) xs
+          LS (LS _) -> BTN <$> vGenA s (\i -> f (i :< Ø) (BTV (indexRowB i xs)))
         -- ns ~ '[n,m]
         -- ms ~ '[]
         s' `SCons` ss' -> case ss' of
           SNil -> case lO of
-            LZ     -> BTM <$> iElemsB (\i -> fmap unScalar . f i . BTS) xs
-            LS lO' -> BTN <$>
-                        vGenA s (\i ->
-                            btn lO <$>
-                              vGenA s' (\j ->
-                                  f (i :< j :< Ø) (BTS (indexB (i :< j :< Ø) xs))
-                                )
-                          )
+            LZ   -> BTM <$> iElemsB (\i -> fmap unScalar . f i . BTS) xs
+            LS _ -> BTN <$>
+                      vGenA s (\i ->
+                          btn lO <$>
+                            vGenA s' (\j ->
+                                f (i :< j :< Ø) (BTS (indexB (i :< j :< Ø) xs))
+                              )
+                        )
       BTN xs -> fmap (btn (singLength ss `TCL.append'` lO))
               . vITraverse (\i -> bIxRows ss lO (\is -> f (i :< is)))
               $ xs
@@ -455,11 +459,11 @@ traverseBTM
     -> BTensor v b (ns ++ [n,m])
     -> f (BTensor v b (ns ++ ms))
 traverseBTM = \case
-    LZ -> \lM f -> \case
+    LZ -> \_ f -> \case
       BTM x  -> f x
     LS l -> \lM f -> \case
-      BTV xs -> case l of
-      BTM xs -> case l of
+      BTV _  -> case l of
+      BTM _  -> case l of
       BTN xs -> fmap (btn (l `TCL.append'` lM))
               . vITraverse (\_ -> traverseBTM l lM f)
               $ xs
@@ -495,7 +499,7 @@ itraverseBTM
     -> BTensor v b (ns ++ [n,m])
     -> f (BTensor v b (ns ++ ms))
 itraverseBTM = \case
-    LZ -> \lM f -> \case
+    LZ -> \_ f -> \case
       BTM x  -> f Ø x
     LS l -> \lM f -> \case
       BTV _  -> case l of
@@ -590,7 +594,7 @@ btn = \case
     LS LZ     -> \xs -> BTM $ bgenRows (\i -> case vIndex i xs of
                                           BTV x -> x
                                        )
-    LS (LS l) -> BTN
+    LS (LS _) -> BTN
 
 -- | General strategy:
 --
@@ -644,7 +648,7 @@ naiveGMul
     -> BTensor v b (ms         ++ os)
     -> BTensor v b (Reverse os ++ ns)
     -> BTensor v b (ms         ++ ns)
-naiveGMul sM lO lN v r =
+naiveGMul sM _ lN v r =
     mapRows sM lN (getSum . ifoldMapBTensor (\i -> Sum . f i)) v
   where
     f  :: Prod (IndexN k) os
@@ -721,6 +725,27 @@ gmulBLAS sM mlO mlN v r = case mlO of
   where
     lM = singLength sM
 
+diagBTensor
+    :: forall k (b :: BShape k -> Type) v n ns.
+     ( SingI (n ': ns)
+     , BLAS b
+     , Vec v
+     , Num (ElemB b)
+     , Eq (IndexN k n)
+     )
+    => Uniform n ns
+    -> BTensor v b '[n]
+    -> BTensor v b (n ': ns)
+diagBTensor = \case
+    UØ    -> id
+    US UØ -> \case
+      BTV xs -> BTM $ diagB xs
+    u@(US (US _)) -> \(BTV xs) ->
+      genBTensor sing (\i -> case TCV.uniformVec (prodToVec I (US u) i) of
+                               Nothing -> 0
+                               Just (I i') -> indexB (i' :< Ø) xs
+                      )
+
 transpBTensor
     :: (BLAS b, Vec v)
     => Sing ns
@@ -741,6 +766,7 @@ instance
       , Nesting1 Proxy Functor      v
       , Nesting1 Sing  Applicative  v
       , Nesting1 Sing  Distributive v
+      , Eq1 (IndexN k)
       )
   => Tensor (BTensor v b) where
     type ElemT (BTensor v b) = ElemB b
@@ -766,9 +792,27 @@ instance
         sN :: Sing ns
         (sM, sN) = splitSing lM sing
 
+    diag
+        :: forall n ns. SingI (n ': ns)
+        => Uniform n ns
+        -> BTensor v b '[n]
+        -> BTensor v b (n ': ns)
+    diag = diagBTensor
+             \\ (produceEq1 :: Eq1 (IndexN k) :- Eq (IndexN k n))
+
+    getDiag
+        :: SingI n
+        => Uniform n ns
+        -> BTensor v b (n ': n ': ns)
+        -> BTensor v b '[n]
+    getDiag u xs = genBTensor sing $ \(i :< Ø) ->
+                     indexBTensor (TCP.replicate i (US (US u))) xs
+
     transp = transpBTensor sing
 
     generateA = genBTensorA sing
+
+    genRand d g = generateA (\_ -> realToFrac <$> genContVar d g)
 
     ixRows
         :: forall f ms os ns. (Applicative f, SingI (ms ++ os))
@@ -783,3 +827,4 @@ instance
         sM = takeSing lM lO (sing :: Sing (ms ++ os))
 
     (!) = flip indexBTensor
+

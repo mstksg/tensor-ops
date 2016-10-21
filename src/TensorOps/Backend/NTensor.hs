@@ -119,7 +119,7 @@ overNVec f = getI . ntNVec (I . f)
 
 instance
       ( Vec (v :: k -> Type -> Type)
-      , a ~ Double
+      , Floating a
       , Nesting1 Proxy Functor      v
       , Nesting1 Sing  Applicative  v
       , Nesting1 Proxy Foldable     v
@@ -163,20 +163,21 @@ instance
                               (sing :: Sing (Reverse os ++ ns))
     {-# INLINE gmul #-}
 
+    -- TODO: this is a dumb implementation
     diag
-        :: forall n ns. SingI ns
+        :: forall n ns. SingI (n ': ns)
         => Uniform n ns
         -> NTensor v a '[n]
-        -> NTensor v a ns
+        -> NTensor v a (n ': ns)
     diag u d
-        = genNTensor sing (\i -> case TCV.uniformVec (prodToVec I u i) of
+        = genNTensor sing (\i -> case TCV.uniformVec (prodToVec I (US u) i) of
                                    Nothing     -> 0
                                    Just (I i') -> indexNTensor (i' :< Ø) d
                           )
-            \\ witSings (sing :: Sing ns)
             \\ (produceEq1 :: Eq1 (IndexN k) :- Eq (IndexN k n))
     {-# INLINE diag #-}
 
+    -- TODO: this can be just done using genNTensor
     getDiag
         :: forall n ns. SingI '[n]
         => Uniform n ns
@@ -191,7 +192,7 @@ instance
         => d
         -> Gen (PrimState m)
         -> m (NTensor v a ns)
-    genRand d g = generateA (\_ -> genContVar d g)
+    genRand d g = generateA (\_ -> realToFrac <$> genContVar d g)
     {-# INLINE genRand #-}
 
     generateA
