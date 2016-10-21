@@ -30,6 +30,7 @@ library
                        GHC.TypeLits.Util
                        TensorOps.BLAS
                        TensorOps.Backend.NTensor
+                       TensorOps.Backend.BTensor
                        TensorOps.Gradient
                        TensorOps.NatKind
                        TensorOps.Run
