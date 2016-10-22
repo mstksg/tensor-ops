@@ -43,12 +43,8 @@ import           Type.Family.Nat
 
 {-# RULES
 "realToFrac/Double->Double" realToFrac = id :: Double -> Double
-    #-}
-
-{-# RULES
 "realToFrac/Float->Float" realToFrac = id :: Float -> Float
     #-}
-
 
 class NatKind k => Tensor (t :: [k] -> Type) where
     type ElemT t  :: Type

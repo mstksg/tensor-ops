@@ -19,7 +19,7 @@
 
 module TensorOps.BLAS
   ( BShape(..)
-  , BShapeDims
+  , BShapeDims, bShapeDims
   , BShapeP(..)
   , bShapeProd, pbvProd, pbmProd
   , BLAS(..)
@@ -55,31 +55,38 @@ genDefunSymbols [''BShapeDims]
 
 data BShapeP :: (k -> Type) -> BShape k -> Type where
     PBV :: { unPBV :: !(f a) } -> BShapeP f ('BV a)
-    PBM :: { unPBMn :: f a
-           , unPBMm :: f b
+    PBM :: { unPBMn :: !(f a)
+           , unPBMm :: !(f b)
            } -> BShapeP f ('BM a b)
 
--- TODO: rewrite rules
 bShapeProd
     :: BShapeP f s
     -> Prod f (BShapeDims s)
 bShapeProd = \case
     PBV x   -> x :< Ø
     PBM x y -> x :< y :< Ø
+{-# INLINE[0] bShapeProd #-}
+
+{-# RULES
+"bShapeProd/BV" bShapeProd = pbvProd
+"bShapeProd/BM" bShapeProd = pbmProd
+    #-}
 
 pbvProd
     :: BShapeP f ('BV a)
     -> Prod f '[a]
 pbvProd (PBV x) = x :< Ø
+{-# INLINE pbvProd #-}
 
 pbmProd
     :: BShapeP f ('BM a b)
     -> Prod f '[a,b]
 pbmProd (PBM x y) = x :< y :< Ø
+{-# INLINE pbmProd #-}
 
--- bShapeDims :: BShape a -> [a]
--- bShapeDims (BV x  ) = [x]
--- bShapeDims (BM x y) = [x,y]
+bShapeDims :: BShape a -> [a]
+bShapeDims (BV x  ) = [x]
+bShapeDims (BM x y) = [x,y]
 
 class NatKind k => BLAS (b :: BShape k -> Type) where
     type ElemB b :: Type

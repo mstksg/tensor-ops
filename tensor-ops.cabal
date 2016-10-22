@@ -61,7 +61,7 @@ library
 executable tensor-ops-neural-nets
   hs-source-dirs:      app
   main-is:             NeuralNets.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2 -Wall
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2 -Wall -ddump-rule-firings -ddump-to-file
   build-depends:       base
                      , ansi-wl-pprint
                      , containers

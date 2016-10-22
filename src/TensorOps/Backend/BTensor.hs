@@ -23,7 +23,7 @@ import           Control.DeepSeq
 import           Data.Distributive
 import           Data.Kind
 import           Data.Monoid
-import           Data.Nested hiding             (unScalar, unVector)
+import           Data.Nested hiding             (unScalar, unVector, gmul')
 import           Data.Singletons
 import           Data.Singletons.Prelude hiding (Reverse, Head, sReverse, (:-))
 import           Data.Type.Combinator
@@ -530,6 +530,42 @@ btn = \case
     LS (LS _) -> BTN
 {-# INLINE btn #-}
 
+gmul'
+    :: forall v b ms os ns.
+     ( SingI (ms ++ ns)
+     , Floating (ElemB b)
+     , Vec v
+     , Nesting1 Proxy Functor     v
+     , Nesting1 Sing  Applicative v
+     , BLAS b
+     )
+    => Length ms
+    -> Length os
+    -> Length ns
+    -> BTensor v b (ms         ++ os)
+    -> BTensor v b (Reverse os ++ ns)
+    -> BTensor v b (ms         ++ ns)
+gmul' lM lO lN = gmulB sM lO lN \\ sN
+  where
+    sM :: Sing ms
+    sN :: Sing ns
+    (sM, sN) = splitSing lM sing
+{-# NOINLINE gmul' #-}
+-- {-# INLINE[0] gmul' #-}
+
+{-# RULES
+"gmul'/SS"  gmul' = dispatchSS
+"gmul'/SV"  gmul' = dispatchSV
+"gmul'/dot" gmul' = dispatchDot
+"gmul'/VM"  gmul' = dispatchVM
+"gmul'/VS"  gmul' = dispatchVS
+"gmul'/out" gmul' = dispatchOut
+"gmul'/MV"  gmul' = dispatchMV
+"gmul'/MM"  gmul' = dispatchMM
+  #-}
+
+
+
 -- | General strategy:
 --
 -- *   We can only outsource to BLAS (using 'dispatchBLAS') in the case
@@ -562,7 +598,7 @@ gmulB sM lO lN v r = case splitting (S_ Z_) (lengthProd lN) of
         MLS MLZ -> naiveGMul sM lO lN v r
       SplitEnd _ _ _ -> naiveGMul sM lO lN v r
     Split _ _ _ -> naiveGMul sM lO lN v r
-{-# INLINE gmulB #-}
+{-# INLINE[0] gmulB #-}
 
 -- | Naive implementation of 'gmul' (based on the implementation for
 -- 'NTensor') that does not utilize any BLAS capabilities.
@@ -725,11 +761,7 @@ instance
         -> BTensor v b (ms         ++ os)
         -> BTensor v b (Reverse os ++ ns)
         -> BTensor v b (ms         ++ ns)
-    gmul lM lO lN = gmulB sM lO lN \\ sN
-      where
-        sM :: Sing ms
-        sN :: Sing ns
-        (sM, sN) = splitSing lM sing
+    gmul = gmul'
     {-# INLINE gmul #-}
 
     diag
@@ -778,4 +810,95 @@ instance
 
     (!) = flip indexBTensor
     {-# INLINE (!) #-}
+
+
+-- * Boring dispatches
+
+dispatchSS
+    :: Num (ElemB b)
+    => Length '[]
+    -> Length '[]
+    -> Length '[]
+    -> BTensor v b '[]
+    -> BTensor v b '[]
+    -> BTensor v b '[]
+dispatchSS _ _ _ (BTS x) (BTS y) = BTS (x * y)
+{-# INLINE dispatchSS #-}
+
+dispatchSV
+    :: BLAS b
+    => Length '[]
+    -> Length '[]
+    -> Length '[n]
+    -> BTensor v b '[]
+    -> BTensor v b '[n]
+    -> BTensor v b '[n]
+dispatchSV _ _ _ (BTS x) (BTV y) = BTV $ axpy x y Nothing
+{-# INLINE dispatchSV #-}
+
+dispatchDot
+    :: BLAS b
+    => Length '[]
+    -> Length '[n]
+    -> Length '[]
+    -> BTensor v b '[n]
+    -> BTensor v b '[n]
+    -> BTensor v b '[]
+dispatchDot _ _ _ (BTV x) (BTV y) = BTS $ x `dot` y
+{-# INLINE dispatchDot #-}
+
+dispatchVM
+    :: (Num (ElemB b), BLAS b)
+    => Length '[]
+    -> Length '[n]
+    -> Length '[m]
+    -> BTensor v b '[n]
+    -> BTensor v b '[n,m]
+    -> BTensor v b '[m]
+dispatchVM _ _ _ (BTV x) (BTM y) = BTV $ gemv 1 (transpB y) x Nothing
+{-# INLINE dispatchVM #-}
+
+dispatchVS
+    :: BLAS b
+    => Length '[n]
+    -> Length '[]
+    -> Length '[]
+    -> BTensor v b '[n]
+    -> BTensor v b '[]
+    -> BTensor v b '[n]
+dispatchVS _ _ _ (BTV x) (BTS y) = BTV $ axpy y x Nothing
+{-# INLINE dispatchVS #-}
+
+dispatchOut
+    :: BLAS b
+    => Length '[n]
+    -> Length '[]
+    -> Length '[m]
+    -> BTensor v b '[n]
+    -> BTensor v b '[m]
+    -> BTensor v b '[n,m]
+dispatchOut _ _ _ (BTV x) (BTV y) = BTM $ ger x y
+{-# INLINE dispatchOut #-}
+
+dispatchMV
+    :: (Num (ElemB b), BLAS b)
+    => Length '[n]
+    -> Length '[m]
+    -> Length '[]
+    -> BTensor v b '[n,m]
+    -> BTensor v b '[m]
+    -> BTensor v b '[n]
+dispatchMV _ _ _ (BTM x) (BTV y) = BTV $ gemv 1 x y Nothing
+{-# INLINE dispatchMV #-}
+
+dispatchMM
+    :: (Num (ElemB b), BLAS b)
+    => Length '[m]
+    -> Length '[o]
+    -> Length '[n]
+    -> BTensor v b '[m,o]
+    -> BTensor v b '[o,n]
+    -> BTensor v b '[m,n]
+dispatchMM _ _ _ (BTM x) (BTM y) = BTM $ gemm 1 x y Nothing
+{-# INLINE dispatchMM #-}
 
