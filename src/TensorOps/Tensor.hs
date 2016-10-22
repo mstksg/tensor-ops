@@ -99,7 +99,10 @@ zip3 f x y z = zip (\case I x' :* I y' :* I z' :* ØV -> f x' y' z') (x :+ y :+ 
 -- replicate = vrep
 -- -- replicate x = liftT (\(x' :* ØV) -> vrep x') (x :+ ØV)
 
--- problem: shouldn't need Sing o if n or m is zero
+-- | This is the bottleneck of the whole thing.
+--
+-- Implementation issue -- shouldn't need Sing o if n or m is zero
+--
 gradLift
     :: forall o n m t. (Tensor t, Floating (ElemT t), SingI o)
     => Vec m (VFunc n)
@@ -116,7 +119,7 @@ gradLift fs xs dtdys =
         -> Vec m (ElemT t)
         -> ElemT t
     go i x dtdy = sum $ (vap . liftA2) (\d (VF f) -> d * index' i (grad f x)) dtdy fs
-    {-# INLINE go #-}
+    -- {-# INLINE go #-}
 {-# INLINE gradLift #-}
 -- TODO: having to use index' is the downside of the special new form for
 -- lifted functions.  but i guess it's just as bad as before because the

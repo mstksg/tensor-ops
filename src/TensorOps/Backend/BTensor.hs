@@ -550,8 +550,7 @@ gmul' lM lO lN = gmulB sM lO lN \\ sN
     sM :: Sing ms
     sN :: Sing ns
     (sM, sN) = splitSing lM sing
-{-# NOINLINE gmul' #-}
--- {-# INLINE[0] gmul' #-}
+{-# INLINE[0] gmul' #-}
 
 {-# RULES
 "gmul'/SS"  gmul' = dispatchSS

@@ -56,12 +56,16 @@ library
                      , type-combinators
                      , vector
   ghc-options:         -Wall -O2
+                       -- -ddump-rule-firings
+                       -- -ddump-to-file
   default-language:    Haskell2010
 
 executable tensor-ops-neural-nets
   hs-source-dirs:      app
   main-is:             NeuralNets.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2 -Wall -ddump-rule-firings -ddump-to-file
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2 -Wall
+                       -- -ddump-rule-firings
+                       -- -ddump-to-file
   build-depends:       base
                      , ansi-wl-pprint
                      , containers
