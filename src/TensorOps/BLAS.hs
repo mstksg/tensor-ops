@@ -165,6 +165,7 @@ elemsB
     -> b s
     -> f (b s)
 elemsB f = iElemsB (\_ x -> f x)
+{-# INLINE elemsB #-}
 
 bgen
     :: forall k (b :: BShape k -> Type) (s :: BShape k). BLAS b
@@ -172,12 +173,14 @@ bgen
     -> (BShapeP (IndexN k) s -> ElemB b)
     -> b s
 bgen s f = getI $ bgenA s (I . f)
+{-# INLINE bgen #-}
 
 bgenRows
     :: (BLAS b, SingI n)
     => (IndexN k n -> b ('BV m))
     -> b ('BM n m)
 bgenRows f = getI $ bgenRowsA (I . f)
+{-# INLINE bgenRows #-}
 
 zipB
     :: BLAS b
@@ -189,3 +192,4 @@ zipB
 zipB s f x y = getI . TCV.head'
              $ liftB s (I (\(I x' :* I y' :* ØV) -> f x' y') :* ØV)
                        (I x :* I y :* ØV)
+{-# INLINE zipB #-}

@@ -37,6 +37,7 @@ instance (VS.Storable a, NFData a) => NFData (HMat a s) where
     rnf = \case
       HMV xs -> rnf xs
       HMM xs -> rnf xs
+    {-# INLINE rnf #-}
 
 instance (VS.Storable a, NFData a) => NFData1 (HMat a)
 
@@ -47,6 +48,7 @@ liftB'
     -> Vec n (HMat a s)
     -> HMat a s
 liftB' s f xs = bgen s $ \i -> f (indexB i <$> xs)
+{-# INLINE liftB' #-}
 
 instance (Container Vector a, Numeric a) => BLAS (HMat a) where
     type ElemB (HMat a) = a
@@ -88,22 +90,27 @@ instance (Container Vector a, Numeric a) => BLAS (HMat a) where
         . maybe id (add . unHMV) my
         . scale α
         $ x
+    {-# INLINE axpy #-}
     dot (HMV x) (HMV y)
         = x <.> y
+    {-# INLINE dot #-}
     ger (HMV x) (HMV y)
         = HMM $ x `outer` y
+    {-# INLINE ger #-}
     gemv α (HMM a) (HMV x) mβy
         = HMV
         . maybe id (\(β, HMV y) -> add (scale β y)) mβy
         . (a #>)
         . scale α
         $ x
+    {-# INLINE gemv #-}
     gemm α (HMM a) (HMM b) mβc
         = HMM
         . maybe id (\(β, HMM c) -> add (scale β c)) mβc
         . (a <>)
         . scale α
         $ b
+    {-# INLINE gemm #-}
     indexB = \case
         PBV i -> \case
           HMV x -> x `atIndex` fromInteger (DF.getFinite i)
@@ -111,13 +118,17 @@ instance (Container Vector a, Numeric a) => BLAS (HMat a) where
           HMM x -> x `atIndex` ( fromInteger (DF.getFinite i)
                                , fromInteger (DF.getFinite j)
                                )
+    {-# INLINE indexB #-}
     indexRowB i (HMM x) = HMV (x ! fromInteger (DF.getFinite i))
+    {-# INLINE indexRowB #-}
     transpB (HMM x) = HMM (tr x)
+    {-# INLINE transpB #-}
     iRowsB f (HMM x) = fmap (HMM . fromRows)
                      . traverse (\(i,r) -> unHMV <$> f (DF.Finite i) (HMV r))
                      . zip [0..]
                      . toRows
                      $ x
+    {-# INLINE iRowsB #-}
     iElemsB f = \case
         HMV x -> fmap (HMV . fromList)
                . traverse (\(i,e) -> f (PBV (DF.Finite i)) e)
@@ -133,6 +144,7 @@ instance (Container Vector a, Numeric a) => BLAS (HMat a) where
                . zip [0..]
                . toLists
                $ x
+    {-# INLINE iElemsB #-}
     -- TODO: can be implemented in parallel maybe?
     bgenA = \case
       SBV sN -> \f -> fmap (HMV . fromList)
@@ -144,6 +156,7 @@ instance (Container Vector a, Numeric a) => BLAS (HMat a) where
                          )
                        . zip [0 .. fromSing sN - 1]
                        $ repeat [0 .. fromSing sM - 1]
+    {-# INLINE bgenA #-}
     bgenRowsA
         :: forall f n m. (Applicative f, SingI n)
         => (DF.Finite n -> f (HMat a ('BV m)))
@@ -151,8 +164,13 @@ instance (Container Vector a, Numeric a) => BLAS (HMat a) where
     bgenRowsA f = fmap (HMM . fromRows)
                 . traverse (fmap unHMV . f . DF.Finite)
                 $ [0 .. fromSing (sing @Nat @n) - 1]
+    {-# INLINE bgenRowsA #-}
 
     eye = HMM . ident . fromIntegral . fromSing
+    {-# INLINE eye #-}
     diagB = HMM . diag . unHMV
+    {-# INLINE diagB #-}
     getDiagB = HMV . takeDiag . unHMM
+    {-# INLINE getDiagB #-}
     traceB = sumElements . takeDiag . unHMM
+    {-# INLINE traceB #-}
