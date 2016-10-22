@@ -73,6 +73,8 @@ matrix:
 # for hmatrix
 addons:
   apt:
+    sources:
+      - ubuntu-toolchain-r-test
     packages:
       - libblas-dev
       - liblapack-dev
