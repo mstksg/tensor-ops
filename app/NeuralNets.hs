@@ -4,9 +4,11 @@
 {-# LANGUAGE KindSignatures       #-}
 {-# LANGUAGE LambdaCase           #-}
 {-# LANGUAGE PolyKinds            #-}
+{-# LANGUAGE QuasiQuotes          #-}
 {-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE RecordWildCards      #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE TypeOperators        #-}
@@ -19,24 +21,23 @@ import           Control.Monad
 import           Control.Monad.Primitive
 import           Data.Foldable
 import           Data.Kind
-import           Data.List hiding                ((\\))
+import           Data.List hiding                    ((\\))
 import           Data.Maybe
 import           Data.Monoid
 import           Data.Nested
 import           Data.Singletons
-import           Data.Singletons.Prelude.List    (Sing(..))
+import           Data.Singletons.Prelude.List        (Sing(..))
 import           Data.Singletons.TypeLits
 import           Data.Time.Clock
 import           Data.Type.Conjunction
 import           Data.Type.Index
 import           Data.Type.Length
-import           Data.Type.Product               as TCP
+import           Data.Type.Product                   as TCP
 import           Data.Type.Product.Util
 import           Data.Type.Sing
 import           Data.Type.Uniform
-import           Data.Witherable
 import           Options.Applicative
-import           Prelude hiding                  ((.), id)
+import           Prelude hiding                      ((.), id)
 import           Statistics.Distribution.Normal
 import           Statistics.Distribution.Uniform
 import           System.Random.MWC
@@ -46,14 +47,15 @@ import           TensorOps.Gradient
 import           TensorOps.NatKind
 import           TensorOps.Run
 import           TensorOps.Types
+import           Text.PrettyPrint.ANSI.Leijen hiding ((<>),(<$>))
 import           Text.Printf
-import           Type.Class.Higher
-import           Type.Class.Witness hiding       (inner)
+import           Type.Class.Higher hiding            (some)
+import           Type.Class.Witness hiding           (inner)
 import           Type.Family.List
 import           Type.Family.List.Util
-import qualified Data.Set                        as S
-import qualified TensorOps.TOp                   as TO
-import qualified TensorOps.Tensor                as TT
+import qualified Data.String.Here                    as H
+import qualified TensorOps.TOp                       as TO
+import qualified TensorOps.Tensor                    as TT
 
 
 logistic
@@ -225,7 +227,7 @@ netTest _ rate n hs g = withSingI (sFromNat @k (SNat @1)) $
 data Opts = O { oRate    :: Double
               , oSamples :: Int
               , oNetwork :: [Integer]
-              , oTests   :: S.Set TestT
+              , oTests   :: [TestT]
               }
 
 opts :: Parser Opts
@@ -237,24 +239,24 @@ opts = O <$> option auto
          <*> option auto
                ( long "samps" <> short 's' <> metavar "COUNT"
               <> help "Number of samples to train the network on"
-              <> value 100000 <> showDefault
+              <> value 50000 <> showDefault
                )
          <*> option auto
                ( long "layers" <> short 'l' <> metavar "LIST"
               <> help "List of hidden layer sizes"
-              <> value [8,8] <> showDefault
+              <> value [12,8] <> showDefault
                )
-         <*> filterAOf witherSet parseTest allTests
+         <*> (nub <$> (some (argument readBackend (metavar "BACKEND")))
+               <|> pure [TTBLAS TBHMat]
+             )
 
 main :: IO ()
 main = withSystemRandom $ \g -> do
     O{..} <- execParser $ info (helper <*> opts)
-                            ( fullDesc
-                           <> header "tensor-ops-neural-nets - train neural nets with tensor-ops"
-                           <> progDesc ( "Implements a simple feed-forward neural network to "
-                                      <> "train on a simple 2D input using tensor-ops machinery."
-                                       )
-                            )
+        ( fullDesc
+       <> header "tensor-ops-neural-nets - train neural nets with tensor-ops"
+       <> progDescDoc (Just d)
+        )
 
     printf "rate: %f | samps: %d | layers: %s\n" oRate oSamples (show oNetwork)
 
@@ -266,6 +268,16 @@ main = withSystemRandom $ \g -> do
             TTNested TVVect -> netTest (Proxy @NTensorV)
             TTBLAS   TBHMat -> netTest (Proxy @(BTensorV (HMat Double)))
       putStrLn =<< tester oRate oSamples oNetwork g
+  where
+    d :: Doc
+    d = string [H.here|
+Trains a feed-forward neural network on a 2D classifier using tensor-ops
+machinery, with the given backends.  (If none provided, backend defaults to 'b')
+|]
+     <$$> mempty
+     <$$> string "Backends:"
+     <$$> vsep [ string $ printf "- %s: %s" (ttShort t) (ttLong t)
+               | t <- allTests ]
 
 time
     :: NFData a
@@ -278,11 +290,6 @@ time x = do
     return (y, t2 `diffUTCTime` t1)
 
 
-
-witherSet
-    :: Ord b => Filter (S.Set a) (S.Set b) a b
-witherSet f = fmap S.fromList . wither f . S.toList
-
 data TestT = TTNested TestV
            | TTBLAS   TestB
            deriving (Show, Eq, Ord)
@@ -292,20 +299,22 @@ data TestV = TVList
 data TestB = TBHMat
            deriving (Show, Eq, Ord)
 
-allTests :: S.Set TestT
-allTests = S.fromList $ ([TTNested] <*> [TVList, TVVect]) ++ [TTBLAS TBHMat]
+allTests :: [TestT]
+allTests = ([TTNested] <*> [TVList, TVVect]) ++ [TTBLAS TBHMat]
 
-parseTest :: TestT -> Parser Bool
-parseTest t = switch ( long (ttShort t)
-                    <> help (printf "Test \"%s\" backend" (ttLong t))
-                     )
+readBackend :: ReadM TestT
+readBackend = eitherReader $ \s -> case s of
+    "nl" -> Right $ TTNested TVList
+    "nv" -> Right $ TTNested TVVect
+    "b"  -> Right $ TTBLAS   TBHMat
+    o    -> Left  $ "Unknown backend: " ++ o
 
 ttShort
     :: TestT
     -> String
 ttShort = \case
-    TTNested v -> 'B' : 'n' : tvShort v
-    TTBLAS   b -> 'B' : 'b' : tbShort b
+    TTNested v -> 'n' : tvShort v
+    TTBLAS   b -> 'b' : tbShort b
   where
     tvShort = \case
       TVList -> "l"
@@ -317,8 +326,8 @@ ttLong
     :: TestT
     -> String
 ttLong = \case
-    TTNested v -> printf "Nested %s" (tvLong v)
-    TTBLAS   b -> printf "BLAS %s" (tbLong b)
+    TTNested v -> printf "Nested (%s)" (tvLong v)
+    TTBLAS   b -> printf "BLAS (%s)" (tbLong b)
   where
     tvLong = \case
       TVList -> "List"
