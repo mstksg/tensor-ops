@@ -33,6 +33,7 @@ library
                        TensorOps.Backend.BTensor
                        TensorOps.Backend.NTensor
                        TensorOps.Gradient
+                       TensorOps.Model.NeuralNet.FeedForward
                        TensorOps.NatKind
                        TensorOps.Run
                        TensorOps.TOp

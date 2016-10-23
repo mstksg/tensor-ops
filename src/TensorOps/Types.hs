@@ -25,13 +25,14 @@ import           Control.Monad.Primitive
 import           Data.Finite
 import           Data.Kind
 import           Data.Singletons
+import           Data.Singletons.Prelude hiding (Reverse, (%:++))
 import           Data.Type.Index
-import           Data.Type.Length        as TCL
+import           Data.Type.Length               as TCL
 import           Data.Type.Product
 import           Data.Type.Sing
 import           Data.Type.Uniform
 import           Data.Type.Vector
-import           Prelude hiding          ((.), id)
+import           Prelude hiding                 ((.), id)
 import           Statistics.Distribution
 import           System.Random.MWC
 import           TensorOps.NatKind
@@ -160,6 +161,13 @@ pappend _ sB sD = \case
     lD :: Length d
     lD = singLength sD
 
+pipe
+    :: forall t a b. (SingI a, SingI b)
+    => t a b
+    -> OpPipe t a b
+pipe o = Pop sing sing SNil o OPØ
+           \\ appendNil (singLength (sing :: Sing a))
+           \\ appendNil (singLength (sing :: Sing b))
 
 pop :: forall a b c d f. (SingI a, SingI b, SingI d)
     => Length d
