@@ -779,6 +779,9 @@ instance
     sumT = sum
     {-# INLINE sumT #-}
 
+    scaleT α = mapBase sing (α*) (\_ -> scaleB α) (\_ -> scaleB α)
+    {-# INLINE scaleT #-}
+
     gmul
         :: forall ms os ns. SingI (ms ++ ns)
         => Length ms

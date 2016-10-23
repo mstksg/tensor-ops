@@ -67,6 +67,7 @@ class NatKind k => Tensor (t :: [k] -> Type) where
     -- is a list really the best data structure here?
     -- maybe Foldable f?
     sumT    :: SingI o => [t o] -> t o
+    scaleT  :: SingI o => ElemT t -> t o -> t o
     transp  :: (SingI ns, SingI (Reverse ns))
             => t ns
             -> t (Reverse ns)
