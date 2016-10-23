@@ -18,17 +18,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     TensorOps.Types
                        Data.Nested
-                       Data.Type.Combinator.Util
-                       Data.Type.Length.Util
-                       Data.Type.Nat.Util
-                       Data.Type.Product.Util
-                       Data.Type.Remove.Util
-                       Data.Type.Sing
-                       Data.Type.SnocProd
                        Data.Type.Uniform
-                       Data.Type.Vector.Util
-                       Data.Vector.Sized
-                       GHC.TypeLits.Util
                        TensorOps.BLAS
                        TensorOps.BLAS.HMat
                        TensorOps.Backend.BTensor
@@ -40,6 +30,16 @@ library
                        TensorOps.Run
                        TensorOps.TOp
                        TensorOps.Tensor
+  other-modules:       Data.Type.Combinator.Util
+                       Data.Type.Length.Util
+                       Data.Type.Nat.Util
+                       Data.Type.Product.Util
+                       Data.Type.Remove.Util
+                       Data.Type.Sing
+                       Data.Type.SnocProd
+                       Data.Type.Vector.Util
+                       Data.Vector.Sized
+                       GHC.TypeLits.Util
                        Type.Class.Higher.Util
                        Type.Family.List.Util
                        Type.Family.Nat.Util

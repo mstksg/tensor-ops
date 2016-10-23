@@ -33,8 +33,8 @@ import           Statistics.Distribution.Uniform
 import           System.Random.MWC
 import           TensorOps.Backend.BTensor
 import           TensorOps.Backend.NTensor
-import           TensorOps.Model.NeuralNet.FeedForward
 import           TensorOps.Model.NeuralNet
+import           TensorOps.Model.NeuralNet.FeedForward
 import           TensorOps.NatKind
 import           TensorOps.Types
 import           Text.PrettyPrint.ANSI.Leijen hiding   ((<>),(<$>))
