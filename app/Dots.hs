@@ -130,7 +130,7 @@ main :: IO ()
 main = withSystemRandom $ \g -> do
     O{..} <- execParser $ info (helper <*> opts)
         ( fullDesc
-       <> header "tensor-ops-neural-nets - train neural nets with tensor-ops"
+       <> header "tensor-ops-dots - train neural nets with tensor-ops"
        <> progDescDoc (Just d)
         )
 

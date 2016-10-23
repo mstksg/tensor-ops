@@ -16,7 +16,7 @@ import           Control.Applicative
 import           Control.Monad.Trans.State.Strict
 import           Data.Functor
 import           Data.Kind
-import           Data.List hiding                  ((\\), zip)
+import           Data.List hiding                 ((\\), zip)
 import           Data.Monoid
 import           Data.Proxy
 import           Data.Singletons
@@ -25,16 +25,17 @@ import           Data.Type.Fin
 import           Data.Type.Length
 import           Data.Type.Product
 import           Data.Type.Sing
-import           Data.Type.Vector                  as TCV
-import           Data.Type.Vector.Util             as TCV
+import           Data.Type.Vector                 as TCV
+import           Data.Type.Vector.Util            as TCV
 import           Numeric.AD
-import           Prelude hiding                    (zip)
+import           Prelude hiding                   (zip)
 import           TensorOps.NatKind
 import           TensorOps.Types
 import           Type.Class.Known
-import           Type.Class.Witness hiding         (inner, outer)
+import           Type.Class.Witness hiding        (inner, outer)
 import           Type.Family.List
 import           Type.Family.List.Util
+import           Type.Family.Nat
 
 konst
     :: (Tensor t, SingI n)
@@ -110,6 +111,21 @@ gradLift
     -> Vec m (t o)    -- ^ d target / d outputs
     -> Vec n (t o)    -- ^ d target / d inputs
 gradLift fs xs dtdys =
+    case xs of
+      I x :* ØV -> case fs of
+        I f :* ØV -> case dtdys of
+          I dtdy :* ØV -> gradLift1 (getVF f . (:* ØV) . I) x dtdy
+        _  -> gradLift1N fs x dtdys
+      _ -> naiveGradLift fs xs dtdys
+{-# INLINE[0] gradLift #-}
+
+naiveGradLift
+    :: forall o n m t. (Tensor t, Floating (ElemT t), SingI o)
+    => Vec m (VFunc n)
+    -> Vec n (t o)    -- ^ inputs
+    -> Vec m (t o)    -- ^ d target / d outputs
+    -> Vec n (t o)    -- ^ d target / d inputs
+naiveGradLift fs xs dtdys =
     liftT (vgen_ (\i -> I (uncurry (go i) . splitVec known)))
           (xs `TCV.append'` dtdys)
       \\ xs
@@ -119,11 +135,66 @@ gradLift fs xs dtdys =
         -> Vec m (ElemT t)
         -> ElemT t
     go i x dtdy = sum $ (vap . liftA2) (\d (VF f) -> d * index' i (grad f x)) dtdy fs
-    -- {-# INLINE go #-}
-{-# INLINE gradLift #-}
--- TODO: having to use index' is the downside of the special new form for
--- lifted functions.  but i guess it's just as bad as before because the
--- implementation of liftT would have index''d everything anyways.
+    {-# INLINE go #-}
+
+{-# RULES
+"gradLift/1"   gradLift = gradLift1'
+"gradLift/1N"  gradLift = gradLift1N'
+  #-}
+
+-- | 'gradLift' specialized for 'N1'.
+gradLift1'
+    :: forall t o. (Tensor t, SingI o, Floating (ElemT t))
+    => Vec N1 (VFunc N1)
+    -> Vec N1 (t o)
+    -> Vec N1 (t o)
+    -> Vec N1 (t o)
+gradLift1' fs xs dtdys =
+    case fs of
+      I f :* ØV -> case xs of
+        I x :* ØV -> case dtdys of
+          I dtdy :* ØV -> gradLift1 (getVF f . (:* ØV) . I) x dtdy
+
+-- | 'gradLift' specialized for 'N1' -> m.
+gradLift1N'
+    :: forall t m o. (Tensor t, SingI o, Floating (ElemT t))
+    => Vec m (VFunc N1)
+    -> Vec N1 (t o)
+    -> Vec m (t o)
+    -> Vec N1 (t o)
+gradLift1N' fs xs dtdys =
+    case xs of
+      I x :* ØV -> gradLift1N fs x dtdys
+
+-- | A faster version of 'gradLift' using forward-mode AD
+gradLift1
+    :: forall t o. (Tensor t, SingI o, Floating (ElemT t))
+    => (forall a. Floating a => a -> a)
+    -> t o
+    -> t o
+    -> Vec N1 (t o)
+gradLift1 f x dtdy =
+    liftT (I (\(I x' :* I d :* ØV) -> d * diff f x') :* ØV)
+          (I x :* I dtdy :* ØV)
+
+-- | A faster version of 'gradLift' using forward-mode AD, with multiple
+-- outputs.
+gradLift1N
+    :: forall t m o. (Tensor t, SingI o, Floating (ElemT t))
+    => Vec m (VFunc N1)
+    -> t o
+    -> Vec m  (t o)
+    -> Vec N1 (t o)
+gradLift1N fs x dtdys =
+    liftT (I (\(I x' :* ds) -> go x' ds) :* ØV)
+          (I x :* dtdys)
+  where
+    go  :: ElemT t
+        -> Vec m (ElemT t)
+        -> ElemT t
+    go x' dtdy = sum $ (vap . liftA2) (\d (VF f) -> d * diff (f . (:* ØV) . I) x') dtdy fs
+    {-# INLINE go #-}
+
 
 inner
     :: forall t ms ns o. (Tensor t, SingI (o ': ns), SingI (ms ++ ns))

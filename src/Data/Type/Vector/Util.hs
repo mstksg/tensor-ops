@@ -156,3 +156,7 @@ uniformVec = \case
             | otherwise                           -> Nothing
 {-# INLINE uniformVec #-}
 
+uncons'
+    :: VecT ('S n) f a
+    -> (f a, VecT n f a)
+uncons' (x :* xs) = (x, xs)
