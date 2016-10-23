@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds      #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE EmptyCase      #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE GADTs          #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE KindSignatures #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase     #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE PolyKinds      #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE TypeInType     #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators  #-}</span><span>
+</span><a name="line-9"></a><span>
+</span><a name="line-10"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Remove</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-11"></a><span>
+</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
+</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Proxy</span><span>
+</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>
+</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Remove</span><span>
+</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
+</span><a name="line-17"></a><span>
+</span><a name="line-18"></a><span class="hs-keyword">data</span><span> </span><a name="RemPart"><a href="Data.Type.Remove.Util.html#RemPart"><span class="hs-identifier">RemPart</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><a href="#local-1627449775"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627449775"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><a href="#local-1627449775"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-19"></a><span>    </span><a name="RP"><a href="Data.Type.Remove.Util.html#RP"><span class="hs-identifier">RP</span></a></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Length</span><span> </span><a href="#local-1627449776"><span class="hs-identifier hs-type">cs</span></a><span class="hs-special">)</span><span>
+</span><a name="line-20"></a><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Proxy</span><span> </span><a href="#local-1627449777"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span>
+</span><a name="line-21"></a><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Length</span><span> </span><a href="#local-1627449778"><span class="hs-identifier hs-type">ds</span></a><span class="hs-special">)</span><span>
+</span><a name="line-22"></a><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Data.Type.Remove.Util.html#RemPart"><span class="hs-identifier hs-type">RemPart</span></a><span> </span><span class="hs-special">(</span><a href="#local-1627449776"><span class="hs-identifier hs-type">cs</span></a><span> </span><span class="hs-operator">++</span><span> </span><span class="hs-char">'[a] ++ ds) a (cs ++ ds)
+
+remPart :: Length as -&gt; Remove as a bs -&gt; RemPart as a bs
+remPart = \case
+    LZ   -&gt; \case
+    LS l -&gt; \case
+      RZ   -&gt; RP LZ Proxy l
+      RS s -&gt; case remPart l s of
+                RP lC pA lD -&gt; RP (LS lC) pA lD
+
+</span></pre></body></html>
