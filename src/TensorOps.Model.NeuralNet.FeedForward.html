@@ -35,13 +35,14 @@
 </span><a name="line-35"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Tensor.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Tensor</span></a><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TT</span><span>
 </span><a name="line-36"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Types.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span></a><span>
 </span><a name="line-37"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span>
-</span><a name="line-38"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
-</span><a name="line-39"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
-</span><a name="line-40"></a><span class="hs-keyword">import</span><span>           </span><a href="Type.Family.List.Util.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
-</span><a name="line-41"></a><span>
-</span><a name="line-42"></a><span class="hs-keyword">data</span><span> </span><a name="Network"><a href="TensorOps.Model.NeuralNet.FeedForward.html#Network"><span class="hs-identifier">Network</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><a href="#local-1627847632"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627847632"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627847632"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-43"></a><span>    </span><a name="N"><a href="TensorOps.Model.NeuralNet.FeedForward.html#N"><span class="hs-identifier">N</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">{</span><span> </span><a name="_nsOs"><a href="TensorOps.Model.NeuralNet.FeedForward.html#_nsOs"><span class="hs-identifier">_nsOs</span></a></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Sing</span><span> </span><a href="#local-1627847633"><span class="hs-identifier hs-type">os</span></a><span class="hs-special">)</span><span>
-</span><a name="line-44"></a><span>         </span><span class="hs-special">,</span><span> </span><a name="_nOp"><a href="TensorOps.Model.NeuralNet.FeedForward.html#_nOp"><span class="hs-identifier">_nOp</span></a></a><span>     </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><a href="TensorOps.Types.html#TensorOp"><span class="hs-identifier hs-type">TensorOp</span></a><span> </span><span class="hs-special">(</span><span class="hs-char">'[i] ': os) '[ '[o] ])
+</span><a name="line-38"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Known</span><span>
+</span><a name="line-39"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
+</span><a name="line-40"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
+</span><a name="line-41"></a><span class="hs-keyword">import</span><span>           </span><a href="Type.Family.List.Util.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-42"></a><span>
+</span><a name="line-43"></a><span class="hs-keyword">data</span><span> </span><a name="Network"><a href="TensorOps.Model.NeuralNet.FeedForward.html#Network"><span class="hs-identifier">Network</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><a href="#local-1627847636"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627847636"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627847636"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-44"></a><span>    </span><a name="N"><a href="TensorOps.Model.NeuralNet.FeedForward.html#N"><span class="hs-identifier">N</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">{</span><span> </span><a name="_nsOs"><a href="TensorOps.Model.NeuralNet.FeedForward.html#_nsOs"><span class="hs-identifier">_nsOs</span></a></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Sing</span><span> </span><a href="#local-1627847637"><span class="hs-identifier hs-type">os</span></a><span class="hs-special">)</span><span>
+</span><a name="line-45"></a><span>         </span><span class="hs-special">,</span><span> </span><a name="_nOp"><a href="TensorOps.Model.NeuralNet.FeedForward.html#_nOp"><span class="hs-identifier">_nOp</span></a></a><span>     </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><a href="TensorOps.Types.html#TensorOp"><span class="hs-identifier hs-type">TensorOp</span></a><span> </span><span class="hs-special">(</span><span class="hs-char">'[i] ': os) '[ '[o] ])
          , _nParams :: !(Prod t os)
          } -&gt; Network t i o
 
@@ -121,36 +122,40 @@ trainNetwork r x y = \case
 
 ffLayer
     :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t)
-    =&gt; Gen (PrimState m)
+    =&gt; (forall a. Floating a =&gt; a -&gt; a)
+    -&gt; Gen (PrimState m)
     -&gt; m (Network t i o)
-ffLayer g = (\w b -&gt; N sing ffLayer' (w :&lt; b :&lt; &#216;))
-        &lt;$&gt; genRand (normalDistr 0 0.5) g
-        &lt;*&gt; genRand (normalDistr 0 0.5) g
+ffLayer f g = (\w b -&gt; N sing ffLayer' (w :&lt; b :&lt; &#216;))
+          &lt;$&gt; genRand (normalDistr 0 0.5) g
+          &lt;*&gt; genRand (normalDistr 0 0.5) g
   where
     ffLayer'
         :: TensorOp '[ '[i], '[o,i], '[o]] '[ '[o] ]
-    ffLayer' = (LS (LS LZ), LS LZ, TO.swap                   )
-            ~. (LS (LS LZ), LS LZ, GMul    (LS LZ) (LS LZ) LZ)
-            ~. (LS (LS LZ), LZ   , TO.zip2 (+)               )
+    ffLayer' = (known, known, TO.swap                   )
+            ~. (known, known, GMul    (LS LZ) (LS LZ) LZ)
+            ~. (known, known, TO.zip2 (+)               )
+            ~. (known, known, TO.map  f                 )
             ~. OP&#216;
+
+data ActFunc = AF { getAF :: forall a. Floating a =&gt; a -&gt; a }
 
 genNet
     :: forall k o i m (t :: [k] -&gt; Type). (SingI o, SingI i, PrimMonad m, Tensor t)
-    =&gt; (forall a. Floating a =&gt; a -&gt; a)
-    -&gt; [Integer]
+    =&gt; [(Integer, ActFunc)]
+    -&gt; ActFunc
     -&gt; Gen (PrimState m)
     -&gt; m (Network t i o)
-genNet f xs0 g = go sing xs0
+genNet xs0 f g = go sing xs0
   where
     go  :: forall (j :: k). ()
         =&gt; Sing j
-        -&gt; [Integer]
+        -&gt; [(Integer, ActFunc)]
         -&gt; m (Network t j o)
-    go sj = \case
-      []   -&gt; ffLayer g       \\ sj
-      x:xs -&gt; withNatKind x $ \sl -&gt; do
+    go sj = (\\ sj) $ \case
+      []        -&gt; ffLayer (getAF f) g
+      (x,f'):xs -&gt; withNatKind x $ \sl -&gt; (\\ sl) $ do
         n &lt;- go sl xs
-        l &lt;- ffLayer g  \\ sl \\ sj
-        return $ l ~*~ pipe (TO.map f) ~* n  \\ sl \\ sj
+        l &lt;- ffLayer (getAF f') g
+        return $ l ~*~ n
 
 </span></pre></body></html>

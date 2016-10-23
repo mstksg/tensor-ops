@@ -518,6 +518,9 @@ infixl 5 *~
 nmap :: (SingI o, SingI i) => (forall a. Floating a => a -> a) -> Network t i o -> Network t i o
 runNetwork :: (Floating (ElemT t), Tensor t) => Network t i o -> t '[i] -> t '[o]
 trainNetwork :: forall i o t. (SingI i, SingI o, Tensor t, Floating (ElemT t)) => ElemT t -> t '[i] -> t '[o] -> Network t i o -> Network t i o
-ffLayer :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t) => Gen (PrimState m) -> m (Network t i o)
-genNet :: forall k o i m (t :: [k] -> Type). (SingI o, SingI i, PrimMonad m, Tensor t) => (forall a. Floating a => a -> a) -> [Integer] -> Gen (PrimState m) -> m (Network t i o)
+ffLayer :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t) => (forall a. Floating a => a -> a) -> Gen (PrimState m) -> m (Network t i o)
+data ActFunc
+AF :: (forall a. Floating a => a -> a) -> ActFunc
+[getAF] :: ActFunc -> forall a. Floating a => a -> a
+genNet :: forall k o i m (t :: [k] -> Type). (SingI o, SingI i, PrimMonad m, Tensor t) => [(Integer, ActFunc)] -> ActFunc -> Gen (PrimState m) -> m (Network t i o)
 instance forall k (t :: [k] -> *) (i :: k) (o :: k). Data.Nested.Nesting1 Data.Proxy.Proxy Control.DeepSeq.NFData t => Control.DeepSeq.NFData (TensorOps.Model.NeuralNet.FeedForward.Network t i o)
