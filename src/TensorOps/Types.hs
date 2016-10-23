@@ -29,7 +29,6 @@ import           Data.Singletons.Prelude hiding (Reverse, (%:++))
 import           Data.Type.Index
 import           Data.Type.Length               as TCL
 import           Data.Type.Product
-import           Data.Type.Remove
 import           Data.Type.Sing
 import           Data.Type.Uniform
 import           Data.Type.Vector

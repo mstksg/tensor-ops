@@ -35,6 +35,7 @@ import           TensorOps.TOp                  as TO
 import           TensorOps.Tensor               as TT
 import           TensorOps.Types
 import           Type.Class.Higher
+import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
@@ -121,35 +122,39 @@ trainNetwork r x y = \case
 
 ffLayer
     :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t)
-    => Gen (PrimState m)
+    => (forall a. Floating a => a -> a)
+    -> Gen (PrimState m)
     -> m (Network t i o)
-ffLayer g = (\w b -> N sing ffLayer' (w :< b :< Ø))
-        <$> genRand (normalDistr 0 0.5) g
-        <*> genRand (normalDistr 0 0.5) g
+ffLayer f g = (\w b -> N sing ffLayer' (w :< b :< Ø))
+          <$> genRand (normalDistr 0 0.5) g
+          <*> genRand (normalDistr 0 0.5) g
   where
     ffLayer'
         :: TensorOp '[ '[i], '[o,i], '[o]] '[ '[o] ]
-    ffLayer' = (LS (LS LZ), LS LZ, TO.swap                   )
-            ~. (LS (LS LZ), LS LZ, GMul    (LS LZ) (LS LZ) LZ)
-            ~. (LS (LS LZ), LZ   , TO.zip2 (+)               )
+    ffLayer' = (known, known, TO.swap                   )
+            ~. (known, known, GMul    (LS LZ) (LS LZ) LZ)
+            ~. (known, known, TO.zip2 (+)               )
+            ~. (known, known, TO.map  f                 )
             ~. OPØ
+
+data ActFunc = AF { getAF :: forall a. Floating a => a -> a }
 
 genNet
     :: forall k o i m (t :: [k] -> Type). (SingI o, SingI i, PrimMonad m, Tensor t)
-    => (forall a. Floating a => a -> a)
-    -> [Integer]
+    => [(Integer, ActFunc)]
+    -> ActFunc
     -> Gen (PrimState m)
     -> m (Network t i o)
-genNet f xs0 g = go sing xs0
+genNet xs0 f g = go sing xs0
   where
     go  :: forall (j :: k). ()
         => Sing j
-        -> [Integer]
+        -> [(Integer, ActFunc)]
         -> m (Network t j o)
-    go sj = \case
-      []   -> ffLayer g       \\ sj
-      x:xs -> withNatKind x $ \sl -> do
+    go sj = (\\ sj) $ \case
+      []        -> ffLayer (getAF f) g
+      (x,f'):xs -> withNatKind x $ \sl -> (\\ sl) $ do
         n <- go sl xs
-        l <- ffLayer g  \\ sl \\ sj
-        return $ l ~*~ pipe (TO.map f) ~* n  \\ sl \\ sj
+        l <- ffLayer (getAF f') g
+        return $ l ~*~ n
 
