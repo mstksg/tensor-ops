@@ -112,7 +112,7 @@ gradTOp sNs sMs = (\\ witSings sNs) $
              => Index ns n
              -> Sing n
              -> t n
-          f i s = foldl' (TT.zip2 (+)) (TT.konst 0) (foldMap1 g ixds)
+          f i s = foldl' (TT.zip (+)) (TT.konst 0) (foldMap1 g ixds)
                     \\ s
             where
               g :: forall m. ()
@@ -125,7 +125,7 @@ gradTOp sNs sMs = (\\ witSings sNs) $
     SumRows -> \case
       x :< Ø -> \case
         dtdz :< Ø ->
-          only $ mapRows (LS LZ) (TT.zip2 (*) dtdz) x
+          only $ mapRows (LS LZ) (TT.zip (*) dtdz) x
                    \\ sHead (sHead sNs)
     -- SumRow (r :: Remove as n bs) -> \case
     --   (x :: t as) :< Ø -> \case

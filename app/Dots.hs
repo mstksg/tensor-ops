@@ -96,7 +96,7 @@ netTest _ rate n hs g = withSingI (sFromNat @k (SNat @1)) $
         => t '[n]
         -> (t '[n], Double)
         -> Bool
-    v `inCircle` (o, r) = let d = TT.zip2 (-) v o
+    v `inCircle` (o, r) = let d = TT.zip (-) v o
                           in  TT.unScalar (d `TT.dot` d) <= r**2
 
 

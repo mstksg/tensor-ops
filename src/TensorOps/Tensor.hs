@@ -10,25 +10,37 @@
 {-# LANGUAGE TypeOperators       #-}
 {-# LANGUAGE ViewPatterns        #-}
 
-module TensorOps.Tensor where
+module TensorOps.Tensor
+  ( konst
+  , map
+  , zipN
+  , zip
+  , zip3
+  , gradLift
+  , gradLift1
+  , gradLift1N
+  , inner, outer, outerV, dot, matVec, vecMat, matMat
+  , fromList, generate, rows, toRows
+  , ixElems, elems, itoList, toList, unScalar
+  ) where
 
 import           Control.Applicative
 import           Control.Monad.Trans.State.Strict
 import           Data.Functor
 import           Data.Kind
-import           Data.List hiding                 ((\\), zip)
+import           Data.List hiding                 ((\\), zip, map, zip3)
 import           Data.Monoid
 import           Data.Proxy
 import           Data.Singletons
 import           Data.Type.Combinator
 import           Data.Type.Fin
 import           Data.Type.Length
-import           Data.Type.Product
+import           Data.Type.Product hiding         (toList)
 import           Data.Type.Sing
 import           Data.Type.Vector                 as TCV
 import           Data.Type.Vector.Util            as TCV
 import           Numeric.AD
-import           Prelude hiding                   (zip)
+import           Prelude hiding                   (zip, map, zip3)
 import           TensorOps.NatKind
 import           TensorOps.Types
 import           Type.Class.Known
@@ -44,20 +56,6 @@ konst
 konst x = generate (\_ -> x)
 {-# INLINE konst #-}
 
--- konst
---     :: (Tensor t, Floating (ElemT t), SingI n)
---     => ElemT t
---     -> t n
--- konst = getI . TCV.head' . konstN @('S 'Z)
--- {-# INLINE konst #-}
-
--- konstN
---     :: forall n o t. (Tensor t, Floating (ElemT t), SingI o, Known Nat n)
---     => ElemT t
---     -> Vec n (t o)
--- konstN x = liftT (vrep (I (\ØV -> x))) ØV
--- {-# INLINE konstN #-}
-
 map
     :: forall k (o :: [k]) (t :: [k] -> Type). (SingI o, Tensor t)
     => (ElemT t -> ElemT t)
@@ -66,22 +64,21 @@ map
 map f = getI . TCV.head' . liftT ((f . getI . TCV.head') :+ ØV) . (:+ ØV)
 {-# INLINE map #-}
 
-zip
+zipN
     :: (SingI o, Tensor t)
     => (Vec n (ElemT t) -> ElemT t)
     -> Vec n (t o)
     -> t o
-zip f = getI . TCV.head' . liftT (f :+ ØV)
-{-# INLINE zip #-}
+zipN f = getI . TCV.head' . liftT (f :+ ØV)
+{-# INLINE zipN #-}
 
-zip2
-    :: (SingI o, Tensor t)
+zip :: (SingI o, Tensor t)
     => (ElemT t -> ElemT t -> ElemT t)
     -> t o
     -> t o
     -> t o
-zip2 f x y = zip (\case I x' :* I y' :* ØV -> f x' y') (x :+ y :+ ØV)
-{-# INLINE zip2 #-}
+zip f x y = zipN (\case I x' :* I y' :* ØV -> f x' y') (x :+ y :+ ØV)
+{-# INLINE zip #-}
 
 zip3
     :: (SingI o, Tensor t)
@@ -90,17 +87,10 @@ zip3
     -> t o
     -> t o
     -> t o
-zip3 f x y z = zip (\case I x' :* I y' :* I z' :* ØV -> f x' y' z') (x :+ y :+ z :+ ØV)
+zip3 f x y z = zipN (\case I x' :* I y' :* I z' :* ØV -> f x' y' z') (x :+ y :+ z :+ ØV)
 {-# INLINE zip3 #-}
 
--- replicate
---     :: (Tensor t, Floating (ElemT t), SingI o, Known Nat n)
---     => t o
---     -> Vec n (t o)
--- replicate = vrep
--- -- replicate x = liftT (\(x' :* ØV) -> vrep x') (x :+ ØV)
-
--- | This is the bottleneck of the whole thing.
+-- | This is a huge bottleneck, I think?
 --
 -- Implementation issue -- shouldn't need Sing o if n or m is zero
 --

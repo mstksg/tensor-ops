@@ -111,7 +111,7 @@ trainNetwork r x y = \case
                  . tail'
                  $ gradTensorOp o' inp
             p'   :: Prod t os
-            p' = map1 (\(s1 :&: o1 :&: g1) -> withSingI s1 $ TT.zip2 stepFunc o1 g1)
+            p' = map1 (\(s1 :&: o1 :&: g1) -> withSingI s1 $ TT.zip stepFunc o1 g1)
                $ zipProd3 (singProd s) p grad
         in  N s o p'
       ) \\ appendSnoc (singLength s) (Proxy @('[o]))
