@@ -4,6 +4,7 @@
 {-# LANGUAGE InstanceSigs         #-}
 {-# LANGUAGE KindSignatures       #-}
 {-# LANGUAGE LambdaCase           #-}
+{-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE TypeFamilies         #-}
@@ -40,6 +41,42 @@ instance (VS.Storable a, NFData a) => NFData (HMat a s) where
     {-# INLINE rnf #-}
 
 instance (VS.Storable a, NFData a) => NFData1 (HMat a)
+
+instance (SingI s, Container Vector a, Container Matrix a, Num a) => Num (HMat a s) where
+    (+) = unsafeZipH add add
+    (*) = unsafeZipH (VS.zipWith (*)) (liftMatrix2 (VS.zipWith (*)))
+    (-) = unsafeZipH (VS.zipWith (-)) (liftMatrix2 (VS.zipWith (-)))
+    negate = unsafeMapH (scale (-1)) (scale (-1))
+    abs    = unsafeMapH (cmap abs) (cmap abs)
+    signum = unsafeMapH (cmap signum) (cmap signum)
+    fromInteger = case (sing :: Sing s) of
+        SBV n   -> HMV . flip konst (fromIntegral (fromSing n)) . fromInteger
+        SBM n m -> HMM . flip konst (fromIntegral (fromSing n)
+                                    ,fromIntegral (fromSing m)
+                                    ) . fromInteger
+
+
+-- | WARNING!! Functions should assume equal sized inputs and return
+-- outputs of the same size!  This is not checked!!!
+unsafeZipH
+    :: (Vector a -> Vector a -> Vector a)
+    -> (Matrix a -> Matrix a -> Matrix a)
+    -> HMat a s -> HMat a s -> HMat a s
+unsafeZipH f g = \case
+    HMV x -> \case
+      HMV y -> HMV $ f x y
+    HMM x -> \case
+      HMM y -> HMM $ g x y
+
+-- | WARNING!! Functions should return outputs of the same size!  This is
+-- not checked!!!
+unsafeMapH
+    :: (Vector a -> Vector a)
+    -> (Matrix a -> Matrix a)
+    -> HMat a s -> HMat a s
+unsafeMapH f g = \case
+    HMV x -> HMV $ f x
+    HMM x -> HMM $ g x
 
 liftB'
     :: (Numeric a)
@@ -111,6 +148,10 @@ instance (Container Vector a, Numeric a) => BLAS (HMat a) where
         . scale α
         $ b
     {-# INLINE gemm #-}
+    scaleB α = unsafeMapH (scale α) (scale α)
+    {-# INLINE scaleB #-}
+    addB = unsafeZipH add add
+    {-# INLINE addB #-}
     indexB = \case
         PBV i -> \case
           HMV x -> x `atIndex` fromInteger (DF.getFinite i)
