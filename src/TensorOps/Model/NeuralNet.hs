@@ -28,7 +28,8 @@ softmax = (known, known, TO.map       exp          )
 squaredError
     :: forall o. SingI o
     => TensorOp '[ '[o], '[o]] '[ '[] ]
-squaredError = (known, known, TO.zip2      (-)         )
+squaredError = (known, known, TO.negate                )
+            ~. (known, known, TO.add                   )
             ~. (known, known, TO.replicate (US (US UØ)))
             ~. (known, known, TO.dot                   )
             ~. OPØ

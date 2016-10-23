@@ -141,9 +141,11 @@ data TOp :: [[k]] -> [[k]] -> Type where
             -> TOp ns ms
     -- SumRow  :: Remove ns n ms
     --         -> TOp '[ ns ] '[ ms ]
-    SumRows :: TOp '[ (n ': ns) ] '[ ns ]
+    SumRows :: TOp '[ n ': ns ] '[ ns ]
     SumT    :: Uniform n ns
             -> TOp ns '[n]
+    Scale   :: (forall a. Floating a => a)
+            -> TOp '[ ns ] '[ ns ]
 
 -- | TODO: replace with `syntactic`?
 data OpPipe :: ([k] -> [k] -> Type) -> [k] -> [k] -> Type where

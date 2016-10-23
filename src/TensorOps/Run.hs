@@ -9,16 +9,17 @@
 
 module TensorOps.Run where
 
+import           Data.Foldable
 import           Data.Singletons
 import           Data.Singletons.Prelude
 import           Data.Type.Combinator
 import           Data.Type.Product hiding (append', toList)
-import           Data.Foldable
 import           Data.Type.Product.Util
 import           Data.Type.Sing
 import           Data.Type.Uniform
 import           TensorOps.Types
 import           Type.Class.Witness
+import qualified TensorOps.Tensor         as TT
 
 runTOp
     :: forall (ns :: [[k]]) (ms :: [[k]]) (t :: [k] -> *).
@@ -43,6 +44,9 @@ runTOp sNs sMs = (\\ witSings sNs) $
     SumRows        -> only . sumRows . head'
                         \\ sHead (sHead sNs)
     SumT u         -> only . sumT . toList . prodToVec I u
+    -- Scale α        -> map1 (TT.map (*α))
+    Scale α        -> only . TT.map (*α) . head'
+                        \\ sHead (sHead sNs)
     -- Fold _ f       -> only . foldT f     . head'
 
 runTensorOp

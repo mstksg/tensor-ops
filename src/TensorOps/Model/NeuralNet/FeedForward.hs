@@ -133,7 +133,6 @@ ffLayer f g = (\w b -> N sing ffLayer' (w :< b :< Ø))
         :: TensorOp '[ '[i], '[o,i], '[o]] '[ '[o] ]
     ffLayer' = (known, known, TO.swap                   )
             ~. (known, known, GMul    (LS LZ) (LS LZ) LZ)
-            -- ~. (known, known, TO.zip2 (+)               )
             ~. (known, known, TO.add                    )
             ~. (known, known, TO.map  f                 )
             ~. OPØ

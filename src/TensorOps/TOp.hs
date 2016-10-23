@@ -18,7 +18,7 @@ import           Data.Type.Product
 import           Data.Type.Product.Util    as TCP
 import           Data.Type.Uniform
 import           Data.Type.Vector          as TCV
-import           Prelude hiding            (map, replicate, zip)
+import           Prelude hiding            (map, replicate, zip, negate)
 import           TensorOps.Types hiding    (OpPipe(..))
 import           Type.Class.Witness hiding (inner)
 import           Type.Family.List
@@ -33,6 +33,10 @@ konst
 konst u x = Lift UØ u (vrep (I (VF $ \ØV -> x)))
               \\ uniformLength u
 {-# INLINE konst #-}
+
+negate
+    :: TOp '[ns] '[ns]
+negate = Scale (-1)
 
 map :: (forall a. Floating a => a -> a)
     -> TOp '[n] '[n]

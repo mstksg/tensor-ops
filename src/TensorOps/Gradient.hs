@@ -45,7 +45,8 @@ gradTOp sNs sMs = (\\ witSings sNs) $
       US _ -> \x -> vecToProd getI uN
                   . TT.gradLift f (prodToVec I uN x)
                   . prodToVec I uM
-    SumT u -> \_ -> flip TCP.replicate u . TCP.head'
+    SumT u  -> \_ -> flip TCP.replicate u . TCP.head'
+    Scale α -> \_ -> only . TT.map (α*) . TCP.head'
     GMul lM lO lN -> \case
       -- lM   :: Length m
       -- lO   :: Length o
