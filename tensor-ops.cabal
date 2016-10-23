@@ -22,6 +22,7 @@ library
                        Data.Type.Length.Util
                        Data.Type.Nat.Util
                        Data.Type.Product.Util
+                       Data.Type.Remove.Util
                        Data.Type.Sing
                        Data.Type.SnocProd
                        Data.Type.Uniform
@@ -33,6 +34,7 @@ library
                        TensorOps.Backend.BTensor
                        TensorOps.Backend.NTensor
                        TensorOps.Gradient
+                       TensorOps.Model.NeuralNet
                        TensorOps.Model.NeuralNet.FeedForward
                        TensorOps.NatKind
                        TensorOps.Run
@@ -61,9 +63,9 @@ library
                        -- -ddump-to-file
   default-language:    Haskell2010
 
-executable tensor-ops-neural-nets
+executable tensor-ops-dots
   hs-source-dirs:      app
-  main-is:             NeuralNets.hs
+  main-is:             Dots.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2 -Wall
                        -- -ddump-rule-firings
                        -- -ddump-to-file

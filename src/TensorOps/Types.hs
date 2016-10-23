@@ -29,6 +29,7 @@ import           Data.Singletons.Prelude hiding (Reverse, (%:++))
 import           Data.Type.Index
 import           Data.Type.Length               as TCL
 import           Data.Type.Product
+import           Data.Type.Remove
 import           Data.Type.Sing
 import           Data.Type.Uniform
 import           Data.Type.Vector
@@ -68,6 +69,17 @@ class NatKind k => Tensor (t :: [k] -> Type) where
     transp  :: (SingI ns, SingI (Reverse ns))
             => t ns
             -> t (Reverse ns)
+    -- sumRow  :: Remove ns n ms
+    --         -> t ns
+    --         -> t ms
+    mapRows :: SingI (ns ++ ms)
+            => Length ns
+            -> (t ms -> t ms)
+            -> t (ns ++ ms)
+            -> t (ns ++ ms)
+    sumRows :: (SingI (n ': ns), SingI ns)
+            => t (n ': ns)
+            -> t ns
     diag    :: SingI (n ': ns)
             => Uniform n ns
             -> t '[n]
@@ -126,6 +138,9 @@ data TOp :: [[k]] -> [[k]] -> Type where
     -- statically verified?
     Shuffle :: Prod (Index ns) ms
             -> TOp ns ms
+    -- SumRow  :: Remove ns n ms
+    --         -> TOp '[ ns ] '[ ms ]
+    SumRows :: TOp '[ (n ': ns) ] '[ ns ]
 
 -- | TODO: replace with `syntactic`?
 data OpPipe :: ([k] -> [k] -> Type) -> [k] -> [k] -> Type where

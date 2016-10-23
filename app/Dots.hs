@@ -14,23 +14,6 @@
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
 
--- import           Control.Monad.Primitive
--- import           Data.Singletons.Prelude.List       (Sing(..))
--- import           Data.Type.Conjunction
--- import           Data.Type.Index
--- import           Data.Type.Length
--- import           Data.Type.Product                  as TCP
--- import           Data.Type.Product.Util
--- import           Data.Type.Sing
--- import           Data.Type.Uniform
--- import           Statistics.Distribution.Normal
--- import           TensorOps.Gradient
--- import           TensorOps.Run
--- import           Type.Class.Higher hiding           (some)
--- import           Type.Class.Witness hiding          (inner)
--- import           Type.Family.List
--- import           Type.Family.List.Util
--- import qualified TensorOps.TOp                      as TO
 import           Control.Category
 import           Control.DeepSeq
 import           Control.Exception
@@ -51,6 +34,7 @@ import           System.Random.MWC
 import           TensorOps.Backend.BTensor
 import           TensorOps.Backend.NTensor
 import           TensorOps.Model.NeuralNet.FeedForward
+import           TensorOps.Model.NeuralNet
 import           TensorOps.NatKind
 import           TensorOps.Types
 import           Text.PrettyPrint.ANSI.Leijen hiding   ((<>),(<$>))
@@ -58,12 +42,6 @@ import           Text.Printf
 import qualified Data.String.Here                      as H
 import qualified TensorOps.Tensor                      as TT
 
-
-logistic
-    :: forall a. Floating a
-    => a
-    -> a
-logistic x = 1 / (1 + exp (- x))
 
 netTest
     :: forall k (t :: [k] -> Type).

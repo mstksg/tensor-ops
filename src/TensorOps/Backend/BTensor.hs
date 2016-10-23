@@ -151,15 +151,15 @@ dispatchBLAS lM lO lN v r = case (lM, lO, lN) of
       (BTM x, BTM y) -> BTM $ gemm 1 x y Nothing
 {-# INLINE dispatchBLAS #-}
 
-mapRows
+mapRowsBTensor
     :: forall k (v :: k -> Type -> Type) ns ms os b. (Vec v, BLAS b)
     => Sing ns
     -> Length os
     -> (BTensor v b ms -> BTensor v b os)
     -> BTensor v b (ns ++ ms)
     -> BTensor v b (ns ++ os)
-mapRows sN lO f = getI . bRows sN lO (I . f)
-{-# INLINE mapRows #-}
+mapRowsBTensor sN lO f = getI . bRows sN lO (I . f)
+{-# INLINE mapRowsBTensor #-}
 
 
 bRows
@@ -617,7 +617,7 @@ naiveGMul
     -> BTensor v b (Reverse os ++ ns)
     -> BTensor v b (ms         ++ ns)
 naiveGMul sM _ lN v r =
-    mapRows sM lN (getSum . ifoldMapBTensor (\i -> Sum . f i)) v
+    mapRowsBTensor sM lN (getSum . ifoldMapBTensor (\i -> Sum . f i)) v
   where
     f  :: Prod (IndexN k) os
        -> ElemB b
@@ -694,7 +694,7 @@ gmulBLAS sM mlO mlN v r = case mlO of
                                        (LS LZ :: Length ns)
   where
     spM = singProd sM
-    lM = singLength sM
+    lM  = singLength sM
 
 diagBTensor
     :: forall k (b :: BShape k -> Type) v n ns.
@@ -732,11 +732,33 @@ transpBTensor s = \case
                       indexBTensor (TCP.reverse' i) xs
 {-# INLINE transpBTensor #-}
 
+sumBTensor
+    :: forall v b n ns.
+     ( BLAS b
+     , Vec v
+     , Num (ElemB b)
+     , Foldable (v n)
+     , SingI ns
+     , SingI n
+     , Nesting1 Proxy Functor     v
+     , Nesting1 Sing  Applicative v
+     )
+    => BTensor v b (n ': ns)
+    -> BTensor v b ns
+sumBTensor = \case
+    BTV xs  -> BTS $ sumB xs
+    BTM (xs :: b ('BM n m))
+            -> BTV $ gemv 1 (transpB xs)
+                          (bgen (SBV (sing :: Sing n)) (\_ -> 1))
+                          Nothing
+    BTN xs  -> sum xs
+
 instance
       ( Vec (v :: k -> Type -> Type)
       , BLAS b
       , Floating (ElemB b)
       , Nesting1 Proxy Functor      v
+      , Nesting1 Proxy Foldable     v
       , Nesting1 Sing  Applicative  v
       , Nesting1 Sing  Distributive v
       , Eq1 (IndexN k)
@@ -809,6 +831,26 @@ instance
 
     (!) = flip indexBTensor
     {-# INLINE (!) #-}
+
+    sumRows
+        :: forall n ns. (SingI (n ': ns), SingI ns)
+        => BTensor v b (n ': ns)
+        -> BTensor v b ns
+    sumRows = sumBTensor
+                \\ (nesting1 Proxy :: Wit (Foldable (v n)))
+                \\ sHead (sing :: Sing (n ': ns))
+    {-# INLINE sumRows #-}
+
+    mapRows :: forall ns ms. SingI (ns ++ ms)
+            => Length ns
+            -> (BTensor v b ms -> BTensor v b ms)
+            -> BTensor v b (ns ++ ms)
+            -> BTensor v b (ns ++ ms)
+    mapRows l f = mapRowsBTensor sN (singLength sM) f
+      where
+        sN :: Sing ns
+        sM :: Sing ms
+        (sN, sM) = splitSing l (sing :: Sing (ns ++ ms))
 
 
 -- * Boring dispatches

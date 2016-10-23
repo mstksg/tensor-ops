@@ -25,10 +25,10 @@ import           Data.Type.Length
 import           Data.Type.Product              as TCP
 import           Data.Type.Product.Util         as TCP
 import           Data.Type.Sing
-import           Data.Type.Uniform
 import           Statistics.Distribution.Normal
 import           System.Random.MWC
 import           TensorOps.Gradient
+import           TensorOps.Model.NeuralNet
 import           TensorOps.NatKind
 import           TensorOps.Run
 import           TensorOps.TOp                  as TO
@@ -119,14 +119,6 @@ trainNetwork r x y = \case
     stepFunc :: ElemT t -> ElemT t -> ElemT t
     stepFunc o' g' = o' - r * g'
 
-squaredError
-    :: forall o. SingI o
-    => TensorOp '[ '[o], '[o]] '[ '[] ]
-squaredError = (LS (LS LZ), LZ   , TO.zip2      (-)         )
-            ~. (LS LZ     , LZ   , TO.replicate (US (US UØ)))
-            ~. (LS (LS LZ), LZ   , TO.dot                   )
-            ~. OPØ
-
 ffLayer
     :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t)
     => Gen (PrimState m)
@@ -160,3 +152,4 @@ genNet f xs0 g = go sing xs0
         n <- go sl xs
         l <- ffLayer g  \\ sl \\ sj
         return $ l ~*~ pipe (TO.map f) ~* n  \\ sl \\ sj
+

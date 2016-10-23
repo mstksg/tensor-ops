@@ -10,9 +10,11 @@
 
 module TensorOps.Gradient where
 
+-- import           Data.Type.Remove
+-- import           Data.Type.Remove.Util
 import           Data.Foldable
 import           Data.Singletons
-import           Data.Singletons.Prelude.List (Sing(..))
+import           Data.Singletons.Prelude.List (Sing(..), sHead)
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
 import           Data.Type.Index
@@ -120,6 +122,18 @@ gradTOp sNs sMs = (\\ witSings sNs) $
                 Just Refl -> [d]
                 Nothing   -> []
       in  imap1 f (singProd sNs)
+    SumRows -> \case
+      x :< Ø -> \case
+        dtdz :< Ø ->
+          only $ mapRows (LS LZ) (TT.zip2 (*) dtdz) x
+                   \\ sHead (sHead sNs)
+    -- SumRow (r :: Remove as n bs) -> \case
+    --   (x :: t as) :< Ø -> \case
+    --     (dtdz :: t bs) :< Ø ->
+    --       case remPart (singLength (sing :: Sing as)) r of
+    --         RP lC pA lD -> only $ mapRows (lC TCL.>: pA) lD (TT.zip2 (*) dtdz) x
+    --                          \\ appendSnoc lC pA
+    --                          \\ appendAssoc lC (LS LZ :: Length '[n]) lD
 
 gradTensorOp
     :: forall ns t. (Tensor t, Floating (ElemT t))

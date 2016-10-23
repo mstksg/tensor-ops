@@ -174,3 +174,7 @@ instance (Container Vector a, Numeric a) => BLAS (HMat a) where
     {-# INLINE getDiagB #-}
     traceB = sumElements . takeDiag . unHMM
     {-# INLINE traceB #-}
+    sumB = \case
+      HMV xs -> sumElements xs
+      HMM xs -> sumElements xs
+    {-# INLINE sumB #-}

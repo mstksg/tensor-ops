@@ -33,14 +33,17 @@ module Data.Nested
   , gmul'
   , diagNV
   , joinNested
+  , mapNVecSlices
   , nIxRows
   , vGen, vIFoldMap, itraverseNested
   , liftNested
   , unScalar, unNest, unVector
+  , sumRowsNested
   ) where
 
 -- import           Data.Type.Length.Util            as TCL
 -- import           Data.Type.Product.Util           as TCP
+-- import           Type.Class.Higher.Util
 import           Control.Applicative
 import           Control.DeepSeq
 import           Data.Distributive
@@ -57,7 +60,6 @@ import           Data.Type.Sing
 import           Data.Type.SnocProd
 import           Data.Type.Uniform
 import           TensorOps.NatKind
-import           Type.Class.Higher.Util
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
@@ -550,3 +552,14 @@ liftNested
 liftNested f xs = fmap (\g -> TCV.liftVecD g xs) f
 {-# INLINE liftNested #-}
 
+sumRowsNested
+    :: forall v n ns a.
+     ( Foldable (v n)
+     , Num a
+     , SingI ns
+     , Nesting1 Proxy Functor v
+     , Nesting1 Sing Applicative v
+     )
+    => Nested v (n ': ns) a
+    -> Nested v ns a
+sumRowsNested (NS xs) = sum xs

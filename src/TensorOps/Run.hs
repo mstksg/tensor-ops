@@ -10,6 +10,7 @@
 module TensorOps.Run where
 
 import           Data.Singletons
+import           Data.Singletons.Prelude
 import           Data.Type.Combinator
 import           Data.Type.Product hiding (append')
 import           Data.Type.Product.Util
@@ -38,6 +39,8 @@ runTOp sNs sMs = (\\ witSings sNs) $
       x :< y :< Ø -> only (gmul lM lO lN x y)
     Transp _       -> only . transp . head'
     Shuffle i      -> select i
+    SumRows        -> only . sumRows . head'
+                        \\ sHead (sHead sNs)
     -- Fold _ f       -> only . foldT f     . head'
 
 runTensorOp

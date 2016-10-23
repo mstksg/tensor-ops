@@ -116,6 +116,12 @@ overNVec
 overNVec f = getI . ntNVec (I . f)
 {-# INLINE overNVec #-}
 
+underNVec
+    :: (NTensor v a ns -> NTensor v a ms)
+    -> Nested v ns a
+    -> Nested v ms a
+underNVec f = getNVec . f . NTensor
+
 
 instance
       ( Vec (v :: k -> Type -> Type)
@@ -215,6 +221,21 @@ instance
     ixRows l _ f = ntNVec $ fmap joinNested . nIxRows l (\i -> nvecNT (f i))
     {-# INLINE ixRows #-}
 
+    sumRows
+        :: forall n ns. SingI ns
+        => NTensor v a (n ': ns)
+        -> NTensor v a ns
+    sumRows = overNVec sumRowsNested
+                \\ (nesting1 Proxy :: Wit (Foldable (v n)))
+    {-# INLINE sumRows #-}
+
+    mapRows
+        :: Length ns
+        -> (NTensor v a ms -> NTensor v a ms)
+        -> NTensor v a (ns ++ ms)
+        -> NTensor v a (ns ++ ms)
+    mapRows l f = overNVec $ joinNested . mapNVecSlices (underNVec f) l
+    {-# INLINE mapRows #-}
 
 type NTensorL = NTensor (Flip2 TCV.VecT   I) Double
 type NTensorV = NTensor (Flip2 VS.VectorT I) Double

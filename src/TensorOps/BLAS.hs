@@ -164,6 +164,9 @@ class NatKind k => BLAS (b :: BShape k -> Type) where
     getDiagB
         :: b ('BM n n)
         -> b ('BV n)
+    sumB
+        :: b s
+        -> ElemB b
     -- zero :: b s
 
 elemsB
