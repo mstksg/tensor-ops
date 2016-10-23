@@ -19,7 +19,7 @@
 </span><a name="line-19"></a><span>
 </span><a name="line-20"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">BLAS</span><span>
 </span><a name="line-21"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="TensorOps.BLAS.html#BShape"><span class="hs-identifier hs-type">BShape</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#BShapeDims"><span class="hs-identifier hs-type">BShapeDims</span></a><span>
+</span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#BShapeDims"><span class="hs-identifier hs-type">BShapeDims</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#bShapeDims"><span class="hs-identifier hs-var">bShapeDims</span></a><span>
 </span><a name="line-23"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#BShapeP"><span class="hs-identifier hs-type">BShapeP</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
 </span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#bShapeProd"><span class="hs-identifier hs-var">bShapeProd</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#pbvProd"><span class="hs-identifier hs-var">pbvProd</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#pbmProd"><span class="hs-identifier hs-var">pbmProd</span></a><span>
 </span><a name="line-25"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#BLAS"><span class="hs-identifier hs-type">BLAS</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
@@ -47,7 +47,7 @@
 </span><a name="line-47"></a><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">Show</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">Eq</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">Ord</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.BLAS.html#SBM"><span class="hs-identifier hs-var">Functor</span></a><span class="hs-special">)</span><span>
 </span><a name="line-48"></a><span>  </span><span class="hs-glyph">|</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
 </span><a name="line-49"></a><span>
-</span><a name="line-50"></a><span class="hs-keyword">type</span><span> </span><span class="hs-keyword">family</span><span> </span><a name="BShapeDims"><a href="TensorOps.BLAS.html#BShapeDims"><span class="hs-identifier">BShapeDims</span></a></a><span> </span><span class="hs-special">(</span><a name="local-1627636339"><a href="#local-1627636339"><span class="hs-identifier">s</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="TensorOps.BLAS.html#BShape"><span class="hs-identifier hs-type">BShape</span></a><span> </span><a href="#local-1627636338"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><a name="local-1627636340"><a href="#local-1627636340"><span class="hs-identifier">ks</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><a href="#local-1627636338"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier">ks</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier">s</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-50"></a><span class="hs-keyword">type</span><span> </span><span class="hs-keyword">family</span><span> </span><a name="BShapeDims"><a href="TensorOps.BLAS.html#BShapeDims"><span class="hs-identifier">BShapeDims</span></a></a><span> </span><span class="hs-special">(</span><a name="local-1627636631"><a href="#local-1627636631"><span class="hs-identifier">s</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="TensorOps.BLAS.html#BShape"><span class="hs-identifier hs-type">BShape</span></a><span> </span><a href="#local-1627636630"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><a name="local-1627636632"><a href="#local-1627636632"><span class="hs-identifier">ks</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><a href="#local-1627636630"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier">ks</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier">s</span><span> </span><span class="hs-keyword">where</span><span>
 </span><a name="line-51"></a><span>    </span><span class="hs-identifier">BShapeDims</span><span> </span><span class="hs-special">(</span><span class="hs-char">'BV x  ) = '[x]
     BShapeDims ('BM x y) = '[x,y]
 
@@ -55,31 +55,38 @@ genDefunSymbols [''BShapeDims]
 
 data BShapeP :: (k -&gt; Type) -&gt; BShape k -&gt; Type where
     PBV :: { unPBV :: !(f a) } -&gt; BShapeP f ('BV a)
-    PBM :: { unPBMn :: f a
-           , unPBMm :: f b
+    PBM :: { unPBMn :: !(f a)
+           , unPBMm :: !(f b)
            } -&gt; BShapeP f ('BM a b)
 
--- TODO: rewrite rules
 bShapeProd
     :: BShapeP f s
     -&gt; Prod f (BShapeDims s)
 bShapeProd = \case
     PBV x   -&gt; x :&lt; &#216;
     PBM x y -&gt; x :&lt; y :&lt; &#216;
+{-# INLINE[0] bShapeProd #-}
+
+{-# RULES
+&quot;bShapeProd/BV&quot; bShapeProd = pbvProd
+&quot;bShapeProd/BM&quot; bShapeProd = pbmProd
+    #-}
 
 pbvProd
     :: BShapeP f ('BV a)
     -&gt; Prod f '[a]
 pbvProd (PBV x) = x :&lt; &#216;
+{-# INLINE pbvProd #-}
 
 pbmProd
     :: BShapeP f ('BM a b)
     -&gt; Prod f '[a,b]
 pbmProd (PBM x y) = x :&lt; y :&lt; &#216;
+{-# INLINE pbmProd #-}
 
--- bShapeDims :: BShape a -&gt; [a]
--- bShapeDims (BV x  ) = [x]
--- bShapeDims (BM x y) = [x,y]
+bShapeDims :: BShape a -&gt; [a]
+bShapeDims (BV x  ) = [x]
+bShapeDims (BM x y) = [x,y]
 
 class NatKind k =&gt; BLAS (b :: BShape k -&gt; Type) where
     type ElemB b :: Type
@@ -165,6 +172,7 @@ elemsB
     -&gt; b s
     -&gt; f (b s)
 elemsB f = iElemsB (\_ x -&gt; f x)
+{-# INLINE elemsB #-}
 
 bgen
     :: forall k (b :: BShape k -&gt; Type) (s :: BShape k). BLAS b
@@ -172,12 +180,14 @@ bgen
     -&gt; (BShapeP (IndexN k) s -&gt; ElemB b)
     -&gt; b s
 bgen s f = getI $ bgenA s (I . f)
+{-# INLINE bgen #-}
 
 bgenRows
     :: (BLAS b, SingI n)
     =&gt; (IndexN k n -&gt; b ('BV m))
     -&gt; b ('BM n m)
 bgenRows f = getI $ bgenRowsA (I . f)
+{-# INLINE bgenRows #-}
 
 zipB
     :: BLAS b
@@ -189,4 +199,5 @@ zipB
 zipB s f x y = getI . TCV.head'
              $ liftB s (I (\(I x' :* I y' :* &#216;V) -&gt; f x' y') :* &#216;V)
                        (I x :* I y :* &#216;V)
+{-# INLINE zipB #-}
 </span></pre></body></html>
