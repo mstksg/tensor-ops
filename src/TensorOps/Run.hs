@@ -44,8 +44,8 @@ runTOp sNs sMs = (\\ witSings sNs) $
     SumRows        -> only . sumRows . head'
                         \\ sHead (sHead sNs)
     SumT u         -> only . sumT . toList . prodToVec I u
-    -- Scale α        -> map1 (TT.map (*α))
-    Scale α        -> only . TT.map (*α) . head'
+    -- Scale α        -> only . TT.map (*α) . head'
+    Scale α        -> only . TT.scale α . head'
                         \\ sHead (sHead sNs)
     -- Fold _ f       -> only . foldT f     . head'
 
