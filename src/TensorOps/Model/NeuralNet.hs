@@ -18,8 +18,8 @@ logistic x = 1 / (1 + exp (- x))
 softmax
     :: SingI i
     => TensorOp '[ '[i] ] '[ '[i] ]
-softmax = (known, known, TO.replicate (US (US UØ)) )
-       ~. (known, known, TO.map       exp          )
+softmax = (known, known, TO.map       exp          )
+       ~. (known, known, TO.replicate (US (US UØ)) )
        ~. (known, known, SumRows                   )
        ~. (known, known, TO.map       recip        )
        ~. (known, known, GMul         LZ LZ (LS LZ))

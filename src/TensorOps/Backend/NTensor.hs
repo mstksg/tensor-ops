@@ -56,6 +56,8 @@ newtype NTensor :: (k -> Type -> Type) -> Type -> [k] -> Type where
         :: { getNVec :: Nested v js a }
         -> NTensor v a js
 
+deriving instance (Num a, SingI ns, Nesting1 Proxy Functor v, Nesting1 Sing Applicative v)
+        => Num (NTensor v a ns)
 deriving instance Generic (NTensor v a ns)
 deriving instance (NFData a, Nesting Proxy NFData v) => NFData (NTensor v a ns)
 instance (NFData a, Nesting Proxy NFData v) => Nesting1 w NFData (NTensor v a) where
@@ -142,6 +144,9 @@ instance
         -> TCV.Vec m (NTensor v a o)
     liftT f = fmap NTensor . liftNested f . fmap getNVec
     {-# INLINE liftT #-}
+
+    sumT = sum
+    {-# INLINE sumT #-}
 
     transp
         :: forall ns. (SingI ns, SingI (Reverse ns))

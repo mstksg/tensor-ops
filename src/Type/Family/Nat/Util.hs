@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs                #-}
 {-# LANGUAGE LambdaCase           #-}
 {-# LANGUAGE PolyKinds            #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE TypeOperators        #-}
@@ -12,6 +13,8 @@ module Type.Family.Nat.Util where
 import           Data.Kind
 import           Data.Type.Equality
 import           Data.Type.Length
+import           Data.Type.Nat
+import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.Nat
 import qualified GHC.TypeLits       as GT
@@ -31,3 +34,20 @@ type family NatNat (n :: GT.Nat) = (m :: N) where
 data (:<=:) :: N -> N -> Type where
     LTEZ :: 'Z :<=: n
     LTES :: (m :<=: n) -> ('S m :<=: 'S n)
+
+succAssoc
+    :: forall m n. ()
+    => Nat m
+    -> Nat n
+    -> ((m + 'S n) :~: 'S (m + n))
+succAssoc = \case
+    Z_   -> \_ -> Refl
+    S_ m -> \n -> Refl \\ succAssoc m n
+
+addZero
+    :: Nat n
+    -> ((n + 'Z) :~: n)
+addZero = \case
+    Z_   -> Refl
+    S_ n -> Refl    \\ addZero n
+

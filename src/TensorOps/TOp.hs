@@ -46,6 +46,10 @@ mapN u f = Lift u u (vgen_ $ \i -> I (VF $ \v -> f (index' i v)))
              \\ uniformLength u
 {-# INLINE mapN #-}
 
+add :: TOp '[ n, n ] '[ n ]
+add = SumT (US (US UØ))
+{-# INLINE add #-}
+
 zip :: Uniform n ns
     -> (forall a. Floating a => Vec (Len ns) a -> a)
     -> TOp ns '[n]

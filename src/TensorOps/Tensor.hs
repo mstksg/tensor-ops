@@ -16,6 +16,7 @@ module TensorOps.Tensor
   , zipN
   , zip
   , zip3
+  , add
   , gradLift
   , gradLift1
   , gradLift1N
@@ -64,6 +65,10 @@ map
 map f = getI . TCV.head' . liftT ((f . getI . TCV.head') :+ ØV) . (:+ ØV)
 {-# INLINE map #-}
 
+add :: (Tensor t, SingI o)
+    => t o -> t o -> t o
+add x y = sumT [x,y]
+
 zipN
     :: (SingI o, Tensor t)
     => (Vec n (ElemT t) -> ElemT t)
@@ -106,7 +111,8 @@ gradLift fs xs dtdys =
         I f :* ØV -> case dtdys of
           I dtdy :* ØV -> gradLift1 (getVF f . (:* ØV) . I) x dtdy
         _  -> gradLift1N fs x dtdys
-      _ -> naiveGradLift fs xs dtdys
+      _ :* _ :* _ -> naiveGradLift fs xs dtdys
+      ØV        -> ØV
 {-# INLINE[0] gradLift #-}
 
 naiveGradLift

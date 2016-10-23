@@ -2,7 +2,9 @@
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE GADTs                #-}
 {-# LANGUAGE LambdaCase           #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TupleSections        #-}
+{-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE TypeOperators        #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -13,11 +15,14 @@ import           Data.Bifunctor
 import           Data.Distributive
 import           Data.Monoid
 import           Data.Type.Combinator
+import           Data.Type.Conjunction
 import           Data.Type.Fin
 import           Data.Type.Nat
 import           Data.Type.Vector
 import           Type.Class.Known
+import           Type.Class.Witness
 import           Type.Family.Nat
+import           Type.Family.Nat.Util
 
 instance (Known Nat n, Distributive f) => Distributive (VecT n f) where
     distribute xs = vgen_ $ \i -> distribute $ index i <$> xs
@@ -160,3 +165,30 @@ uncons'
     :: VecT ('S n) f a
     -> (f a, VecT n f a)
 uncons' (x :* xs) = (x, xs)
+
+len
+    :: VecT n f a
+    -> Nat n
+len = \case
+    ØV      -> Z_
+    _ :* xs -> S_ (len xs)
+
+select
+    :: forall n f a. ()
+    => VecT ('S n) f a
+    -> VecT ('S n) (f :&: VecT n f) a
+select xs0 = go Z_ ØV (len xs0) xs0
+  where
+    go  :: forall m o. ()
+        => Nat m
+        -> VecT m f a
+        -> Nat ('S o)
+        -> VecT ('S o) f a
+        -> VecT ('S o) (f :&: VecT (m + o) f) a
+    go m xs = \case
+      S_ Z_ -> \case
+        y :* ØV -> (y :&: xs) :* ØV
+                     \\ addZero m
+      S_ o@(S_ p) -> \case
+        y :* ys -> (y :&: (xs `append'` ys)) :* go (S_ m) (y :* xs) o ys
+                     \\ succAssoc m p

@@ -64,6 +64,9 @@ class NatKind k => Tensor (t :: [k] -> Type) where
             -> t (ms         ++ os)
             -> t (Reverse os ++ ns)
             -> t (ms         ++ ns)
+    -- is a list really the best data structure here?
+    -- maybe Foldable f?
+    sumT    :: SingI o => [t o] -> t o
     transp  :: (SingI ns, SingI (Reverse ns))
             => t ns
             -> t (Reverse ns)
@@ -139,6 +142,8 @@ data TOp :: [[k]] -> [[k]] -> Type where
     -- SumRow  :: Remove ns n ms
     --         -> TOp '[ ns ] '[ ms ]
     SumRows :: TOp '[ (n ': ns) ] '[ ns ]
+    SumT    :: Uniform n ns
+            -> TOp ns '[n]
 
 -- | TODO: replace with `syntactic`?
 data OpPipe :: ([k] -> [k] -> Type) -> [k] -> [k] -> Type where

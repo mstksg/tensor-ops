@@ -10,18 +10,16 @@
 
 module TensorOps.Gradient where
 
--- import           Data.Type.Remove
--- import           Data.Type.Remove.Util
 import           Data.Foldable
 import           Data.Singletons
-import           Data.Singletons.Prelude.List (Sing(..), sHead)
+import           Data.Singletons.Prelude.List     (Sing(..), sHead)
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
 import           Data.Type.Index
 import           Data.Type.Length
-import           Data.Type.Length.Util        as TCL
-import           Data.Type.Product
-import           Data.Type.Product.Util
+import           Data.Type.Length.Util            as TCL
+import           Data.Type.Product  as TCP hiding (select, toList)
+import           Data.Type.Product.Util           as TCP
 import           Data.Type.Sing
 import           Data.Type.Uniform
 import           TensorOps.Run
@@ -30,7 +28,7 @@ import           Type.Class.Higher
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
-import qualified TensorOps.Tensor             as TT
+import qualified TensorOps.Tensor                 as TT
 
 gradTOp
     :: forall ns ms t. (Tensor t, Floating (ElemT t))
@@ -47,6 +45,7 @@ gradTOp sNs sMs = (\\ witSings sNs) $
       US _ -> \x -> vecToProd getI uN
                   . TT.gradLift f (prodToVec I uN x)
                   . prodToVec I uM
+    SumT u -> \_ -> flip TCP.replicate u . TCP.head'
     GMul lM lO lN -> \case
       -- lM   :: Length m
       -- lO   :: Length o

@@ -774,6 +774,9 @@ instance
     liftT = liftBTensor sing
     {-# INLINE liftT #-}
 
+    sumT = sum
+    {-# INLINE sumT #-}
+
     gmul
         :: forall ms os ns. SingI (ms ++ ns)
         => Length ms
