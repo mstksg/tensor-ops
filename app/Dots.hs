@@ -91,8 +91,8 @@ netTest _ rate n hs g = withSingI (sFromNat @k (SNat @1)) $
                  | otherwise = '#'
     return $ unlines outMat
   where
-    af :: ActFunc
-    af = AF logistic
+    af :: Activation k
+    af = actMap logistic
     inCircle
         :: SingI n
         => t '[n]

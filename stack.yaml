@@ -38,10 +38,14 @@ resolver: lts-7.2
 packages:
 - '.'
 - location:
-    git: https://github.com/albertoruiz/hmatrix
+    git: git@github.com:albertoruiz/hmatrix.git
     commit: b32b37472559f202995e894f9a627871737d4619
   subdirs:
   - packages/base
+  extra-dep: true
+- location:
+    git: git@github.com:mstksg/mnist-idx.git
+    commit: be02aa8f6c9a0465fb76ae8805123d40088d5a22
   extra-dep: true
 
 

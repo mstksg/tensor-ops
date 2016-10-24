@@ -122,10 +122,9 @@ trainNetwork r x y = \case
 
 ffLayer
     :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t)
-    => (forall a. Floating a => a -> a)
-    -> Gen (PrimState m)
+    => Gen (PrimState m)
     -> m (Network t i o)
-ffLayer f g = (\w b -> N sing ffLayer' (w :< b :< Ø))
+ffLayer g = (\w b -> N sing ffLayer' (w :< b :< Ø))
           <$> genRand (normalDistr 0 0.5) g
           <*> genRand (normalDistr 0 0.5) g
   where
@@ -134,27 +133,24 @@ ffLayer f g = (\w b -> N sing ffLayer' (w :< b :< Ø))
     ffLayer' = (known, known, TO.swap                   )
             ~. (known, known, GMul    (LS LZ) (LS LZ) LZ)
             ~. (known, known, TO.add                    )
-            ~. (known, known, TO.map  f                 )
             ~. OPØ
-
-data ActFunc = AF { getAF :: forall a. Floating a => a -> a }
 
 genNet
     :: forall k o i m (t :: [k] -> Type). (SingI o, SingI i, PrimMonad m, Tensor t)
-    => [(Integer, ActFunc)]
-    -> ActFunc
+    => [(Integer, Activation k)]
+    -> Activation k
     -> Gen (PrimState m)
     -> m (Network t i o)
 genNet xs0 f g = go sing xs0
   where
     go  :: forall (j :: k). ()
         => Sing j
-        -> [(Integer, ActFunc)]
+        -> [(Integer, Activation k)]
         -> m (Network t j o)
     go sj = (\\ sj) $ \case
-      []        -> ffLayer (getAF f) g
+      []        -> (*~ getAct f) <$> ffLayer g
       (x,f'):xs -> withNatKind x $ \sl -> (\\ sl) $ do
         n <- go sl xs
-        l <- ffLayer (getAF f') g
-        return $ l ~*~ n
+        l <- ffLayer g
+        return $ l *~ getAct f' ~*~ n
 

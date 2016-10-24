@@ -1,6 +1,8 @@
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE PolyKinds           #-}
+{-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeInType          #-}
 
 module TensorOps.Model.NeuralNet where
 
@@ -8,9 +10,20 @@ module TensorOps.Model.NeuralNet where
 import           Data.Singletons
 import           Data.Type.Length
 import           Data.Type.Uniform
-import           TensorOps.TOp       as TO
 import           TensorOps.Types
 import           Type.Class.Known
+import qualified TensorOps.TOp       as TO
+
+data Activation k = Act { getAct :: forall (a :: k). SingI a => TensorOp '[ '[a] ] '[ '[a] ] }
+
+actMap
+    :: (forall a. Floating a => a -> a)
+    -> Activation k
+actMap f = Act $ (known, known, TO.map f)
+              ~. OPØ
+
+actSoftmax :: Activation k
+actSoftmax = Act softmax
 
 logistic :: Floating a => a -> a
 logistic x = 1 / (1 + exp (- x))
