@@ -9,6 +9,7 @@
 {-# LANGUAGE TupleSections       #-}
 {-# LANGUAGE TypeApplications    #-}
 
+import           Control.DeepSeq
 import           Control.Exception
 import           Control.Monad
 import           Control.Monad.Trans.Maybe
@@ -20,8 +21,10 @@ import           Data.Foldable
 import           Data.IDX
 import           Data.Kind
 import           Data.Maybe
+import           Data.Nested                           (Nesting1(..))
 import           Data.Proxy
 import           Data.String
+import           Data.Time.Clock
 import           Data.Type.Combinator
 import           Data.Type.Product
 import           Data.Type.Vector
@@ -34,6 +37,7 @@ import           TensorOps.Model.NeuralNet
 import           TensorOps.Model.NeuralNet.FeedForward
 import           TensorOps.Types
 import           Text.Printf
+import           Type.Class.Witness
 import           Type.Family.Nat
 import qualified Codec.Compression.GZip                as GZ
 import qualified Data.ByteString.Lazy                  as BS
@@ -87,7 +91,10 @@ main = do
 
     mnistDat <- either (ioError . userError . unlines) return mnistDat'
 
-    learn (Proxy @(BTensorV (HMat Double))) mnistDat
+    evaluate . force $ mnistDat
+    putStrLn "Data loaded."
+
+    learn (Proxy @(BTensorV (HMat Double))) mnistDat 1000
 
 processDat
     :: forall (n :: Nat) (l :: Nat) t. (Num (ElemT t), KnownNat n, KnownNat l, Tensor t)
@@ -109,11 +116,12 @@ processDat (l,d) = (,) <$> x <*> y
     l' = natVal (Proxy @l)
 
 learn
-    :: forall (t :: [Nat] -> Type). (Tensor t, Num (ElemT t))
+    :: forall (t :: [Nat] -> Type). (Tensor t, Floating (ElemT t), Nesting1 Proxy NFData t)
     => Proxy t
     -> Vec N2 [(Int, VU.Vector Int)]
+    -> Int
     -> IO ()
-learn _ dat = withSystemRandom $ \g -> do
+learn _ dat batch = withSystemRandom $ \g -> do
     dat' <- either (ioError . userError . unlines) return
           . validationToEither
           . (traverse . traverse) processDat'
@@ -123,12 +131,37 @@ learn _ dat = withSystemRandom $ \g -> do
         (tXY, vXY) = case dat' of
                        I t :* I v :* ØV -> (t,v)
 
+    evaluate $ force dat'
+                  \\ (nesting1 Proxy :: Wit (NFData (t '[784])))
+                  \\ (nesting1 Proxy :: Wit (NFData (t '[10])))
+    putStrLn "Data processed."
+
     net0 :: Network t 784 10
             <- genNet ([300] `zip` repeat (actMap logistic)) actSoftmax g
 
-    print ()
+    let trained = foldl' trainEach net0 (take batch tXY)
+          where
+            trainEach :: Network t 784 10
+                      -> (t '[784], t '[10])
+                      -> Network t 784 10
+            trainEach nt (i, o) = nt `deepseq` trainNetwork crossEntropy 0.1 i o nt
+
+    (_, t) <- time $ return trained
+    printf "Trained %d points in %s.\n" batch (show t)
   where
     processDat'
         :: (Int, VU.Vector Int)
         -> Validation [String] (t '[784], t '[10])
     processDat' = eitherToValidation . first (:[]) . processDat
+
+time
+    :: NFData a
+    => IO a
+    -> IO (a, NominalDiffTime)
+time x = do
+    t1 <- getCurrentTime
+    y  <- evaluate . force =<< x
+    t2 <- getCurrentTime
+    return (y, t2 `diffUTCTime` t1)
+
+
