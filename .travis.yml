@@ -100,8 +100,7 @@ before_install:
   fi
 
 # Get the list of packages from the stack.yaml file
-# TODO: head -n1 is a temporary kludge until we can get extra-dep-aware query
-- PACKAGES=$(stack --install-ghc query locals | grep '^ *path' | head -n1 | sed 's@^ *path:@@')
+- PACKAGES=$(stack --install-ghc query locals | grep '^ *path' | sed 's@^ *path:@@')
 
 install:
 - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
@@ -139,6 +138,9 @@ script:
         SRC_TGZ=$(cabal info . | awk '{print $2;exit}').tar.gz && \
           (cd dist && cabal install --force-reinstalls "$SRC_TGZ")
         cd $ORIGDIR
+        # TODO: temporary kludge until we can somehow only have cabal check
+        # non extra-dep packages
+        break
       done
       ;;
   esac
