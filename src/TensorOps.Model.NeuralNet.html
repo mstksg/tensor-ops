@@ -1,25 +1,38 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds           #-}</span><span>
 </span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE PolyKinds           #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
-</span><a name="line-4"></a><span>
-</span><a name="line-5"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Model</span><span class="hs-operator">.</span><span class="hs-identifier">NeuralNet</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE RankNTypes          #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE TypeInType          #-}</span><span>
 </span><a name="line-6"></a><span>
-</span><a name="line-7"></a><span class="hs-comment">-- import           Data.Type.Remove</span><span>
-</span><a name="line-8"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
-</span><a name="line-9"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>
-</span><a name="line-10"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Uniform.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Uniform</span></a><span>
-</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.TOp.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">TOp</span></a><span>       </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TO</span><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Types.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span></a><span>
-</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Known</span><span>
-</span><a name="line-14"></a><span>
-</span><a name="line-15"></a><span class="hs-identifier">logistic</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Floating</span><span> </span><a href="#local-1627841035"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="#local-1627841035"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627841035"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-16"></a><a name="logistic"><a href="TensorOps.Model.NeuralNet.html#logistic"><span class="hs-identifier">logistic</span></a></a><span> </span><a name="local-1627841036"><a href="#local-1627841036"><span class="hs-identifier">x</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">1</span><span> </span><span class="hs-operator hs-var">/</span><span> </span><span class="hs-special">(</span><span class="hs-number">1</span><span> </span><span class="hs-operator hs-var">+</span><span> </span><span class="hs-identifier hs-var">exp</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span> </span><a href="#local-1627841036"><span class="hs-identifier hs-var">x</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-17"></a><span>
-</span><a name="line-18"></a><span class="hs-identifier">softmax</span><span>
-</span><a name="line-19"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">SingI</span><span> </span><a href="#local-1627841034"><span class="hs-identifier hs-type">i</span></a><span>
-</span><a name="line-20"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><a href="TensorOps.Types.html#TensorOp"><span class="hs-identifier hs-type">TensorOp</span></a><span> </span><span class="hs-char">'[ '[i] ] '[ '[i] ]
-softmax = (known, known, TO.replicate (US (US U&#216;)) )
-       ~. (known, known, TO.map       exp          )
+</span><a name="line-7"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Model</span><span class="hs-operator">.</span><span class="hs-identifier">NeuralNet</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-8"></a><span>
+</span><a name="line-9"></a><span class="hs-comment">-- import           Data.Type.Remove</span><span>
+</span><a name="line-10"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
+</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>
+</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Uniform.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Uniform</span></a><span>
+</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Types.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span></a><span>
+</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Known</span><span>
+</span><a name="line-15"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="TensorOps.TOp.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">TOp</span></a><span>       </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TO</span><span>
+</span><a name="line-16"></a><span>
+</span><a name="line-17"></a><span class="hs-keyword">data</span><span> </span><a name="Activation"><a href="TensorOps.Model.NeuralNet.html#Activation"><span class="hs-identifier">Activation</span></a></a><span> </span><a name="local-1627865928"><a href="#local-1627865928"><span class="hs-identifier">k</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Act"><a href="TensorOps.Model.NeuralNet.html#Act"><span class="hs-identifier">Act</span></a></a><span> </span><span class="hs-special">{</span><span> </span><a name="getAct"><a href="TensorOps.Model.NeuralNet.html#getAct"><span class="hs-identifier">getAct</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span class="hs-special">(</span><a name="local-1627865929"><a href="#local-1627865929"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-1627865928"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">)</span><span class="hs-operator">.</span><span> </span><span class="hs-identifier hs-type">SingI</span><span> </span><a href="#local-1627865929"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="TensorOps.Types.html#TensorOp"><span class="hs-identifier hs-type">TensorOp</span></a><span> </span><span class="hs-char">'[ '[a] ] '[ '[a] ] }
+
+actMap
+    :: (forall a. Floating a =&gt; a -&gt; a)
+    -&gt; Activation k
+actMap f = Act $ (known, known, TO.map f)
+              ~. OP&#216;
+
+actSoftmax :: Activation k
+actSoftmax = Act softmax
+
+logistic :: Floating a =&gt; a -&gt; a
+logistic x = 1 / (1 + exp (- x))
+
+softmax
+    :: SingI i
+    =&gt; TensorOp '[ '[i] ] '[ '[i] ]
+softmax = (known, known, TO.map       exp          )
+       ~. (known, known, TO.replicate (US (US U&#216;)) )
        ~. (known, known, SumRows                   )
        ~. (known, known, TO.map       recip        )
        ~. (known, known, GMul         LZ LZ (LS LZ))
@@ -28,9 +41,18 @@ softmax = (known, known, TO.replicate (US (US U&#216;)) )
 squaredError
     :: forall o. SingI o
     =&gt; TensorOp '[ '[o], '[o]] '[ '[] ]
-squaredError = (known, known, TO.zip2      (-)         )
+squaredError = (known, known, TO.negate                )
+            ~. (known, known, TO.add                   )
             ~. (known, known, TO.replicate (US (US U&#216;)))
             ~. (known, known, TO.dot                   )
             ~. OP&#216;
 
+-- | Second item in stack is the &quot;target&quot;
+crossEntropy
+    :: forall o. SingI o
+    =&gt; TensorOp '[ '[o], '[o]] '[ '[] ]
+crossEntropy = (known, known, TO.map log   )
+            ~. (known, known, TO.dot       )
+            ~. (known, known, TO.map negate)
+            ~. OP&#216;
 </span></pre></body></html>

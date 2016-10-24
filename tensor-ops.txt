@@ -98,9 +98,9 @@ instance forall k (v :: k -> * -> *) (js :: [k]). (Data.Nested.Nesting1 Data.Pro
 instance forall k (v :: k -> GHC.Types.Type -> GHC.Types.Type) (js :: [k]). (Data.Nested.Vec v, Data.Singletons.SingI js, Data.Nested.Nesting1 Data.Proxy.Proxy GHC.Base.Functor v) => Data.Distributive.Distributive (Data.Nested.Nested v js)
 
 module TensorOps.BLAS
-data BShape a_a12jO
-BV :: !a_a12jO -> BShape a_a12jO
-BM :: !a_a12jO -> !a_a12jO -> BShape a_a12jO
+data BShape a_a12Vy
+BV :: !a_a12Vy -> BShape a_a12Vy
+BM :: !a_a12Vy -> !a_a12Vy -> BShape a_a12Vy
 bShapeDims :: BShape a -> [a]
 data BShapeP :: (k -> Type) -> BShape k -> Type
 [PBV] :: {unPBV :: !(f a)} -> BShapeP f (BV a)
@@ -117,6 +117,8 @@ dot :: BLAS b => b (BV n) -> b (BV n) -> ElemB b
 ger :: BLAS b => b (BV n) -> b (BV m) -> b (BM n m)
 gemv :: BLAS b => ElemB b -> b (BM n m) -> b (BV m) -> Maybe (ElemB b, b (BV n)) -> b (BV n)
 gemm :: BLAS b => ElemB b -> b (BM n o) -> b (BM o m) -> Maybe (ElemB b, b (BM n m)) -> b (BM n m)
+scaleB :: BLAS b => ElemB b -> b s -> b s
+addB :: BLAS b => b s -> b s -> b s
 indexB :: BLAS b => BShapeP (IndexN k) s -> b s -> ElemB b
 indexRowB :: BLAS b => IndexN k n -> b (BM n m) -> b (BV m)
 transpB :: BLAS b => b (BM n m) -> b (BM m n)
@@ -131,7 +133,7 @@ getDiagB :: BLAS b => b (BM n n) -> b (BV n)
 sumB :: BLAS b => b s -> ElemB b
 
 -- | The singleton kind-indexed data family.
-type SBShape = (Sing :: BShape a_a12jO -> Type)
+type SBShape = (Sing :: BShape a_a12Vy -> Type)
 elemsB :: (Applicative f, BLAS b) => (ElemB b -> f (ElemB b)) -> b s -> f (b s)
 zipB :: BLAS b => Sing s -> (ElemB b -> ElemB b -> ElemB b) -> b s -> b s -> b s
 bgen :: forall k (b :: BShape k -> Type) (s :: BShape k). BLAS b => Sing s -> (BShapeP (IndexN k) s -> ElemB b) -> b s
@@ -145,8 +147,8 @@ instance Data.Singletons.Prelude.Eq.PEq 'Data.Proxy.Proxy
 instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.BVSym0
 instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.BMSym1
 instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.BMSym0
-instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.Compare_1627638064Sym1
-instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.Compare_1627638064Sym0
+instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.Compare_1627640404Sym1
+instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.Compare_1627640404Sym0
 instance Data.Singletons.Prelude.Ord.POrd 'Data.Proxy.Proxy
 instance Data.Singletons.SingKind a0 => Data.Singletons.SingKind (TensorOps.BLAS.BShape a0)
 instance Data.Singletons.Prelude.Eq.SEq a0 => Data.Singletons.Prelude.Eq.SEq (TensorOps.BLAS.BShape a0)
@@ -159,6 +161,7 @@ module TensorOps.BLAS.HMat
 data HMat :: Type -> BShape Nat -> Type
 instance (Foreign.Storable.Storable a, Control.DeepSeq.NFData a) => Control.DeepSeq.NFData (TensorOps.BLAS.HMat.HMat a s)
 instance (Foreign.Storable.Storable a, Control.DeepSeq.NFData a) => Type.Class.Higher.Util.NFData1 (TensorOps.BLAS.HMat.HMat a)
+instance (Data.Singletons.SingI s, Internal.Numeric.Container Data.Vector.Storable.Vector a, Internal.Numeric.Container Internal.Matrix.Matrix a, GHC.Num.Num a) => GHC.Num.Num (TensorOps.BLAS.HMat.HMat a s)
 instance (Internal.Numeric.Container Data.Vector.Storable.Vector a, Internal.Numeric.Numeric a) => TensorOps.BLAS.BLAS (TensorOps.BLAS.HMat.HMat a)
 
 module TensorOps.Types
@@ -167,6 +170,8 @@ class NatKind k => Tensor (t :: [k] -> Type) where type ElemT t :: Type where {
 }
 liftT :: (Tensor t, SingI o) => Vec m (Vec n (ElemT t) -> ElemT t) -> Vec n (t o) -> Vec m (t o)
 gmul :: (Tensor t, SingI (Reverse os ++ ns), SingI (ms ++ ns)) => Length ms -> Length os -> Length ns -> t (ms ++ os) -> t (Reverse os ++ ns) -> t (ms ++ ns)
+sumT :: (Tensor t, SingI o) => [t o] -> t o
+scaleT :: (Tensor t, SingI o) => ElemT t -> t o -> t o
 transp :: (Tensor t, SingI ns, SingI (Reverse ns)) => t ns -> t (Reverse ns)
 mapRows :: (Tensor t, SingI (ns ++ ms)) => Length ns -> (t ms -> t ms) -> t (ns ++ ms) -> t (ns ++ ms)
 sumRows :: (Tensor t, SingI (n : ns), SingI ns) => t (n : ns) -> t ns
@@ -197,6 +202,8 @@ data TOp :: [[k]] -> [[k]] -> Type
 [Transp] :: Length ns -> TOp '[ns] '[Reverse ns]
 [Shuffle] :: Prod (Index ns) ms -> TOp ns ms
 [SumRows] :: TOp '[n : ns] '[ns]
+[SumT] :: Uniform n ns -> TOp ns '[n]
+[Scale] :: (forall a. Floating a => a) -> TOp '[ns] '[ns]
 
 -- | TODO: replace with <tt>syntactic</tt>?
 data OpPipe :: ([k] -> [k] -> Type) -> [k] -> [k] -> Type
@@ -224,6 +231,7 @@ module TensorOps.Backend.NTensor
 data NTensor :: (k -> Type -> Type) -> Type -> [k] -> Type
 type NTensorL = NTensor (Flip2 VecT I) Double
 type NTensorV = NTensor (Flip2 VectorT I) Double
+instance forall a k (ns :: [k]) (v :: k -> * -> *). (GHC.Num.Num a, Data.Singletons.SingI ns, Data.Nested.Nesting1 Data.Proxy.Proxy GHC.Base.Functor v, Data.Nested.Nesting1 Data.Singletons.Sing GHC.Base.Applicative v) => GHC.Num.Num (TensorOps.Backend.NTensor.NTensor v a ns)
 instance forall k (v :: k -> GHC.Types.Type -> GHC.Types.Type) a (ns :: [k]). GHC.Generics.Generic (TensorOps.Backend.NTensor.NTensor v a ns)
 instance forall a k (v :: k -> * -> *) (ns :: [k]). (Control.DeepSeq.NFData a, Data.Nested.Nesting Data.Proxy.Proxy Control.DeepSeq.NFData v) => Control.DeepSeq.NFData (TensorOps.Backend.NTensor.NTensor v a ns)
 instance forall k a (v :: k -> * -> *) (w :: [k] -> GHC.Types.Type). (Control.DeepSeq.NFData a, Data.Nested.Nesting Data.Proxy.Proxy Control.DeepSeq.NFData v) => Data.Nested.Nesting1 w Control.DeepSeq.NFData (TensorOps.Backend.NTensor.NTensor v a)
@@ -239,6 +247,7 @@ map :: forall k (o :: [k]) (t :: [k] -> Type). (SingI o, Tensor t) => (ElemT t -
 zipN :: (SingI o, Tensor t) => (Vec n (ElemT t) -> ElemT t) -> Vec n (t o) -> t o
 zip :: (SingI o, Tensor t) => (ElemT t -> ElemT t -> ElemT t) -> t o -> t o -> t o
 zip3 :: (SingI o, Tensor t) => (ElemT t -> ElemT t -> ElemT t -> ElemT t) -> t o -> t o -> t o -> t o
+add :: (Tensor t, SingI o) => t o -> t o -> t o
 
 -- | This is a huge bottleneck, I think?
 --   
@@ -274,8 +283,10 @@ gradTensorOp :: forall ns t. (Tensor t, Floating (ElemT t)) => TensorOp ns '['[]
 
 module TensorOps.TOp
 konst :: forall n ns. Uniform n ns -> (forall a. Floating a => a) -> TOp '[] ns
+negate :: TOp '[ns] '[ns]
 map :: (forall a. Floating a => a -> a) -> TOp '[n] '[n]
 mapN :: Uniform n ns -> (forall a. Floating a => a -> a) -> TOp ns ns
+add :: TOp '[n, n] '[n]
 zip :: Uniform n ns -> (forall a. Floating a => Vec (Len ns) a -> a) -> TOp ns '[n]
 zip2 :: (forall a. Floating a => a -> a -> a) -> TOp '[n, n] '[n]
 zip3 :: (forall a. Floating a => a -> a -> a -> a) -> TOp '[n, n, n] '[n]
@@ -285,9 +296,17 @@ dot :: TOp '['[m], '[m]] '['[]]
 swap :: TOp '[ms, ns] '[ns, ms]
 
 module TensorOps.Model.NeuralNet
+data Activation k
+Act :: (forall (a :: k). SingI a => TensorOp '['[a]] '['[a]]) -> Activation k
+[getAct] :: Activation k -> forall (a :: k). SingI a => TensorOp '['[a]] '['[a]]
+actMap :: (forall a. Floating a => a -> a) -> Activation k
+actSoftmax :: Activation k
 logistic :: Floating a => a -> a
 softmax :: SingI i => TensorOp '['[i]] '['[i]]
 squaredError :: forall o. SingI o => TensorOp '['[o], '[o]] '['[]]
+
+-- | Second item in stack is the "target"
+crossEntropy :: forall o. SingI o => TensorOp '['[o], '[o]] '['[]]
 
 module TensorOps.Model.NeuralNet.FeedForward
 data Network :: ([k] -> Type) -> k -> k -> Type
@@ -300,10 +319,7 @@ infixr 4 ~*
 infixl 5 *~
 nmap :: (SingI o, SingI i) => (forall a. Floating a => a -> a) -> Network t i o -> Network t i o
 runNetwork :: (Floating (ElemT t), Tensor t) => Network t i o -> t '[i] -> t '[o]
-trainNetwork :: forall i o t. (SingI i, SingI o, Tensor t, Floating (ElemT t)) => ElemT t -> t '[i] -> t '[o] -> Network t i o -> Network t i o
-ffLayer :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t) => (forall a. Floating a => a -> a) -> Gen (PrimState m) -> m (Network t i o)
-data ActFunc
-AF :: (forall a. Floating a => a -> a) -> ActFunc
-[getAF] :: ActFunc -> forall a. Floating a => a -> a
-genNet :: forall k o i m (t :: [k] -> Type). (SingI o, SingI i, PrimMonad m, Tensor t) => [(Integer, ActFunc)] -> ActFunc -> Gen (PrimState m) -> m (Network t i o)
+trainNetwork :: forall i o t. (SingI i, SingI o, Tensor t, Floating (ElemT t)) => TensorOp '['[o], '[o]] '['[]] -> ElemT t -> t '[i] -> t '[o] -> Network t i o -> Network t i o
+ffLayer :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t) => Gen (PrimState m) -> m (Network t i o)
+genNet :: forall k o i m (t :: [k] -> Type). (SingI o, SingI i, PrimMonad m, Tensor t) => [(Integer, Activation k)] -> Activation k -> Gen (PrimState m) -> m (Network t i o)
 instance forall k (t :: [k] -> *) (i :: k) (o :: k). Data.Nested.Nesting1 Data.Proxy.Proxy Control.DeepSeq.NFData t => Control.DeepSeq.NFData (TensorOps.Model.NeuralNet.FeedForward.Network t i o)

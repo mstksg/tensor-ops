@@ -4,33 +4,34 @@
 </span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE InstanceSigs         #-}</span><span>
 </span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE KindSignatures       #-}</span><span>
 </span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase           #-}</span><span>
-</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables  #-}</span><span>
-</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications     #-}</span><span>
-</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies         #-}</span><span>
-</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
-</span><a name="line-11"></a><span>
-</span><a name="line-12"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">BLAS</span><span class="hs-operator">.</span><span class="hs-identifier">HMat</span><span>
-</span><a name="line-13"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="TensorOps.BLAS.HMat.html#HMat"><span class="hs-identifier hs-type">HMat</span></a><span>
-</span><a name="line-14"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-15"></a><span>
-</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">DeepSeq</span><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
-</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
-</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>            </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Vec</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">VecT</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Vector.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>       </span><span class="hs-special">(</span><a href="Data.Type.Vector.Util.html#curryV2%27"><span class="hs-identifier hs-var">curryV2'</span></a><span class="hs-special">,</span><span> </span><a href="Data.Type.Vector.Util.html#curryV3%27"><span class="hs-identifier hs-var">curryV3'</span></a><span class="hs-special">)</span><span>
-</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">LinearAlgebra</span><span>
-</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">LinearAlgebra</span><span class="hs-operator">.</span><span class="hs-identifier">Data</span><span>  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">LA</span><span>
-</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">LinearAlgebra</span><span class="hs-operator">.</span><span class="hs-identifier">Devel</span><span>
-</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.BLAS.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">BLAS</span></a><span>
-</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><a href="Type.Class.Higher.Util.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
-</span><a name="line-28"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span>                 </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">DF</span><span>
-</span><a name="line-29"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span class="hs-operator">.</span><span class="hs-identifier">Internal</span><span>        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">DF</span><span>
-</span><a name="line-30"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Storable</span><span>        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">VS</span><span>
-</span><a name="line-31"></a><span>
-</span><a name="line-32"></a><span class="hs-keyword">data</span><span> </span><a name="HMat"><a href="TensorOps.BLAS.HMat.html#HMat"><span class="hs-identifier">HMat</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.BLAS.html#BShape"><span class="hs-identifier hs-type">BShape</span></a><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-33"></a><span>    </span><a name="HMV"><a href="TensorOps.BLAS.HMat.html#HMV"><span class="hs-identifier">HMV</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">{</span><span> </span><a name="unHMV"><a href="TensorOps.BLAS.HMat.html#unHMV"><span class="hs-identifier">unHMV</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Vector</span><span> </span><a href="#local-1627670668"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.BLAS.HMat.html#HMat"><span class="hs-identifier hs-type">HMat</span></a><span> </span><a href="#local-1627670668"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-special">(</span><span class="hs-char">'BV n)
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE RankNTypes           #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables  #-}</span><span>
+</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications     #-}</span><span>
+</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies         #-}</span><span>
+</span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><a name="line-12"></a><span>
+</span><a name="line-13"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">BLAS</span><span class="hs-operator">.</span><span class="hs-identifier">HMat</span><span>
+</span><a name="line-14"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="TensorOps.BLAS.HMat.html#HMat"><span class="hs-identifier hs-type">HMat</span></a><span>
+</span><a name="line-15"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-16"></a><span>
+</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">DeepSeq</span><span>
+</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
+</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
+</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
+</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
+</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>            </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Vec</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">VecT</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Vector.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>       </span><span class="hs-special">(</span><a href="Data.Type.Vector.Util.html#curryV2%27"><span class="hs-identifier hs-var">curryV2'</span></a><span class="hs-special">,</span><span> </span><a href="Data.Type.Vector.Util.html#curryV3%27"><span class="hs-identifier hs-var">curryV3'</span></a><span class="hs-special">)</span><span>
+</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">LinearAlgebra</span><span>
+</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">LinearAlgebra</span><span class="hs-operator">.</span><span class="hs-identifier">Data</span><span>  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">LA</span><span>
+</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">LinearAlgebra</span><span class="hs-operator">.</span><span class="hs-identifier">Devel</span><span>
+</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.BLAS.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">BLAS</span></a><span>
+</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><a href="Type.Class.Higher.Util.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-29"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span>                 </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">DF</span><span>
+</span><a name="line-30"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span class="hs-operator">.</span><span class="hs-identifier">Internal</span><span>        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">DF</span><span>
+</span><a name="line-31"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Storable</span><span>        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">VS</span><span>
+</span><a name="line-32"></a><span>
+</span><a name="line-33"></a><span class="hs-keyword">data</span><span> </span><a name="HMat"><a href="TensorOps.BLAS.HMat.html#HMat"><span class="hs-identifier">HMat</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.BLAS.html#BShape"><span class="hs-identifier hs-type">BShape</span></a><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-34"></a><span>    </span><a name="HMV"><a href="TensorOps.BLAS.HMat.html#HMV"><span class="hs-identifier">HMV</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">{</span><span> </span><a name="unHMV"><a href="TensorOps.BLAS.HMat.html#unHMV"><span class="hs-identifier">unHMV</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Vector</span><span> </span><a href="#local-1627673323"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.BLAS.HMat.html#HMat"><span class="hs-identifier hs-type">HMat</span></a><span> </span><a href="#local-1627673323"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-special">(</span><span class="hs-char">'BV n)
     HMM :: { unHMM :: !(Matrix a) } -&gt; HMat a ('BM n m)
 
 instance (VS.Storable a, NFData a) =&gt; NFData (HMat a s) where
@@ -40,6 +41,42 @@ instance (VS.Storable a, NFData a) =&gt; NFData (HMat a s) where
     {-# INLINE rnf #-}
 
 instance (VS.Storable a, NFData a) =&gt; NFData1 (HMat a)
+
+instance (SingI s, Container Vector a, Container Matrix a, Num a) =&gt; Num (HMat a s) where
+    (+) = unsafeZipH add add
+    (*) = unsafeZipH (VS.zipWith (*)) (liftMatrix2 (VS.zipWith (*)))
+    (-) = unsafeZipH (VS.zipWith (-)) (liftMatrix2 (VS.zipWith (-)))
+    negate = unsafeMapH (scale (-1)) (scale (-1))
+    abs    = unsafeMapH (cmap abs) (cmap abs)
+    signum = unsafeMapH (cmap signum) (cmap signum)
+    fromInteger = case (sing :: Sing s) of
+        SBV n   -&gt; HMV . flip konst (fromIntegral (fromSing n)) . fromInteger
+        SBM n m -&gt; HMM . flip konst (fromIntegral (fromSing n)
+                                    ,fromIntegral (fromSing m)
+                                    ) . fromInteger
+
+
+-- | WARNING!! Functions should assume equal sized inputs and return
+-- outputs of the same size!  This is not checked!!!
+unsafeZipH
+    :: (Vector a -&gt; Vector a -&gt; Vector a)
+    -&gt; (Matrix a -&gt; Matrix a -&gt; Matrix a)
+    -&gt; HMat a s -&gt; HMat a s -&gt; HMat a s
+unsafeZipH f g = \case
+    HMV x -&gt; \case
+      HMV y -&gt; HMV $ f x y
+    HMM x -&gt; \case
+      HMM y -&gt; HMM $ g x y
+
+-- | WARNING!! Functions should return outputs of the same size!  This is
+-- not checked!!!
+unsafeMapH
+    :: (Vector a -&gt; Vector a)
+    -&gt; (Matrix a -&gt; Matrix a)
+    -&gt; HMat a s -&gt; HMat a s
+unsafeMapH f g = \case
+    HMV x -&gt; HMV $ f x
+    HMM x -&gt; HMM $ g x
 
 liftB'
     :: (Numeric a)
@@ -111,6 +148,10 @@ instance (Container Vector a, Numeric a) =&gt; BLAS (HMat a) where
         . scale &#945;
         $ b
     {-# INLINE gemm #-}
+    scaleB &#945; = unsafeMapH (scale &#945;) (scale &#945;)
+    {-# INLINE scaleB #-}
+    addB = unsafeZipH add add
+    {-# INLINE addB #-}
     indexB = \case
         PBV i -&gt; \case
           HMV x -&gt; x `atIndex` fromInteger (DF.getFinite i)

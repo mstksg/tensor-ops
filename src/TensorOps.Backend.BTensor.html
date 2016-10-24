@@ -51,8 +51,8 @@
 </span><a name="line-51"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="Data.Vector.Sized.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span></a><span>              </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">VS</span><span>
 </span><a name="line-52"></a><span>
 </span><a name="line-53"></a><span>
-</span><a name="line-54"></a><span class="hs-keyword">data</span><span> </span><a name="BTensor"><a href="TensorOps.Backend.BTensor.html#BTensor"><span class="hs-identifier">BTensor</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><a href="#local-1627724838"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><a href="TensorOps.BLAS.html#BShape"><span class="hs-identifier hs-type">BShape</span></a><span> </span><a href="#local-1627724838"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><a href="#local-1627724838"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-55"></a><span>    </span><a name="BTS"><a href="TensorOps.Backend.BTensor.html#BTS"><span class="hs-identifier">BTS</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">{</span><span> </span><a name="unScalar"><a href="TensorOps.Backend.BTensor.html#unScalar"><span class="hs-identifier">unScalar</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><a href="TensorOps.BLAS.html#ElemB"><span class="hs-identifier hs-type">ElemB</span></a><span> </span><a href="#local-1627724839"><span class="hs-identifier hs-type">b</span></a><span class="hs-special">)</span><span>     </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Backend.BTensor.html#BTensor"><span class="hs-identifier hs-type">BTensor</span></a><span> </span><a href="#local-1627724840"><span class="hs-identifier hs-type">v</span></a><span> </span><a href="#local-1627724839"><span class="hs-identifier hs-type">b</span></a><span> </span><span class="hs-char">'[]
+</span><a name="line-54"></a><span class="hs-keyword">data</span><span> </span><a name="BTensor"><a href="TensorOps.Backend.BTensor.html#BTensor"><span class="hs-identifier">BTensor</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><a href="#local-1627745319"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><a href="TensorOps.BLAS.html#BShape"><span class="hs-identifier hs-type">BShape</span></a><span> </span><a href="#local-1627745319"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><a href="#local-1627745319"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-55"></a><span>    </span><a name="BTS"><a href="TensorOps.Backend.BTensor.html#BTS"><span class="hs-identifier">BTS</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">{</span><span> </span><a name="unScalar"><a href="TensorOps.Backend.BTensor.html#unScalar"><span class="hs-identifier">unScalar</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><a href="TensorOps.BLAS.html#ElemB"><span class="hs-identifier hs-type">ElemB</span></a><span> </span><a href="#local-1627745320"><span class="hs-identifier hs-type">b</span></a><span class="hs-special">)</span><span>     </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Backend.BTensor.html#BTensor"><span class="hs-identifier hs-type">BTensor</span></a><span> </span><a href="#local-1627745321"><span class="hs-identifier hs-type">v</span></a><span> </span><a href="#local-1627745320"><span class="hs-identifier hs-type">b</span></a><span> </span><span class="hs-char">'[]
     BTV :: { unVector :: !(b ('BV n))   } -&gt; BTensor v b '[n]
     BTM :: { unMatrix :: !(b ('BM n m)) } -&gt; BTensor v b '[n,m]
     BTN :: { unNested :: !(v n (BTensor v b (o ': m ': ns))) }
@@ -624,13 +624,15 @@ naiveGMul sM _ lN v r =
        -&gt; BTensor v b ns
     f is x = mapBase sing
                      (x *)
-                     (\_ ys -&gt; axpy x ys Nothing)
-                     (\(SBM _ s) ys -&gt; gemm x ys (eye s) Nothing)
+                     (\_ ys -&gt; scaleB x ys)
+                     (\_ ys -&gt; scaleB x ys)
                      (indexRowBTensor (TCP.reverse' is) r)
 
 -- | A 'gmul' that runs my dispatching BLAS commands when it can.
 -- Contains the type-level constraint that @os@ and @ns@ have to have
 -- either length 0 or 1.
+--
+-- TODO: no longer needs Sing ms
 gmulBLAS
     :: forall b ms os ns v.
      ( Floating (ElemB b)
@@ -650,20 +652,20 @@ gmulBLAS sM mlO mlN v r = case mlO of
     MLZ -&gt; case splittingEnd (S_ (S_ Z_)) spM of
       FewerEnd MLZ             _ -&gt; dispatchBLAS MLZ       mlO  mlN v r
       FewerEnd (MLS MLZ)       _ -&gt; dispatchBLAS (MLS MLZ) mlO mlN v r
-      FewerEnd (MLS (MLS MLZ)) (_ :&lt; s :&lt; &#216;) -&gt; case v of
+      FewerEnd (MLS (MLS MLZ)) _ -&gt; case v of
         BTM xs -&gt; case mlN of
           MLZ     -&gt; case r of
-            BTS y  -&gt; BTM $ gemm y xs (eye s) Nothing
+            BTS y  -&gt; BTM $ scaleB y xs
           -- TODO: can this be made non-naive?
           -- ms ~ '[m1,m2]
           -- os ~ '[]
           -- ns ~ '[n]
           MLS MLZ -&gt; naiveGMul sM LZ (fromMaxLength mlN) v r
-      SplitEnd (ELS (ELS ELZ)) spM0 spM1@(_ :&lt; s :&lt; &#216;) -&gt; case mlN of
+      SplitEnd (ELS (ELS ELZ)) spM0 spM1 -&gt; case mlN of
         MLZ -&gt; case r of
           BTS y -&gt; mapBTM (prodSing   spM0)
                           (prodLength spM1)
-                          (\xs -&gt; BTM $ gemm y xs (eye s) Nothing)
+                          (\xs -&gt; BTM $ scaleB y xs)
                           v
                      \\ appendNil lM
         -- TODO: can this be made non-naive?
@@ -773,6 +775,12 @@ instance
         -&gt; TCV.Vec m (BTensor v b ns)
     liftT = liftBTensor sing
     {-# INLINE liftT #-}
+
+    sumT = sum
+    {-# INLINE sumT #-}
+
+    scaleT &#945; = mapBase sing (&#945;*) (\_ -&gt; scaleB &#945;) (\_ -&gt; scaleB &#945;)
+    {-# INLINE scaleT #-}
 
     gmul
         :: forall ms os ns. SingI (ms ++ ns)
