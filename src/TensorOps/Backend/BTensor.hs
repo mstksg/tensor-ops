@@ -624,13 +624,15 @@ naiveGMul sM _ lN v r =
        -> BTensor v b ns
     f is x = mapBase sing
                      (x *)
-                     (\_ ys -> axpy x ys Nothing)
-                     (\(SBM _ s) ys -> gemm x ys (eye s) Nothing)
+                     (\_ ys -> scaleB x ys)
+                     (\_ ys -> scaleB x ys)
                      (indexRowBTensor (TCP.reverse' is) r)
 
 -- | A 'gmul' that runs my dispatching BLAS commands when it can.
 -- Contains the type-level constraint that @os@ and @ns@ have to have
 -- either length 0 or 1.
+--
+-- TODO: no longer needs Sing ms
 gmulBLAS
     :: forall b ms os ns v.
      ( Floating (ElemB b)
@@ -650,20 +652,20 @@ gmulBLAS sM mlO mlN v r = case mlO of
     MLZ -> case splittingEnd (S_ (S_ Z_)) spM of
       FewerEnd MLZ             _ -> dispatchBLAS MLZ       mlO  mlN v r
       FewerEnd (MLS MLZ)       _ -> dispatchBLAS (MLS MLZ) mlO mlN v r
-      FewerEnd (MLS (MLS MLZ)) (_ :< s :< Ø) -> case v of
+      FewerEnd (MLS (MLS MLZ)) _ -> case v of
         BTM xs -> case mlN of
           MLZ     -> case r of
-            BTS y  -> BTM $ gemm y xs (eye s) Nothing
+            BTS y  -> BTM $ scaleB y xs
           -- TODO: can this be made non-naive?
           -- ms ~ '[m1,m2]
           -- os ~ '[]
           -- ns ~ '[n]
           MLS MLZ -> naiveGMul sM LZ (fromMaxLength mlN) v r
-      SplitEnd (ELS (ELS ELZ)) spM0 spM1@(_ :< s :< Ø) -> case mlN of
+      SplitEnd (ELS (ELS ELZ)) spM0 spM1 -> case mlN of
         MLZ -> case r of
           BTS y -> mapBTM (prodSing   spM0)
                           (prodLength spM1)
-                          (\xs -> BTM $ gemm y xs (eye s) Nothing)
+                          (\xs -> BTM $ scaleB y xs)
                           v
                      \\ appendNil lM
         -- TODO: can this be made non-naive?
@@ -776,6 +778,9 @@ instance
 
     sumT = sum
     {-# INLINE sumT #-}
+
+    scaleT α = mapBase sing (α*) (\_ -> scaleB α) (\_ -> scaleB α)
+    {-# INLINE scaleT #-}
 
     gmul
         :: forall ms os ns. SingI (ms ++ ns)

@@ -148,6 +148,9 @@ instance
     sumT = sum
     {-# INLINE sumT #-}
 
+    scaleT α = overNVec (fmap (α *))
+    {-# INLINE scaleT #-}
+
     transp
         :: forall ns. (SingI ns, SingI (Reverse ns))
         => NTensor v a ns

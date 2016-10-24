@@ -122,6 +122,11 @@ class NatKind k => BLAS (b :: BShape k -> Type) where
         -> b ('BM o m)      -- ^ B
         -> Maybe (ElemB b, b ('BM n m))      -- ^ β, C
         -> b ('BM n m)      -- ^ α A B + β C
+    scaleB
+        :: ElemB b
+        -> b s
+        -> b s
+    addB :: b s -> b s -> b s
     indexB
         :: BShapeP (IndexN k) s
         -> b s

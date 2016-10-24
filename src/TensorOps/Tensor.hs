@@ -13,7 +13,6 @@
 module TensorOps.Tensor
   ( konst
   , map
-  , scale
   , zipN
   , zip
   , zip3
@@ -65,15 +64,6 @@ map
     -> t o
 map f = getI . TCV.head' . liftT ((f . getI . TCV.head') :+ ØV) . (:+ ØV)
 {-# INLINE map #-}
-
-scale
-    :: forall o t. (SingI o, Tensor t, Num (ElemT t))
-    => ElemT t
-    -> t o
-    -> t o
-scale α = map (α*)
-{-# INLINE scale #-}
-
 
 add :: (Tensor t, SingI o)
     => t o -> t o -> t o
