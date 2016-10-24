@@ -77,7 +77,7 @@ netTest _ rate n hs g = withSingI (sFromNat @k (SNat @1)) $
                       => Network t i o
                       -> (t '[i], t '[o])
                       -> Network t i o
-            trainEach nt (i, o) = nt `deepseq` trainNetwork rate i o nt
+            trainEach nt (i, o) = nt `deepseq` trainNetwork squaredError rate i o nt
     (trained', tn) <- time $ return trained
     printf "Network trained (%s)\n" (show tn)
     let outMat = [ [ render . TT.unScalar . join TT.dot . runNetwork trained' $

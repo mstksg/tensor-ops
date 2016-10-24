@@ -13,6 +13,7 @@ import           Control.Exception
 import           Control.Monad
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Trans.State.Strict
+import           Data.Bifunctor
 import           Data.Either.Validation
 import           Data.Finite
 import           Data.Foldable
@@ -29,17 +30,19 @@ import           System.Directory
 import           System.FilePath
 import           System.Random.MWC
 import           TensorOps.Backend.BTensor
+import           TensorOps.Model.NeuralNet
+import           TensorOps.Model.NeuralNet.FeedForward
 import           TensorOps.Types
 import           Text.Printf
 import           Type.Family.Nat
-import qualified Codec.Compression.GZip           as GZ
-import qualified Data.ByteString.Lazy             as BS
-import qualified Data.Text.Lazy                   as T
-import qualified Data.Text.Lazy.Encoding          as T
-import qualified Data.Text.Lazy.IO                as T
-import qualified Data.Vector.Unboxed              as VU
-import qualified Network.HTTP.Simple              as HTTP
-import qualified TensorOps.Tensor                 as TT
+import qualified Codec.Compression.GZip                as GZ
+import qualified Data.ByteString.Lazy                  as BS
+import qualified Data.Text.Lazy                        as T
+import qualified Data.Text.Lazy.Encoding               as T
+import qualified Data.Text.Lazy.IO                     as T
+import qualified Data.Vector.Unboxed                   as VU
+import qualified Network.HTTP.Simple                   as HTTP
+import qualified TensorOps.Tensor                      as TT
 
 mnistBase :: String
 mnistBase = "http://yann.lecun.com/exdb/mnist"
@@ -89,18 +92,43 @@ main = do
 processDat
     :: forall (n :: Nat) (l :: Nat) t. (Num (ElemT t), KnownNat n, KnownNat l, Tensor t)
     => (Int, VU.Vector Int)
-    -> Maybe (t '[n], t '[l])
+    -> Either String (t '[n], t '[l])
 processDat (l,d) = (,) <$> x <*> y
   where
-    x :: Maybe (t '[n])
-    x = TT.fromList . map fromIntegral $ VU.toList d
-    y :: Maybe (t '[l])
-    y = flip fmap (packFinite (fromIntegral l) :: Maybe (Finite l)) $ \l' ->
-          TT.generate $ \(i :< Ø) -> if i == l' then 1 else 0
+    x :: Either String (t '[n])
+    x = maybe (Left (printf "Bad input vector (Expected %d, got %d)" n (VU.length d))) Right
+      . TT.fromList . map fromIntegral
+      $ VU.toList d
+    y :: Either String (t '[l])
+    y = maybe (Left (printf "Label out of range (Got %d, expected [0,%d) )" l')) Right
+      . flip fmap (packFinite (fromIntegral l) :: Maybe (Finite l)) $ \fl ->
+          TT.generate $ \(i :< Ø) -> if i == fl then 1 else 0
+    n :: Integer
+    n = natVal (Proxy @n)
+    l' :: Integer
+    l' = natVal (Proxy @l)
 
 learn
-    :: Proxy t
+    :: forall (t :: [Nat] -> Type). (Tensor t, Num (ElemT t))
+    => Proxy t
     -> Vec N2 [(Int, VU.Vector Int)]
     -> IO ()
 learn _ dat = withSystemRandom $ \g -> do
+    dat' <- either (ioError . userError . unlines) return
+          . validationToEither
+          . (traverse . traverse) processDat'
+          $ dat
+
+    let tXY, vXY :: [(t '[784], t '[10])]
+        (tXY, vXY) = case dat' of
+                       I t :* I v :* ØV -> (t,v)
+
+    net0 :: Network t 784 10
+            <- genNet ([300] `zip` repeat (actMap logistic)) actSoftmax g
+
     print ()
+  where
+    processDat'
+        :: (Int, VU.Vector Int)
+        -> Validation [String] (t '[784], t '[10])
+    processDat' = eitherToValidation . first (:[]) . processDat

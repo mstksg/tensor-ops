@@ -47,3 +47,11 @@ squaredError = (known, known, TO.negate                )
             ~. (known, known, TO.dot                   )
             ~. OPØ
 
+-- | Second item in stack is the "target"
+crossEntropy
+    :: forall o. SingI o
+    => TensorOp '[ '[o], '[o]] '[ '[] ]
+crossEntropy = (known, known, TO.map log   )
+            ~. (known, known, TO.dot       )
+            ~. (known, known, TO.map negate)
+            ~. OPØ

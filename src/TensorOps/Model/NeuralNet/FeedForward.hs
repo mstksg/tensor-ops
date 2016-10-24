@@ -96,15 +96,16 @@ runNetwork (N _ o p) = head' . runTensorOp o . (:< p)
 
 trainNetwork
     :: forall i o t. (SingI i, SingI o, Tensor t, Floating (ElemT t))
-    => ElemT t
+    => TensorOp '[ '[o], '[o] ] '[ '[] ]
+    -> ElemT t
     -> t '[i]
     -> t '[o]
     -> Network t i o
     -> Network t i o
-trainNetwork r x y = \case
+trainNetwork loss r x y = \case
     N (s :: Sing os) (o :: TensorOp ('[i] ': os) '[ '[o]]) (p :: Prod t os) ->
       ( let o'   :: TensorOp ('[i] ': os >: '[o]) '[ '[]]
-            o' = pappend (sing `SCons` s) sing sing o squaredError
+            o' = pappend (sing `SCons` s) sing sing o loss
             inp  :: Prod t ('[i] ': os >: '[o])
             inp = x :< p >: y
             grad :: Prod t os
