@@ -22,26 +22,42 @@ actMap
 actMap f = Act $ (known, known, TO.map f)
               ~. OPØ
 
+actMap'
+    :: (forall a. Floating a => a -> a)
+    -> (forall a. Floating a => a -> a)
+    -> Activation k
+actMap' f f' = Act $ (known, known, TO.map' f f')
+                  ~. OPØ
+
 actSoftmax :: Activation k
 actSoftmax = Act softmax
+
+actLogistic :: Activation k
+actLogistic = actMap' logistic logistic'
 
 logistic :: Floating a => a -> a
 logistic x = 1 / (1 + exp (- x))
 
+logistic' :: Floating a => a -> a
+logistic' x = logix * (1 - logix)
+  where
+    logix = logistic x
+
 softmax
     :: SingI i
     => TensorOp '[ '[i] ] '[ '[i] ]
-softmax = (known, known, TO.map       exp          )
-       ~. (known, known, TO.replicate (US (US UØ)) )
-       ~. (known, known, SumRows                   )
-       ~. (known, known, TO.map       recip        )
-       ~. (known, known, GMul         LZ LZ (LS LZ))
+softmax = (known, known, TO.map'      exp exp                       )
+       ~. (known, known, TO.replicate (US (US UØ))                  )
+       ~. (known, known, SumRows                                    )
+       ~. (known, known, TO.map'      recip (negate . recip . (**2)))
+       ~. (known, known, GMul         LZ LZ (LS LZ)                 )
        ~. OPØ
 
 squaredError
     :: forall o. SingI o
     => TensorOp '[ '[o], '[o]] '[ '[] ]
-squaredError = (known, known, TO.negate                )
+-- squaredError = (known, known, TO.negate                )
+squaredError = (known, known, TO.map' negate (\_ -> -1))
             ~. (known, known, TO.add                   )
             ~. (known, known, TO.replicate (US (US UØ)))
             ~. (known, known, TO.dot                   )
@@ -51,7 +67,8 @@ squaredError = (known, known, TO.negate                )
 crossEntropy
     :: forall o. SingI o
     => TensorOp '[ '[o], '[o]] '[ '[] ]
-crossEntropy = (known, known, TO.map log   )
-            ~. (known, known, TO.dot       )
-            ~. (known, known, TO.map negate)
+crossEntropy = (known, known, TO.map' log    recip     )
+            ~. (known, known, TO.dot                   )
+            -- ~. (known, known, TO.map' negate (\_ -> -1))
+            ~. (known, known, TO.negate                )
             ~. OPØ

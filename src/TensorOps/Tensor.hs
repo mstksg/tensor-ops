@@ -18,8 +18,8 @@ module TensorOps.Tensor
   , zip3
   , add
   , gradLift
-  , gradLift1
-  , gradLift1N
+  -- , gradLift1
+  -- , gradLift1N
   , inner, outer, outerV, dot, matVec, vecMat, matMat
   , fromList, generate, rows, toRows
   , ixElems, elems, itoList, toList, unScalar
@@ -107,22 +107,6 @@ gradLift
     -> Vec m (t o)    -- ^ d target / d outputs
     -> Vec n (t o)    -- ^ d target / d inputs
 gradLift fs xs dtdys =
-    case xs of
-      I x :* ØV -> case fs of
-        I f :* ØV -> case dtdys of
-          I dtdy :* ØV -> gradLift1 (getVF f . (:* ØV) . I) x dtdy
-        _  -> gradLift1N fs x dtdys
-      _ :* _ :* _ -> naiveGradLift fs xs dtdys
-      ØV        -> ØV
-{-# INLINE[0] gradLift #-}
-
-naiveGradLift
-    :: forall o n m t. (Tensor t, Floating (ElemT t), SingI o)
-    => Vec m (VFunc n)
-    -> Vec n (t o)    -- ^ inputs
-    -> Vec m (t o)    -- ^ d target / d outputs
-    -> Vec n (t o)    -- ^ d target / d inputs
-naiveGradLift fs xs dtdys =
     liftT (vgen_ (\i -> I (uncurry (go i) . splitVec known)))
           (xs `TCV.append'` dtdys)
       \\ xs
@@ -131,66 +115,85 @@ naiveGradLift fs xs dtdys =
         -> Vec n (ElemT t)
         -> Vec m (ElemT t)
         -> ElemT t
-    go i x dtdy = sum $ (vap . liftA2) (\d (VF f) -> d * index' i (grad f x)) dtdy fs
+    go i x dtdy = sum $ (vap . liftA2) (\d f -> d * index' i (vfGrad f x)) dtdy fs
     {-# INLINE go #-}
+-- {-# INLINE[0] gradLift #-}
 
-{-# RULES
-"gradLift/1"   gradLift = gradLift1'
-"gradLift/1N"  gradLift = gradLift1N'
-  #-}
+-- naiveGradLift
+--     :: forall o n m t. (Tensor t, Floating (ElemT t), SingI o)
+--     => Vec m (VFunc n)
+--     -> Vec n (t o)    -- ^ inputs
+--     -> Vec m (t o)    -- ^ d target / d outputs
+--     -> Vec n (t o)    -- ^ d target / d inputs
+-- naiveGradLift fs xs dtdys =
+--     liftT (vgen_ (\i -> I (uncurry (go i) . splitVec known)))
+--           (xs `TCV.append'` dtdys)
+--       \\ xs
+--   where
+--     go  :: Fin n
+--         -> Vec n (ElemT t)
+--         -> Vec m (ElemT t)
+--         -> ElemT t
+--     go i x dtdy = sum $ (vap . liftA2) (\d (VF f) -> d * index' i (grad f x)) dtdy fs
+--     {-# INLINE go #-}
 
--- | 'gradLift' specialized for 'N1'.
-gradLift1'
-    :: forall t o. (Tensor t, SingI o, Floating (ElemT t))
-    => Vec N1 (VFunc N1)
-    -> Vec N1 (t o)
-    -> Vec N1 (t o)
-    -> Vec N1 (t o)
-gradLift1' fs xs dtdys =
-    case fs of
-      I f :* ØV -> case xs of
-        I x :* ØV -> case dtdys of
-          I dtdy :* ØV -> gradLift1 (getVF f . (:* ØV) . I) x dtdy
+-- {-# RULES
+-- "gradLift/1"   gradLift = gradLift1'
+-- "gradLift/1N"  gradLift = gradLift1N'
+--   #-}
 
--- | 'gradLift' specialized for 'N1' -> m.
-gradLift1N'
-    :: forall t m o. (Tensor t, SingI o, Floating (ElemT t))
-    => Vec m (VFunc N1)
-    -> Vec N1 (t o)
-    -> Vec m (t o)
-    -> Vec N1 (t o)
-gradLift1N' fs xs dtdys =
-    case xs of
-      I x :* ØV -> gradLift1N fs x dtdys
+-- -- | 'gradLift' specialized for 'N1'.
+-- gradLift1'
+--     :: forall t o. (Tensor t, SingI o, Floating (ElemT t))
+--     => Vec N1 (VFunc N1)
+--     -> Vec N1 (t o)
+--     -> Vec N1 (t o)
+--     -> Vec N1 (t o)
+-- gradLift1' fs xs dtdys =
+--     case fs of
+--       I f :* ØV -> case xs of
+--         I x :* ØV -> case dtdys of
+--           I dtdy :* ØV -> gradLift1 (getVF f . (:* ØV) . I) x dtdy
 
--- | A faster version of 'gradLift' using forward-mode AD
-gradLift1
-    :: forall t o. (Tensor t, SingI o, Floating (ElemT t))
-    => (forall a. Floating a => a -> a)
-    -> t o
-    -> t o
-    -> Vec N1 (t o)
-gradLift1 f x dtdy =
-    liftT (I (\(I x' :* I d :* ØV) -> d * diff f x') :* ØV)
-          (I x :* I dtdy :* ØV)
+-- -- | 'gradLift' specialized for 'N1' -> m.
+-- gradLift1N'
+--     :: forall t m o. (Tensor t, SingI o, Floating (ElemT t))
+--     => Vec m (VFunc N1)
+--     -> Vec N1 (t o)
+--     -> Vec m (t o)
+--     -> Vec N1 (t o)
+-- gradLift1N' fs xs dtdys =
+--     case xs of
+--       I x :* ØV -> gradLift1N fs x dtdys
 
--- | A faster version of 'gradLift' using forward-mode AD, with multiple
--- outputs.
-gradLift1N
-    :: forall t m o. (Tensor t, SingI o, Floating (ElemT t))
-    => Vec m (VFunc N1)
-    -> t o
-    -> Vec m  (t o)
-    -> Vec N1 (t o)
-gradLift1N fs x dtdys =
-    liftT (I (\(I x' :* ds) -> go x' ds) :* ØV)
-          (I x :* dtdys)
-  where
-    go  :: ElemT t
-        -> Vec m (ElemT t)
-        -> ElemT t
-    go x' dtdy = sum $ (vap . liftA2) (\d (VF f) -> d * diff (f . (:* ØV) . I) x') dtdy fs
-    {-# INLINE go #-}
+-- -- | A faster version of 'gradLift' using forward-mode AD
+-- gradLift1
+--     :: forall t o. (Tensor t, SingI o, Floating (ElemT t))
+--     => (forall a. Floating a => a -> a)
+--     -> t o
+--     -> t o
+--     -> Vec N1 (t o)
+-- gradLift1 f x dtdy =
+--     liftT (I (\(I x' :* I d :* ØV) -> d * f x') :* ØV)
+--           (I x :* I dtdy :* ØV)
+
+-- -- | A faster version of 'gradLift' using forward-mode AD, with multiple
+-- -- outputs.
+-- gradLift1N
+--     :: forall t m o. (Tensor t, SingI o, Floating (ElemT t))
+--     => Vec m (VFunc N1)
+--     -> t o
+--     -> Vec m  (t o)
+--     -> Vec N1 (t o)
+-- gradLift1N fs x dtdys =
+--     liftT (I (\(I x' :* ds) -> go x' ds) :* ØV)
+--           (I x :* dtdys)
+--   where
+--     go  :: ElemT t
+--         -> Vec m (ElemT t)
+--         -> ElemT t
+--     go x' dtdy = sum $ (vap . liftA2) (\d (VF f) -> d * diff (f . (:* ØV) . I) x') dtdy fs
+--     {-# INLINE go #-}
 
 
 inner

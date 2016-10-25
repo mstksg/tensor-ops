@@ -94,7 +94,7 @@ main = do
     evaluate . force $ mnistDat
     putStrLn "Data loaded."
 
-    learn (Proxy @(BTensorV (HMat Double))) mnistDat 1000
+    learn (Proxy @(BTensorV (HMat Double))) mnistDat 100
 
 processDat
     :: forall (n :: Nat) (l :: Nat) t. (Num (ElemT t), KnownNat n, KnownNat l, Tensor t)

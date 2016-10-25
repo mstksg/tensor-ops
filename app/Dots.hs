@@ -70,7 +70,7 @@ netTest _ rate n hs g = withSingI (sFromNat @k (SNat @1)) $
       evaluate . force $ (inps, outs)
     printf "Generated test points (%s)\n" (show tp)
     net0 :: Network t (FromNat 2) (FromNat 1)
-            <- genNet (hs `zip` repeat af) af g
+            <- genNet (hs `zip` repeat actLogistic) actLogistic g
     let trained = foldl' trainEach net0 (zip inps outs)
           where
             trainEach :: (SingI i, SingI o)
@@ -91,8 +91,6 @@ netTest _ rate n hs g = withSingI (sFromNat @k (SNat @1)) $
                  | otherwise = '#'
     return $ unlines outMat
   where
-    af :: Activation k
-    af = actMap logistic
     inCircle
         :: SingI n
         => t '[n]

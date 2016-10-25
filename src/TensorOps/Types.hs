@@ -110,8 +110,13 @@ class NatKind k => Tensor (t :: [k] -> Type) where
 
 type TensorOp = OpPipe TOp
 
--- | A kludge to get around lack of impredicative types in Haskell
-newtype VFunc n = VF { getVF :: forall a. Floating a => Vec n a -> a }
+-- | Function and gradient
+data VFunc n = VF { vfFunc :: !(forall a. Floating a => Vec n a -> a)
+                  , vfGrad :: !(forall a. Floating a => Vec n a -> Vec n a)
+                  }
+
+-- -- | A kludge to get around lack of impredicative types in Haskell
+-- newtype VFunc n = VF { getVF :: forall a. Floating a => Vec n a -> a }
 
 data TOp :: [[k]] -> [[k]] -> Type where
     -- | Lift any `R^N -> R^M` function over every element in a n-tensor list,
