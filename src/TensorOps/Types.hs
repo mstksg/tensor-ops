@@ -156,9 +156,9 @@ data TOp :: [[k]] -> [[k]] -> Type where
 -- | TODO: replace with `syntactic`?
 data OpPipe :: ([k] -> [k] -> Type) -> [k] -> [k] -> Type where
     OPØ   :: OpPipe f a a
-    Pop   :: Sing a
-          -> Sing b
-          -> Sing d
+    Pop   :: !(Sing a)
+          -> !(Sing b)
+          -> !(Sing d)
           -> !(f a b)
           -> !(OpPipe f (b ++ d) c)
           -> OpPipe f (a ++ d) c

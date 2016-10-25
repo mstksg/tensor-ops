@@ -15,7 +15,6 @@ import           Data.Type.Combinator
 import           Data.Type.Index
 import           Data.Type.Length
 import           Data.Type.Product
-import           Data.Type.Product.Util    as TCP
 import           Data.Type.Uniform
 import           Data.Type.Vector          as TCV
 import           Numeric.AD
@@ -25,6 +24,7 @@ import           Type.Class.Witness hiding (inner)
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
+import qualified Data.Type.Product.Util    as TCP
 
 konst
     :: forall n ns. ()
@@ -133,6 +133,11 @@ replicate
     -> TOp '[ n ] ns
 replicate u = Shuffle (TCP.replicate IZ u)
 {-# INLINE replicate #-}
+
+duplicate
+    :: TOp '[ n ] '[ n, n ]
+duplicate = replicate (US (US UØ))
+{-# INLINE duplicate #-}
 
 inner
     :: forall ms ns o. ()

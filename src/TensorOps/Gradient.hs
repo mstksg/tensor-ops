@@ -10,7 +10,7 @@
 
 module TensorOps.Gradient where
 
-import           Data.Foldable
+import           Data.List hiding                 ((\\))
 import           Data.Singletons
 import           Data.Singletons.Prelude.List     (Sing(..), sHead)
 import           Data.Type.Combinator
@@ -112,8 +112,14 @@ gradTOp sNs sMs = (\\ witSings sNs) $
              => Index ns n
              -> Sing n
              -> t n
-          f i s = foldl' (TT.zip (+)) (TT.konst 0) (foldMap1 g ixds)
-                    \\ s
+          -- wow this was a huge bottleneck lol
+          f i s = (\\ s) $
+                    (\case []       -> TT.konst 0
+                           xs@(_:_) -> foldl1' (TT.zip (+)) xs
+                    )
+                    . foldMap1 g
+                    $ ixds
+
             where
               g :: forall m. ()
                 => (Index ns :&: t) m

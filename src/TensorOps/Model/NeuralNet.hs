@@ -7,12 +7,12 @@
 module TensorOps.Model.NeuralNet where
 
 -- import           Data.Type.Remove
+-- import           Data.Type.Uniform
 import           Data.Singletons
 import           Data.Type.Length
-import           Data.Type.Uniform
 import           TensorOps.Types
 import           Type.Class.Known
-import qualified TensorOps.TOp       as TO
+import qualified TensorOps.TOp        as TO
 
 data Activation k = Act { getAct :: forall (a :: k). SingI a => TensorOp '[ '[a] ] '[ '[a] ] }
 
@@ -46,27 +46,27 @@ logistic' x = logix * (1 - logix)
 softmax
     :: SingI i
     => TensorOp '[ '[i] ] '[ '[i] ]
-softmax = (known, known, TO.map       exp                           )
-       ~. (known, known, TO.replicate (US (US UØ))                  )
-       ~. (known, known, SumRows                                    )
-       ~. (known, known, TO.map       recip                         )
-       ~. (known, known, GMul         LZ LZ (LS LZ)                 )
+softmax = (known, known, TO.map       exp          )
+       ~. (known, known, TO.duplicate              )
+       ~. (known, known, SumRows                   )
+       ~. (known, known, TO.map       recip        )
+       ~. (known, known, GMul         LZ LZ (LS LZ))
        ~. OPØ
 
 squaredError
     :: forall o. SingI o
     => TensorOp '[ '[o], '[o]] '[ '[] ]
-squaredError = (known, known, TO.negate                )
-            ~. (known, known, TO.add                   )
-            ~. (known, known, TO.replicate (US (US UØ)))
-            ~. (known, known, TO.dot                   )
+squaredError = (known, known, TO.negate   )
+            ~. (known, known, TO.add      )
+            ~. (known, known, TO.duplicate)
+            ~. (known, known, TO.dot      )
             ~. OPØ
 
 -- | Second item in stack is the "target"
 crossEntropy
     :: forall o. SingI o
     => TensorOp '[ '[o], '[o]] '[ '[] ]
-crossEntropy = (known, known, TO.map log    )
-            ~. (known, known, TO.dot                   )
-            ~. (known, known, TO.negate                )
+crossEntropy = (known, known, TO.map log)
+            ~. (known, known, TO.dot    )
+            ~. (known, known, TO.negate )
             ~. OPØ

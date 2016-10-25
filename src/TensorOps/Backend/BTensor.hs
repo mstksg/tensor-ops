@@ -859,6 +859,7 @@ instance
         sN :: Sing ns
         sM :: Sing ms
         (sN, sM) = splitSing l (sing :: Sing (ns ++ ms))
+    {-# INLINE mapRows #-}
 
 
 -- * Boring dispatches

@@ -9,18 +9,21 @@
 {-# LANGUAGE TupleSections       #-}
 {-# LANGUAGE TypeApplications    #-}
 
+-- import           Control.Monad.Trans.Maybe
+-- import           Control.Monad.Trans.State.Strict
+-- import           Data.Maybe
+-- import qualified Data.Text.Lazy                     as T
+-- import qualified Data.Text.Lazy.Encoding            as T
+-- import qualified Data.Text.Lazy.IO                  as T
 import           Control.DeepSeq
 import           Control.Exception
 import           Control.Monad
-import           Control.Monad.Trans.Maybe
-import           Control.Monad.Trans.State.Strict
 import           Data.Bifunctor
 import           Data.Either.Validation
 import           Data.Finite
 import           Data.Foldable
 import           Data.IDX
 import           Data.Kind
-import           Data.Maybe
 import           Data.Nested                           (Nesting1(..))
 import           Data.Proxy
 import           Data.String
@@ -41,9 +44,6 @@ import           Type.Class.Witness
 import           Type.Family.Nat
 import qualified Codec.Compression.GZip                as GZ
 import qualified Data.ByteString.Lazy                  as BS
-import qualified Data.Text.Lazy                        as T
-import qualified Data.Text.Lazy.Encoding               as T
-import qualified Data.Text.Lazy.IO                     as T
 import qualified Data.Vector.Unboxed                   as VU
 import qualified Network.HTTP.Simple                   as HTTP
 import qualified TensorOps.Tensor                      as TT
@@ -94,7 +94,7 @@ main = do
     evaluate . force $ mnistDat
     putStrLn "Data loaded."
 
-    learn (Proxy @(BTensorV (HMat Double))) mnistDat 100
+    learn (Proxy @(BTensorV (HMat Double))) mnistDat 200
 
 processDat
     :: forall (n :: Nat) (l :: Nat) t. (Num (ElemT t), KnownNat n, KnownNat l, Tensor t)
@@ -125,7 +125,7 @@ learn _ dat batch = withSystemRandom $ \g -> do
     dat' <- either (ioError . userError . unlines) return
           . validationToEither
           . (traverse . traverse) processDat'
-          $ dat
+          $ fmap (take batch) dat
 
     let tXY, vXY :: [(t '[784], t '[10])]
         (tXY, vXY) = case dat' of
@@ -137,9 +137,10 @@ learn _ dat batch = withSystemRandom $ \g -> do
     putStrLn "Data processed."
 
     net0 :: Network t 784 10
+            -- <- genNet ([300] `zip` repeat (actMap logistic)) actSoftmax g
             <- genNet ([300] `zip` repeat (actMap logistic)) actSoftmax g
 
-    let trained = foldl' trainEach net0 (take batch tXY)
+    let trained = foldl' trainEach net0 tXY
           where
             trainEach :: Network t 784 10
                       -> (t '[784], t '[10])
