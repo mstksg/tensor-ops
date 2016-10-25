@@ -22,6 +22,7 @@ import           Control.Applicative
 import           Control.DeepSeq
 import           Data.Distributive
 import           Data.Kind
+import           Data.List.Util
 import           Data.Monoid
 import           Data.Nested hiding             (unScalar, unVector, gmul')
 import           Data.Singletons
@@ -776,7 +777,7 @@ instance
     liftT = liftBTensor sing
     {-# INLINE liftT #-}
 
-    sumT = sum
+    sumT = sum'
     {-# INLINE sumT #-}
 
     scaleT α = mapBase sing (α*) (\_ -> scaleB α) (\_ -> scaleB α)

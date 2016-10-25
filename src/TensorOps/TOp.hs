@@ -155,9 +155,3 @@ dot = inner LZ LZ
 swap :: TOp '[ms,ns] '[ns,ms]
 swap = Shuffle (IS IZ :< IZ :< Ø)
 {-# INLINE swap #-}
-
--- transpose :: TOp '[ '[m,n] ] '[ '[n,m] ]
--- transpose = Transp Refl (IS IZ :< IZ :< Ø)
-
--- sum :: Known Length ns => TOp '[n ': ns] '[ns]
--- sum = Fold known F.sum

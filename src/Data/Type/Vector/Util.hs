@@ -13,6 +13,7 @@ module Data.Type.Vector.Util where
 import           Control.DeepSeq
 import           Data.Bifunctor
 import           Data.Distributive
+import           Data.Foldable
 import           Data.Monoid
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
@@ -192,3 +193,21 @@ select xs0 = go Z_ ØV (len xs0) xs0
       S_ o@(S_ p) -> \case
         y :* ys -> (y :&: (xs `append'` ys)) :* go (S_ m) (y :* xs) o ys
                      \\ succAssoc m p
+
+sumV
+    :: Num a
+    => Vec f a
+    -> a
+sumV = \case
+    ØV          -> 0
+    xs@(_ :* _) -> foldl1' (+) xs
+{-# INLINE sumV #-}
+
+foldl1'
+    :: (a -> a -> a)
+    -> Vec ('S n) a
+    -> a
+foldl1' f = \case
+    I x :* ØV          -> x
+    I x :* ys@(_ :* _) -> foldl' f x ys
+{-# INLINE foldl1' #-}

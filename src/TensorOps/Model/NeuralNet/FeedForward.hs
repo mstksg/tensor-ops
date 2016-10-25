@@ -112,6 +112,7 @@ trainNetwork loss r x y = \case
             grad = takeProd (singLength s) (LS LZ :: Length '[ '[o]])
                  . tail'
                  $ gradTensorOp o' inp
+            -- this is a bottleneck for large matrices
             p'   :: Prod t os
             p' = map1 (\(s1 :&: o1 :&: g1) -> (\\ s1) $ TT.zip stepFunc o1 g1)
                $ zipProd3 (singProd s) p grad

@@ -47,7 +47,9 @@ module Data.Nested
 import           Control.Applicative
 import           Control.DeepSeq
 import           Data.Distributive
+import           Data.Foldable
 import           Data.Kind
+import           Data.List.Util
 import           Data.Monoid
 import           Data.Singletons
 import           Data.Singletons.Prelude.List hiding (Length, Reverse, (%:++), sReverse)
@@ -55,7 +57,7 @@ import           Data.Type.Combinator
 import           Data.Type.Combinator.Util
 import           Data.Type.Index
 import           Data.Type.Length                    as TCL
-import           Data.Type.Product                   as TCP
+import           Data.Type.Product as TCP hiding     (toList)
 import           Data.Type.Sing
 import           Data.Type.SnocProd
 import           Data.Type.Uniform
@@ -562,4 +564,4 @@ sumRowsNested
      )
     => Nested v (n ': ns) a
     -> Nested v ns a
-sumRowsNested (NS xs) = sum xs
+sumRowsNested (NS xs) = sum' (toList xs)

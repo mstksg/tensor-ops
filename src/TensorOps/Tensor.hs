@@ -30,6 +30,7 @@ import           Control.Monad.Trans.State.Strict
 import           Data.Functor
 import           Data.Kind
 import           Data.List hiding                 ((\\), zip, map, zip3)
+import           Data.List.Util
 import           Data.Monoid
 import           Data.Proxy
 import           Data.Singletons
@@ -49,6 +50,7 @@ import           Type.Class.Witness hiding        (inner, outer)
 import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
+import qualified Data.Foldable                    as F
 
 konst
     :: (Tensor t, SingI n)
@@ -115,7 +117,7 @@ gradLift fs xs dtdys =
         -> Vec n (ElemT t)
         -> Vec m (ElemT t)
         -> ElemT t
-    go i x dtdy = sum $ (vap . liftA2) (\d f -> d * index' i (vfGrad f x)) dtdy fs
+    go i x dtdy = sumV $ (vap . liftA2) (\d f -> d * index' i (vfGrad f x)) dtdy fs
     {-# INLINE go #-}
 -- {-# INLINE[0] gradLift #-}
 

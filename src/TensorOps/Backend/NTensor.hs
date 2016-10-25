@@ -5,6 +5,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs               #-}
 {-# LANGUAGE KindSignatures             #-}
+{-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
@@ -25,6 +26,7 @@ import           Control.DeepSeq
 import           Control.Monad.Primitive
 import           Data.Distributive
 import           Data.Kind
+import           Data.List.Util
 import           Data.Nested
 import           Data.Proxy
 import           Data.Singletons
@@ -145,7 +147,7 @@ instance
     liftT f = fmap NTensor . liftNested f . fmap getNVec
     {-# INLINE liftT #-}
 
-    sumT = sum
+    sumT = sum'
     {-# INLINE sumT #-}
 
     scaleT α = overNVec (fmap (α *))

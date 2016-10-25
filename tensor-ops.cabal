@@ -30,7 +30,8 @@ library
                        TensorOps.Run
                        TensorOps.TOp
                        TensorOps.Tensor
-  other-modules:       Data.Type.Combinator.Util
+  other-modules:       Data.List.Util
+                       Data.Type.Combinator.Util
                        Data.Type.Length.Util
                        Data.Type.Nat.Util
                        Data.Type.Product.Util
