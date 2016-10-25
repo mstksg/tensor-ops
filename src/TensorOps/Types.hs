@@ -121,21 +121,21 @@ data VFunc n = VF { vfFunc :: !(forall a. Floating a => Vec n a -> a)
 data TOp :: [[k]] -> [[k]] -> Type where
     -- | Lift any `R^N -> R^M` function over every element in a n-tensor list,
     -- producing a m-tensor list.
-    Lift    :: Uniform o ns
-            -> Uniform o ms
+    Lift    :: !(Uniform o ns)
+            -> !(Uniform o ms)
             -- -> (forall a. Floating a => Vec (Len ns) a -> Vec (Len ms) a)
             -- -> (forall a. Floating a => Vec (Len ms) (Vec (Len ns) a -> a))
-            -> Vec (Len ms) (VFunc (Len ns))
+            -> !(Vec (Len ms) (VFunc (Len ns)))
             -> TOp ns ms
     -- | Generalized tensor product
-    GMul    :: Length ms
-            -> Length os
-            -> Length ns
+    GMul    :: !(Length ms)
+            -> !(Length os)
+            -> !(Length ns)
             -> TOp '[ (ms ++ os), (Reverse os ++ ns) ] '[ ms ++ ns ]
     -- | Transpose (reverse indices)
     --
     -- TODO: allow for arbitrary permutation
-    Transp  :: Length ns
+    Transp  :: !(Length ns)
             -> TOp '[ns] '[Reverse ns]
     -- -- | Fold along the principle direction
     -- Fold    :: Length ns
@@ -143,14 +143,14 @@ data TOp :: [[k]] -> [[k]] -> Type where
     --         -> TOp '[n ': ns] '[ns]
     -- should this also include indices to go backwards?  how can this be
     -- statically verified?
-    Shuffle :: Prod (Index ns) ms
+    Shuffle :: !(Prod (Index ns) ms)
             -> TOp ns ms
-    -- SumRow  :: Remove ns n ms
+    -- SumRow  :: !(Remove ns n ms)
     --         -> TOp '[ ns ] '[ ms ]
     SumRows :: TOp '[ n ': ns ] '[ ns ]
-    SumT    :: Uniform n ns
+    SumT    :: !(Uniform n ns)
             -> TOp ns '[n]
-    Scale   :: (forall a. Floating a => a)
+    Scale   :: !(forall a. Floating a => a)
             -> TOp '[ ns ] '[ ns ]
 
 -- | TODO: replace with `syntactic`?
@@ -159,8 +159,8 @@ data OpPipe :: ([k] -> [k] -> Type) -> [k] -> [k] -> Type where
     Pop   :: Sing a
           -> Sing b
           -> Sing d
-          -> f a b
-          -> OpPipe f (b ++ d) c
+          -> !(f a b)
+          -> !(OpPipe f (b ++ d) c)
           -> OpPipe f (a ++ d) c
 
 pappend

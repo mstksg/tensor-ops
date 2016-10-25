@@ -46,18 +46,17 @@ logistic' x = logix * (1 - logix)
 softmax
     :: SingI i
     => TensorOp '[ '[i] ] '[ '[i] ]
-softmax = (known, known, TO.map'      exp exp                       )
+softmax = (known, known, TO.map       exp                           )
        ~. (known, known, TO.replicate (US (US UØ))                  )
        ~. (known, known, SumRows                                    )
-       ~. (known, known, TO.map'      recip (negate . recip . (**2)))
+       ~. (known, known, TO.map       recip                         )
        ~. (known, known, GMul         LZ LZ (LS LZ)                 )
        ~. OPØ
 
 squaredError
     :: forall o. SingI o
     => TensorOp '[ '[o], '[o]] '[ '[] ]
--- squaredError = (known, known, TO.negate                )
-squaredError = (known, known, TO.map' negate (\_ -> -1))
+squaredError = (known, known, TO.negate                )
             ~. (known, known, TO.add                   )
             ~. (known, known, TO.replicate (US (US UØ)))
             ~. (known, known, TO.dot                   )
@@ -67,8 +66,7 @@ squaredError = (known, known, TO.map' negate (\_ -> -1))
 crossEntropy
     :: forall o. SingI o
     => TensorOp '[ '[o], '[o]] '[ '[] ]
-crossEntropy = (known, known, TO.map' log    recip     )
+crossEntropy = (known, known, TO.map log    )
             ~. (known, known, TO.dot                   )
-            -- ~. (known, known, TO.map' negate (\_ -> -1))
             ~. (known, known, TO.negate                )
             ~. OPØ
