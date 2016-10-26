@@ -15,22 +15,23 @@
 </span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Index</span><span>
 </span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>
 </span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Product.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>    </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCP</span><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Uniform.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Uniform</span></a><span>
-</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>          </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
+</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Uniform.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Uniform</span></a><span>
+</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>          </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
+</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">AD</span><span>
 </span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Prelude</span><span> </span><span class="hs-keyword">hiding</span><span>            </span><span class="hs-special">(</span><span class="hs-identifier hs-var">map</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">replicate</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">zip</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">negate</span><span class="hs-special">)</span><span>
 </span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Types.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span></a><span> </span><span class="hs-keyword">hiding</span><span>    </span><span class="hs-special">(</span><a href="TensorOps.Types.html#OpPipe"><span class="hs-identifier hs-type">OpPipe</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">inner</span><span class="hs-special">)</span><span>
 </span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
 </span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><a href="Type.Family.List.Util.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
 </span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
-</span><a name="line-27"></a><span>
-</span><a name="line-28"></a><span class="hs-identifier">konst</span><span>
-</span><a name="line-29"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-1627862589"><a href="#local-1627862589"><span class="hs-identifier">n</span></a></a><span> </span><a name="local-1627862590"><a href="#local-1627862590"><span class="hs-identifier">ns</span></a></a><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-30"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Data.Type.Uniform.html#Uniform"><span class="hs-identifier hs-type">Uniform</span></a><span> </span><a href="#local-1627862589"><span class="hs-identifier hs-type">n</span></a><span> </span><a href="#local-1627862590"><span class="hs-identifier hs-type">ns</span></a><span>
-</span><a name="line-31"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><a name="local-1627862591"><a href="#local-1627862591"><span class="hs-identifier">a</span></a></a><span class="hs-operator">.</span><span> </span><span class="hs-identifier hs-type">Floating</span><span> </span><a href="#local-1627862591"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="#local-1627862591"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span>
-</span><a name="line-32"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Types.html#TOp"><span class="hs-identifier hs-type">TOp</span></a><span> </span><span class="hs-char">'[] ns
-konst u x = Lift U&#216; u (vrep (I (VF $ \&#216;V -&gt; x)))
+</span><a name="line-27"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="Data.Type.Product.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>    </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCP</span><span>
+</span><a name="line-28"></a><span>
+</span><a name="line-29"></a><span class="hs-identifier">konst</span><span>
+</span><a name="line-30"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-1627875992"><a href="#local-1627875992"><span class="hs-identifier">n</span></a></a><span> </span><a name="local-1627875993"><a href="#local-1627875993"><span class="hs-identifier">ns</span></a></a><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a name="line-31"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Data.Type.Uniform.html#Uniform"><span class="hs-identifier hs-type">Uniform</span></a><span> </span><a href="#local-1627875992"><span class="hs-identifier hs-type">n</span></a><span> </span><a href="#local-1627875993"><span class="hs-identifier hs-type">ns</span></a><span>
+</span><a name="line-32"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><a name="local-1627875994"><a href="#local-1627875994"><span class="hs-identifier">a</span></a></a><span class="hs-operator">.</span><span> </span><span class="hs-identifier hs-type">RealFloat</span><span> </span><a href="#local-1627875994"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="#local-1627875994"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span>
+</span><a name="line-33"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Types.html#TOp"><span class="hs-identifier hs-type">TOp</span></a><span> </span><span class="hs-char">'[] ns
+konst u x = Lift U&#216; u (vrep (I (VF (\&#216;V -&gt; x) (\&#216;V -&gt; &#216;V))))
               \\ uniformLength u
 {-# INLINE konst #-}
 
@@ -38,38 +39,95 @@ negate
     :: TOp '[ns] '[ns]
 negate = Scale (-1)
 
-map :: (forall a. Floating a =&gt; a -&gt; a)
+-- | TODO: version with some data type w/ num instance?
+map' :: (forall a. RealFloat a =&gt; a -&gt; a)
+     -&gt; (forall a. RealFloat a =&gt; a -&gt; a)
+     -&gt; TOp '[n] '[n]
+map' f f' = Lift (US U&#216;) (US U&#216;)
+                 (VF (f . getI . TCV.head')
+                     ((:+ &#216;V) . f' . getI . TCV.head')
+               :+ &#216;V
+                 )
+{-# INLINE map' #-}
+
+
+map :: (forall a. RealFloat a =&gt; a -&gt; a)
     -&gt; TOp '[n] '[n]
-map f = Lift (US U&#216;) (US U&#216;) (VF (f . getI . TCV.head') :+ &#216;V)
+map f = map' f (diff f)
 {-# INLINE map #-}
 
+mapN' :: Uniform n ns
+      -&gt; (forall a. RealFloat a =&gt; a -&gt; a)
+      -&gt; (forall a. RealFloat a =&gt; a -&gt; a)
+      -&gt; TOp ns ns
+mapN' u f f' = Lift u u (vgen_ $ \i -&gt; I (VF (\v -&gt; f (index' i v))
+                                             (\v -&gt; vgen_ $ \i' -&gt; I $
+                                                      if i' == i
+                                                        then f' (index' i v)
+                                                        else 0
+                                             )
+                                         )
+                        )
+                 \\ uniformLength u
+{-# INLINE mapN' #-}
+
 mapN :: Uniform n ns
-     -&gt; (forall a. Floating a =&gt; a -&gt; a)
+     -&gt; (forall a. RealFloat a =&gt; a -&gt; a)
      -&gt; TOp ns ns
-mapN u f = Lift u u (vgen_ $ \i -&gt; I (VF $ \v -&gt; f (index' i v)))
-             \\ uniformLength u
+mapN u f = mapN' u f (diff f)
 {-# INLINE mapN #-}
 
 add :: TOp '[ n, n ] '[ n ]
 add = SumT (US (US U&#216;))
 {-# INLINE add #-}
 
-zip :: Uniform n ns
-    -&gt; (forall a. Floating a =&gt; Vec (Len ns) a -&gt; a)
+zipN'
+    :: Uniform n ns
+    -&gt; (forall a. RealFloat a =&gt; Vec (Len ns) a -&gt; a)
+    -&gt; (forall a. RealFloat a =&gt; Vec (Len ns) a -&gt; Vec (Len ns) a)
     -&gt; TOp ns '[n]
-zip u f = Lift u (US U&#216;) (VF f :+ &#216;V)
+zipN' u f f' = Lift u (US U&#216;) (VF f f' :+ &#216;V)
+{-# INLINE zipN' #-}
+
+zipN
+    :: Uniform n ns
+    -&gt; (forall a. RealFloat a =&gt; Vec (Len ns) a -&gt; a)
+    -&gt; TOp ns '[n]
+zipN u f = zipN' u f (grad f)
+{-# INLINE zipN #-}
+
+zip'
+    :: (forall a. RealFloat a =&gt; a -&gt; a -&gt; a)
+    -&gt; (forall a. RealFloat a =&gt; a -&gt; a -&gt; (a, a))
+    -&gt; TOp '[ n, n ] '[ n ]
+zip' f f' = zipN' (US (US U&#216;)) (\case I x :* I y :* &#216;V -&gt; f x y)
+                               (\case I x :* I y :* &#216;V -&gt;
+                                        let (dx, dy) = f' x y
+                                        in  dx :+ dy :+ &#216;V
+                               )
+{-# INLINE zip' #-}
+
+zip
+    :: (forall a. RealFloat a =&gt; a -&gt; a -&gt; a)
+    -&gt; TOp '[ n, n ] '[ n ]
+zip f = zipN (US (US U&#216;)) (\case I x :* I y :* &#216;V -&gt; f x y)
 {-# INLINE zip #-}
 
-zip2
-    :: (forall a. Floating a =&gt; a -&gt; a -&gt; a)
-    -&gt; TOp '[ n, n ] '[ n ]
-zip2 f = zip (US (US U&#216;)) (\case I x :* I y :* &#216;V -&gt; f x y)
-{-# INLINE zip2 #-}
+zip3'
+    :: (forall a. RealFloat a =&gt; a -&gt; a -&gt; a -&gt; a)
+    -&gt; (forall a. RealFloat a =&gt; a -&gt; a -&gt; a -&gt; (a, a, a))
+    -&gt; TOp '[ n, n, n ] '[ n ]
+zip3' f f' = zipN' (US (US (US U&#216;))) (\case I x :* I y :* I z :* &#216;V -&gt; f x y z)
+                                     (\case I x :* I y :* I z :* &#216;V -&gt;
+                                              let (dx, dy, dz) = f' x y z
+                                              in  dx :+ dy :+ dz :+ &#216;V
+                                     )
+{-# INLINE zip3' #-}
 
 zip3
-    :: (forall a. Floating a =&gt; a -&gt; a -&gt; a -&gt; a)
+    :: (forall a. RealFloat a =&gt; a -&gt; a -&gt; a -&gt; a)
     -&gt; TOp '[ n, n, n ] '[ n ]
-zip3 f = zip (US (US (US U&#216;))) (\case I x :* I y :* I z :* &#216;V -&gt; f x y z)
+zip3 f = zipN (US (US (US U&#216;))) (\case I x :* I y :* I z :* &#216;V -&gt; f x y z)
 {-# INLINE zip3 #-}
 
 replicate
@@ -77,6 +135,11 @@ replicate
     -&gt; TOp '[ n ] ns
 replicate u = Shuffle (TCP.replicate IZ u)
 {-# INLINE replicate #-}
+
+duplicate
+    :: TOp '[ n ] '[ n, n ]
+duplicate = replicate (US (US U&#216;))
+{-# INLINE duplicate #-}
 
 inner
     :: forall ms ns o. ()
@@ -94,10 +157,4 @@ dot = inner LZ LZ
 swap :: TOp '[ms,ns] '[ns,ms]
 swap = Shuffle (IS IZ :&lt; IZ :&lt; &#216;)
 {-# INLINE swap #-}
-
--- transpose :: TOp '[ '[m,n] ] '[ '[n,m] ]
--- transpose = Transp Refl (IS IZ :&lt; IZ :&lt; &#216;)
-
--- sum :: Known Length ns =&gt; TOp '[n ': ns] '[ns]
--- sum = Fold known F.sum
 </span></pre></body></html>
