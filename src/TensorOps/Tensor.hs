@@ -282,33 +282,33 @@ oneHot x y i = generate $ \(j :< Ø) ->
 {-# LANGUAGE oneHot #-}
 
 argMax
-    :: forall k (t :: [k] -> Type) (n :: k) (p :: k -> Type).
-     ( SingI (Succ n)
+    :: forall k (t :: [k] -> Type) (n :: k).
+     ( SingI n
      , Tensor t
      , Ord (ElemT t)
+     , NonZero n
      )
-    => p n
-    -> t '[Succ n]
-    -> IndexN k (Succ n)
-argMax _ = (\case Arg _ i -> i)
-         . getMax
-         . option (error "TensorOps.Tensor.argMax: Impossible!") id
-         . ifoldMapElems @k @(Option (Max (Arg (ElemT t) (IndexN k (Succ n)))))
-             (\(j :< Ø) x -> Option . Just . Max $ Arg x j)
+    => t '[n]
+    -> IndexN k n
+argMax = (\case Arg _ i -> i)
+       . getMax
+       . option (error "TensorOps.Tensor.argMax: Impossible!") id
+       . ifoldMapElems @k @(Option (Max (Arg (ElemT t) (IndexN k n))))
+           (\(j :< Ø) x -> Option . Just . Max $ Arg x j)
 {-# LANGUAGE argMax #-}
 
 argMin
-    :: forall k (t :: [k] -> Type) (n :: k) (p :: k -> Type).
-     ( SingI (Succ n)
+    :: forall k (t :: [k] -> Type) (n :: k).
+     ( SingI n
      , Tensor t
      , Ord (ElemT t)
+     , NonZero n
      )
-    => p n
-    -> t '[Succ n]
-    -> IndexN k (Succ n)
-argMin _ = (\case Arg _ i -> i)
-         . getMin
-         . option (error "TensorOps.Tensor.argMax: Impossible!") id
-         . ifoldMapElems @k @(Option (Min (Arg (ElemT t) (IndexN k (Succ n)))))
-             (\(j :< Ø) x -> Option . Just . Min $ Arg x j)
+    => t '[n]
+    -> IndexN k n
+argMin = (\case Arg _ i -> i)
+       . getMin
+       . option (error "TensorOps.Tensor.argMax: Impossible!") id
+       . ifoldMapElems @k @(Option (Min (Arg (ElemT t) (IndexN k n))))
+           (\(j :< Ø) x -> Option . Just . Min $ Arg x j)
 {-# LANGUAGE argMin #-}

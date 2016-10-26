@@ -17,7 +17,7 @@ import           Data.Type.Nat
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.Nat
-import qualified GHC.TypeLits       as GT
+import qualified GHC.TypeLits              as GT
 
 appendLengths
     :: Length n

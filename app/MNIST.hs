@@ -25,7 +25,6 @@ import           Data.Kind
 import           Data.Nested                           (Nesting1(..))
 import           Data.Profunctor
 import           Data.Proxy
-import           Data.Semigroup hiding                 ((<>), option)
 import           Data.String
 import           Data.Time.Clock
 import           Data.Type.Combinator
@@ -48,7 +47,6 @@ import           Type.Family.Nat
 import qualified Codec.Compression.GZip                as GZ
 import qualified Control.Foldl                         as F
 import qualified Data.ByteString.Lazy                  as BS
-import qualified Data.List.NonEmpty                    as NE
 import qualified Data.Vector                           as V
 import qualified Data.Vector.Unboxed                   as VU
 import qualified Network.HTTP.Simple                   as HTTP
@@ -185,7 +183,7 @@ learn _ dat rate layers (fromIntegral->batch)
         (tXY, vXY) = case dat'' of
                        I t :* I v :* ØV -> (t,v)
 
-        vXY' = (map . second) argMax vXY
+        vXY' = (map . second) TT.argMax vXY
 
     net0 :: Network t 784 10
             <- genNet (layers `zip` repeat (actMap logistic)) actSoftmax g
@@ -240,8 +238,8 @@ learn _ dat rate layers (fromIntegral->batch)
                  <*> F.length
           where
             f :: t '[784] -> Finite 10 -> Int
-            f x r | argMax (runNetwork n x) == r = 1
-                  | otherwise                    = 0
+            f x r | TT.argMax (runNetwork n x) == r = 1
+                  | otherwise                       = 0
     trainAll
         :: Foldable f
         => Network t 784 10
@@ -252,18 +250,6 @@ learn _ dat rate layers (fromIntegral->batch)
     rate' :: ElemT t
     rate' = realToFrac rate
 
-
-
-argMax
-    :: (KnownNat n, Tensor t, Ord (ElemT t))
-    => t '[n]
-    -> Finite n
-argMax = (\case Arg _ i -> finite i)
-       . getMax
-       . sconcat
-       . NE.zipWith (\i x -> Max (Arg x i)) (0 NE.:| [1..])
-       . NE.fromList
-       . TT.toList
 
 time
     :: NFData a
