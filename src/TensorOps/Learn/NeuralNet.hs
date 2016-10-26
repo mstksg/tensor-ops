@@ -4,7 +4,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeInType          #-}
 
-module TensorOps.Model.NeuralNet where
+module TensorOps.Learn.NeuralNet where
 
 -- import           Data.Type.Remove
 -- import           Data.Type.Uniform

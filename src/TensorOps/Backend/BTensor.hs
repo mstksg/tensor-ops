@@ -16,6 +16,7 @@ module TensorOps.Backend.BTensor
   ( BTensor
   , BTensorL, BTensorV
   , HMat
+  , HMatD
   ) where
 
 import           Control.Applicative

@@ -24,8 +24,8 @@ library
                        TensorOps.Backend.BTensor
                        TensorOps.Backend.NTensor
                        TensorOps.Gradient
-                       TensorOps.Model.NeuralNet
-                       TensorOps.Model.NeuralNet.FeedForward
+                       TensorOps.Learn.NeuralNet
+                       TensorOps.Learn.NeuralNet.FeedForward
                        TensorOps.NatKind
                        TensorOps.Run
                        TensorOps.TOp
@@ -95,9 +95,12 @@ executable tensor-ops-mnist
                      , either
                      , filepath
                      , finite-typelits
+                     , foldl
                      , http-conduit
                      , mnist-idx
                      , mwc-random
+                     , optparse-applicative
+                     , profunctors
                      , tensor-ops
                      , text
                      , time

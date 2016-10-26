@@ -11,7 +11,7 @@
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module TensorOps.Model.NeuralNet.FeedForward where
+module TensorOps.Learn.NeuralNet.FeedForward where
 
 import           Control.DeepSeq
 import           Control.Monad.Primitive
@@ -28,7 +28,7 @@ import           Data.Type.Sing
 import           Statistics.Distribution.Normal
 import           System.Random.MWC
 import           TensorOps.Gradient
-import           TensorOps.Model.NeuralNet
+import           TensorOps.Learn.NeuralNet
 import           TensorOps.NatKind
 import           TensorOps.Run
 import           TensorOps.TOp                  as TO

@@ -3,4 +3,4 @@
 *.prof.html
 src/highlight.js
 src/style.css
-data/mnist
+/data/mnist

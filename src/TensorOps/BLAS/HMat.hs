@@ -12,6 +12,7 @@
 
 module TensorOps.BLAS.HMat
   ( HMat
+  , HMatD
   ) where
 
 import           Control.DeepSeq
@@ -29,6 +30,8 @@ import           Type.Class.Higher.Util
 import qualified Data.Finite                 as DF
 import qualified Data.Finite.Internal        as DF
 import qualified Data.Vector.Storable        as VS
+
+type HMatD = HMat Double
 
 data HMat :: Type -> BShape Nat -> Type where
     HMV :: { unHMV :: !(Vector a) } -> HMat a ('BV n)

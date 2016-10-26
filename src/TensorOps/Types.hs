@@ -49,8 +49,6 @@ import           Type.Family.Nat
 
 class NatKind k => Tensor (t :: [k] -> Type) where
     type ElemT t  :: Type
-    -- type IndexT t :: [k] -> Type
-    -- type IndexT (t :: [k] -> Type) = Prod (IndexN k)
 
     -- TODO: can we detach Vec from liftT ?
     liftT   :: SingI o
