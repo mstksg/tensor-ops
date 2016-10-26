@@ -118,7 +118,7 @@ instance ( BLAS b
 -- isn't really any way of making it work without a lot of empty cases.
 -- should probably handle one level up.
 dispatchBLAS
-    :: forall b ms os ns v. (Floating (ElemB b), BLAS b)
+    :: forall b ms os ns v. (RealFloat (ElemB b), BLAS b)
     => MaxLength N1 ms
     -> MaxLength N1 os
     -> MaxLength N1 ns
@@ -535,7 +535,7 @@ btn = \case
 gmul'
     :: forall v b ms os ns.
      ( SingI (ms ++ ns)
-     , Floating (ElemB b)
+     , RealFloat (ElemB b)
      , Vec v
      , Nesting1 Proxy Functor     v
      , Nesting1 Sing  Applicative v
@@ -576,7 +576,7 @@ gmul' lM lO lN = gmulB sM lO lN \\ sN
 --     1 tail...and then sum them up.
 gmulB
     :: forall k (b :: BShape k -> Type) v ms os ns.
-     ( Floating (ElemB b)
+     ( RealFloat (ElemB b)
      , SingI ns
      , BLAS b
      , Vec v
@@ -637,7 +637,7 @@ naiveGMul sM _ lN v r =
 -- TODO: no longer needs Sing ms
 gmulBLAS
     :: forall b ms os ns v.
-     ( Floating (ElemB b)
+     ( RealFloat (ElemB b)
      , BLAS b
      , Vec v
      , SingI ns
@@ -760,7 +760,7 @@ sumBTensor = \case
 instance
       ( Vec (v :: k -> Type -> Type)
       , BLAS b
-      , Floating (ElemB b)
+      , RealFloat (ElemB b)
       , Nesting1 Proxy Functor      v
       , Nesting1 Proxy Foldable     v
       , Nesting1 Sing  Applicative  v

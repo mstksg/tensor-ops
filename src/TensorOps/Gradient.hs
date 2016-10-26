@@ -31,7 +31,7 @@ import           Type.Family.List.Util
 import qualified TensorOps.Tensor                 as TT
 
 gradTOp
-    :: forall ns ms t. (Tensor t, Floating (ElemT t))
+    :: forall ns ms t. (Tensor t, RealFloat (ElemT t))
     => Sing ns
     -> Sing ms
     -> TOp ns ms
@@ -131,7 +131,8 @@ gradTOp sNs sMs = (\\ witSings sNs) $
     SumRows -> \case
       x :< Ø -> \case
         dtdz :< Ø ->
-          only $ mapRows (LS LZ) (TT.zip (*) dtdz) x
+          -- only $ mapRows (LS LZ) (TT.zip (*) dtdz) x
+          only $ mapRows (LS LZ) (\_ -> dtdz) x
                    \\ sHead (sHead sNs)
     -- SumRow (r :: Remove as n bs) -> \case
     --   (x :: t as) :< Ø -> \case
@@ -142,7 +143,7 @@ gradTOp sNs sMs = (\\ witSings sNs) $
     --                          \\ appendAssoc lC (LS LZ :: Length '[n]) lD
 
 gradTensorOp
-    :: forall ns t. (Tensor t, Floating (ElemT t))
+    :: forall ns t. (Tensor t, RealFloat (ElemT t))
     => TensorOp ns '[ '[] ]
     -> Prod t ns    -- ^ inputs
     -> Prod t ns    -- ^ d target / d inputs

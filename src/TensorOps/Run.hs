@@ -23,7 +23,7 @@ import           Type.Class.Witness
 runTOp
     :: forall (ns :: [[k]]) (ms :: [[k]]) (t :: [k] -> *).
      ( Tensor t
-     , Floating (ElemT t)
+     , RealFloat (ElemT t)
      )
     => Sing ns
     -> Sing ms
@@ -47,7 +47,7 @@ runTOp sNs sMs = (\\ witSings sNs) $
                         \\ sHead (sHead sNs)
 
 runTensorOp
-    :: forall t ns ms. (Tensor t, Floating (ElemT t))
+    :: forall t ns ms. (Tensor t, RealFloat (ElemT t))
     => TensorOp ns ms
     -> Prod t ns
     -> Prod t ms

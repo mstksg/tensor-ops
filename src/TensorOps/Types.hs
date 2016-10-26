@@ -109,20 +109,21 @@ class NatKind k => Tensor (t :: [k] -> Type) where
 type TensorOp = OpPipe TOp
 
 -- | Function and gradient
-data VFunc n = VF { vfFunc :: !(forall a. Floating a => Vec n a -> a)
-                  , vfGrad :: !(forall a. Floating a => Vec n a -> Vec n a)
-                  }
+data VFunc n
+    = VF { vfFunc :: !(forall a. RealFloat a => Vec n a -> a      )
+         , vfGrad :: !(forall a. RealFloat a => Vec n a -> Vec n a)
+         }
 
 -- -- | A kludge to get around lack of impredicative types in Haskell
--- newtype VFunc n = VF { getVF :: forall a. Floating a => Vec n a -> a }
+-- newtype VFunc n = VF { getVF :: forall a. RealFloat a => Vec n a -> a }
 
 data TOp :: [[k]] -> [[k]] -> Type where
     -- | Lift any `R^N -> R^M` function over every element in a n-tensor list,
     -- producing a m-tensor list.
     Lift    :: !(Uniform o ns)
             -> !(Uniform o ms)
-            -- -> (forall a. Floating a => Vec (Len ns) a -> Vec (Len ms) a)
-            -- -> (forall a. Floating a => Vec (Len ms) (Vec (Len ns) a -> a))
+            -- -> (forall a. RealFloat a => Vec (Len ns) a -> Vec (Len ms) a)
+            -- -> (forall a. RealFloat a => Vec (Len ms) (Vec (Len ns) a -> a))
             -> !(Vec (Len ms) (VFunc (Len ns)))
             -> TOp ns ms
     -- | Generalized tensor product
@@ -137,7 +138,7 @@ data TOp :: [[k]] -> [[k]] -> Type where
             -> TOp '[ns] '[Reverse ns]
     -- -- | Fold along the principle direction
     -- Fold    :: Length ns
-    --         -> (forall a. Floating a => F.Fold a a)
+    --         -> (forall a. RealFloat a => F.Fold a a)
     --         -> TOp '[n ': ns] '[ns]
     -- should this also include indices to go backwards?  how can this be
     -- statically verified?
@@ -148,7 +149,7 @@ data TOp :: [[k]] -> [[k]] -> Type where
     SumRows :: TOp '[ n ': ns ] '[ ns ]
     SumT    :: !(Uniform n ns)
             -> TOp ns '[n]
-    Scale   :: !(forall a. Floating a => a)
+    Scale   :: !(forall a. RealFloat a => a)
             -> TOp '[ ns ] '[ ns ]
 
 -- | TODO: replace with `syntactic`?

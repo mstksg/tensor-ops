@@ -101,6 +101,7 @@ executable tensor-ops-mnist
                      , mwc-random
                      , optparse-applicative
                      , profunctors
+                     , singletons
                      , tensor-ops
                      , text
                      , time

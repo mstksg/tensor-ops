@@ -25,10 +25,11 @@ import           Data.Kind
 import           Data.Nested                           (Nesting1(..))
 import           Data.Profunctor
 import           Data.Proxy
+import           Data.Singletons.Prelude
 import           Data.String
 import           Data.Time.Clock
 import           Data.Type.Combinator
-import           Data.Type.Product
+import           Data.Type.Product                     as TCP
 import           Data.Type.Vector
 import           GHC.Generics                          (Generic)
 import           GHC.TypeLits
@@ -71,7 +72,7 @@ opts :: Parser Opts
 opts = O <$> option auto
                ( long "rate" <> short 'r' <> metavar "STEP"
               <> help "Neural network learning rate"
-              <> value 1 <> showDefault
+              <> value 0.001 <> showDefault
                )
          <*> option auto
                ( long "layers" <> short 'l' <> metavar "LIST"
@@ -160,7 +161,11 @@ processDat (l,d) = (,) <$> x <*> y
     l' = natVal (Proxy @l)
 
 learn
-    :: forall (t :: [Nat] -> Type). (Tensor t, Floating (ElemT t), Nesting1 Proxy NFData t, Ord (ElemT t))
+    :: forall (t :: [Nat] -> Type).
+     ( Tensor t
+     , RealFloat (ElemT t)
+     , Nesting1 Proxy NFData t
+     )
     => Proxy t
     -> Vec N2 [(Int, VU.Vector Int)]
     -> Double
@@ -210,7 +215,7 @@ learn _ dat rate layers (fromIntegral->batch)
             -> Network t 784 10
             -> IO ()
         trainEpoch e nt0 = do
-            printf "Epoch %d ...\n" e
+            printf "[Epoch %d]\n" e
             queue <- evaluate . force =<< uniformShuffle tr g
 
             nt1 <- trainBatch 1 queue nt0
@@ -225,10 +230,15 @@ learn _ dat rate layers (fromIntegral->batch)
                 | V.null xs = return nt
                 | otherwise = do
               printf "Batch %d ...\n" b
+              let sm :: Double
+                  sm = case nt of
+                        N (s `SCons` _) _ (l :< _)
+                            -> realToFrac $ sum (TT.toList l) \\ s
+              printf "Sum of first layer: %.3f\n" sm
               (nt', t) <- time . return $ trainAll nt xs
-              printf "Trained %d in %s.\n" batch (show t)
+              printf "Trained %d in %s\n" batch (show t)
               let score = F.fold (validate nt') vd
-              printf "Validation: %.4f%% error\n" ((1 - score) * 100)
+              printf "Validation: %.3f%% error\n" ((1 - score) * 100)
               trainBatch (succ b) xss nt'
         validate
             :: Network t 784 10
@@ -247,6 +257,7 @@ learn _ dat rate layers (fromIntegral->batch)
         -> Network t 784 10
     trainAll = foldl' $ \nt (i,o) -> nt `deepseq`
         trainNetwork crossEntropy rate' i o nt
+        -- trainNetwork squaredError rate' i o nt
     rate' :: ElemT t
     rate' = realToFrac rate
 

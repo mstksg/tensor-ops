@@ -29,7 +29,7 @@ import qualified Data.Type.Product.Util    as TCP
 konst
     :: forall n ns. ()
     => Uniform n ns
-    -> (forall a. Floating a => a)
+    -> (forall a. RealFloat a => a)
     -> TOp '[] ns
 konst u x = Lift UØ u (vrep (I (VF (\ØV -> x) (\ØV -> ØV))))
               \\ uniformLength u
@@ -40,8 +40,8 @@ negate
 negate = Scale (-1)
 
 -- | TODO: version with some data type w/ num instance?
-map' :: (forall a. Floating a => a -> a)
-     -> (forall a. Floating a => a -> a)
+map' :: (forall a. RealFloat a => a -> a)
+     -> (forall a. RealFloat a => a -> a)
      -> TOp '[n] '[n]
 map' f f' = Lift (US UØ) (US UØ)
                  (VF (f . getI . TCV.head')
@@ -51,14 +51,14 @@ map' f f' = Lift (US UØ) (US UØ)
 {-# INLINE map' #-}
 
 
-map :: (forall a. Floating a => a -> a)
+map :: (forall a. RealFloat a => a -> a)
     -> TOp '[n] '[n]
 map f = map' f (diff f)
 {-# INLINE map #-}
 
 mapN' :: Uniform n ns
-      -> (forall a. Floating a => a -> a)
-      -> (forall a. Floating a => a -> a)
+      -> (forall a. RealFloat a => a -> a)
+      -> (forall a. RealFloat a => a -> a)
       -> TOp ns ns
 mapN' u f f' = Lift u u (vgen_ $ \i -> I (VF (\v -> f (index' i v))
                                              (\v -> vgen_ $ \i' -> I $
@@ -72,7 +72,7 @@ mapN' u f f' = Lift u u (vgen_ $ \i -> I (VF (\v -> f (index' i v))
 {-# INLINE mapN' #-}
 
 mapN :: Uniform n ns
-     -> (forall a. Floating a => a -> a)
+     -> (forall a. RealFloat a => a -> a)
      -> TOp ns ns
 mapN u f = mapN' u f (diff f)
 {-# INLINE mapN #-}
@@ -81,51 +81,53 @@ add :: TOp '[ n, n ] '[ n ]
 add = SumT (US (US UØ))
 {-# INLINE add #-}
 
-zip' :: Uniform n ns
-     -> (forall a. Floating a => Vec (Len ns) a -> a)
-     -> (forall a. Floating a => Vec (Len ns) a -> Vec (Len ns) a)
-     -> TOp ns '[n]
-zip' u f f' = Lift u (US UØ) (VF f f' :+ ØV)
-{-# INLINE zip' #-}
-
-zip :: Uniform n ns
-    -> (forall a. Floating a => Vec (Len ns) a -> a)
+zipN'
+    :: Uniform n ns
+    -> (forall a. RealFloat a => Vec (Len ns) a -> a)
+    -> (forall a. RealFloat a => Vec (Len ns) a -> Vec (Len ns) a)
     -> TOp ns '[n]
-zip u f = zip' u f (grad f)
-{-# INLINE zip #-}
+zipN' u f f' = Lift u (US UØ) (VF f f' :+ ØV)
+{-# INLINE zipN' #-}
 
-zip2'
-    :: (forall a. Floating a => a -> a -> a)
-    -> (forall a. Floating a => a -> a -> (a, a))
+zipN
+    :: Uniform n ns
+    -> (forall a. RealFloat a => Vec (Len ns) a -> a)
+    -> TOp ns '[n]
+zipN u f = zipN' u f (grad f)
+{-# INLINE zipN #-}
+
+zip'
+    :: (forall a. RealFloat a => a -> a -> a)
+    -> (forall a. RealFloat a => a -> a -> (a, a))
     -> TOp '[ n, n ] '[ n ]
-zip2' f f' = zip' (US (US UØ)) (\case I x :* I y :* ØV -> f x y)
+zip' f f' = zipN' (US (US UØ)) (\case I x :* I y :* ØV -> f x y)
                                (\case I x :* I y :* ØV ->
                                         let (dx, dy) = f' x y
                                         in  dx :+ dy :+ ØV
                                )
-{-# INLINE zip2' #-}
+{-# INLINE zip' #-}
 
-zip2
-    :: (forall a. Floating a => a -> a -> a)
+zip
+    :: (forall a. RealFloat a => a -> a -> a)
     -> TOp '[ n, n ] '[ n ]
-zip2 f = zip (US (US UØ)) (\case I x :* I y :* ØV -> f x y)
-{-# INLINE zip2 #-}
+zip f = zipN (US (US UØ)) (\case I x :* I y :* ØV -> f x y)
+{-# INLINE zip #-}
 
 zip3'
-    :: (forall a. Floating a => a -> a -> a -> a)
-    -> (forall a. Floating a => a -> a -> a -> (a, a, a))
+    :: (forall a. RealFloat a => a -> a -> a -> a)
+    -> (forall a. RealFloat a => a -> a -> a -> (a, a, a))
     -> TOp '[ n, n, n ] '[ n ]
-zip3' f f' = zip' (US (US (US UØ))) (\case I x :* I y :* I z :* ØV -> f x y z)
-                                    (\case I x :* I y :* I z :* ØV ->
-                                             let (dx, dy, dz) = f' x y z
-                                             in  dx :+ dy :+ dz :+ ØV
-                                    )
+zip3' f f' = zipN' (US (US (US UØ))) (\case I x :* I y :* I z :* ØV -> f x y z)
+                                     (\case I x :* I y :* I z :* ØV ->
+                                              let (dx, dy, dz) = f' x y z
+                                              in  dx :+ dy :+ dz :+ ØV
+                                     )
 {-# INLINE zip3' #-}
 
 zip3
-    :: (forall a. Floating a => a -> a -> a -> a)
+    :: (forall a. RealFloat a => a -> a -> a -> a)
     -> TOp '[ n, n, n ] '[ n ]
-zip3 f = zip (US (US (US UØ))) (\case I x :* I y :* I z :* ØV -> f x y z)
+zip3 f = zipN (US (US (US UØ))) (\case I x :* I y :* I z :* ØV -> f x y z)
 {-# INLINE zip3 #-}
 
 replicate

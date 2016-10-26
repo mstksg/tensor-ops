@@ -17,14 +17,14 @@ import qualified TensorOps.TOp        as TO
 data Activation k = Act { getAct :: forall (a :: k). SingI a => TensorOp '[ '[a] ] '[ '[a] ] }
 
 actMap
-    :: (forall a. Floating a => a -> a)
+    :: (forall a. RealFloat a => a -> a)
     -> Activation k
 actMap f = Act $ (known, known, TO.map f)
               ~. OPØ
 
 actMap'
-    :: (forall a. Floating a => a -> a)
-    -> (forall a. Floating a => a -> a)
+    :: (forall a. RealFloat a => a -> a)
+    -> (forall a. RealFloat a => a -> a)
     -> Activation k
 actMap' f f' = Act $ (known, known, TO.map' f f')
                   ~. OPØ
@@ -58,6 +58,8 @@ squaredError
     => TensorOp '[ '[o], '[o]] '[ '[] ]
 squaredError = (known, known, TO.negate   )
             ~. (known, known, TO.add      )
+            -- ~. (known, known, TO.map (**2))
+            -- ~. (known, known, SumRows     )
             ~. (known, known, TO.duplicate)
             ~. (known, known, TO.dot      )
             ~. OPØ
@@ -66,7 +68,17 @@ squaredError = (known, known, TO.negate   )
 crossEntropy
     :: forall o. SingI o
     => TensorOp '[ '[o], '[o]] '[ '[] ]
-crossEntropy = (known, known, TO.map log)
-            ~. (known, known, TO.dot    )
-            ~. (known, known, TO.negate )
+-- crossEntropy = (known, known, TO.map log)
+--             ~. (known, known, TO.dot    )
+--             ~. (known, known, TO.negate )
+--             ~. OPØ
+crossEntropy = (known, known, TO.zip f )
+            ~. (known, known, SumRows  )
             ~. OPØ
+  where
+    f :: forall a. RealFloat a => a -> a -> a
+    f p q | q <= 0    = 0
+          | p <= 0    = error "hey why is p <= 0"
+          | otherwise = - log p * q
+          -- | otherwise = log (1/p) * q
+

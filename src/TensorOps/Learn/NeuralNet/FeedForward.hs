@@ -54,6 +54,13 @@ instance Nesting1 Proxy NFData t => NFData (Network t i o) where
                     :: Wit (Every NFData (t <$> os))
                 )
 
+netParams
+    :: Network t i o
+    -> (forall os. SingI os => Prod t os -> r)
+    -> r
+netParams n f = case n of
+    N o _ p -> f p \\ o
+
 (~*~)
     :: (SingI a, SingI b)
     => Network t a b
@@ -82,20 +89,20 @@ infixl 5 *~
 
 nmap
      :: (SingI o, SingI i)
-     => (forall a. Floating a => a -> a)
+     => (forall a. RealFloat a => a -> a)
      -> Network t i o
      -> Network t i o
 nmap f n = n *~ pipe (TO.map f)
 
 runNetwork
-    :: (Floating (ElemT t), Tensor t)
+    :: (RealFloat (ElemT t), Tensor t)
     => Network t i o
     -> t '[i]
     -> t '[o]
 runNetwork (N _ o p) = head' . runTensorOp o . (:< p)
 
 trainNetwork
-    :: forall i o t. (SingI i, SingI o, Tensor t, Floating (ElemT t))
+    :: forall i o t. (SingI i, SingI o, Tensor t, RealFloat (ElemT t))
     => TensorOp '[ '[o], '[o] ] '[ '[] ]
     -> ElemT t
     -> t '[i]
@@ -104,7 +111,8 @@ trainNetwork
     -> Network t i o
 trainNetwork loss r x y = \case
     N (s :: Sing os) (o :: TensorOp ('[i] ': os) '[ '[o]]) (p :: Prod t os) ->
-      ( let o'   :: TensorOp ('[i] ': os >: '[o]) '[ '[]]
+      (\\ appendSnoc (singLength s) (Proxy @('[o]))) $
+        let o'   :: TensorOp ('[i] ': os >: '[o]) '[ '[]]
             o' = pappend (sing `SCons` s) sing sing o loss
             inp  :: Prod t ('[i] ': os >: '[o])
             inp = x :< p >: y
@@ -117,10 +125,30 @@ trainNetwork loss r x y = \case
             p' = map1 (\(s1 :&: o1 :&: g1) -> (\\ s1) $ TT.zip stepFunc o1 g1)
                $ zipProd3 (singProd s) p grad
         in  N s o p'
-      ) \\ appendSnoc (singLength s) (Proxy @('[o]))
   where
     stepFunc :: ElemT t -> ElemT t -> ElemT t
     stepFunc o' g' = o' - r * g'
+
+networkGradient
+    :: forall i o t r. (SingI i, SingI o, Tensor t, RealFloat (ElemT t))
+    => TensorOp '[ '[o], '[o] ] '[ '[] ]
+    -> t '[i]
+    -> t '[o]
+    -> Network t i o
+    -> (forall os. SingI os => Prod t os -> r)
+    -> r
+networkGradient loss x y = \case
+    N (s :: Sing os) (o :: TensorOp ('[i] ': os) '[ '[o]]) (p :: Prod t os) ->
+      \f -> (\\ appendSnoc (singLength s) (Proxy @('[o]))) $
+        let o'   :: TensorOp ('[i] ': os >: '[o]) '[ '[]]
+            o' = pappend (sing `SCons` s) sing sing o loss
+            inp  :: Prod t ('[i] ': os >: '[o])
+            inp = x :< p >: y
+            grad :: Prod t os
+            grad = takeProd (singLength s) (LS LZ :: Length '[ '[o]])
+                 . tail'
+                 $ gradTensorOp o' inp
+        in  f grad \\ s
 
 ffLayer
     :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t)

@@ -24,10 +24,6 @@ module TensorOps.Tensor
   , oneHot, argMax, argMin
   ) where
 
--- import           Data.List.Util
--- import           Numeric.AD
--- import           Type.Family.Nat
--- import qualified Data.Foldable                 as F
 import           Control.Applicative
 import           Control.Monad.Trans.State.Strict
 import           Data.Functor
@@ -104,7 +100,7 @@ zip3 f x y z = zipN (\case I x' :* I y' :* I z' :* ØV -> f x' y' z') (x :+ y :+
 -- Implementation issue -- shouldn't need Sing o if n or m is zero
 --
 gradLift
-    :: forall o n m t. (Tensor t, Floating (ElemT t), SingI o)
+    :: forall o n m t. (Tensor t, RealFloat (ElemT t), SingI o)
     => Vec m (VFunc n)
     -> Vec n (t o)    -- ^ inputs
     -> Vec m (t o)    -- ^ d target / d outputs

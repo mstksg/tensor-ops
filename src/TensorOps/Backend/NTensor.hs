@@ -129,7 +129,7 @@ underNVec f = getNVec . f . NTensor
 
 instance
       ( Vec (v :: k -> Type -> Type)
-      , Floating a
+      , RealFloat a
       , Nesting1 Proxy Functor      v
       , Nesting1 Sing  Applicative  v
       , Nesting1 Proxy Foldable     v
