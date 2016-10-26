@@ -26,6 +26,7 @@ import           Numeric.LinearAlgebra
 import           Numeric.LinearAlgebra.Data  as LA
 import           Numeric.LinearAlgebra.Devel
 import           TensorOps.BLAS
+import           Type.Class.Higher
 import           Type.Class.Higher.Util
 import qualified Data.Finite                 as DF
 import qualified Data.Finite.Internal        as DF
@@ -36,6 +37,15 @@ type HMatD = HMat Double
 data HMat :: Type -> BShape Nat -> Type where
     HMV :: { unHMV :: !(Vector a) } -> HMat a ('BV n)
     HMM :: { unHMM :: !(Matrix a) } -> HMat a ('BM n m)
+
+instance (VS.Storable a, Show a, Element a) => Show (HMat a s) where
+    showsPrec p = \case
+      HMV x -> showParen (p > 10) $ showString "HMV "
+                                  . showsPrec 11 x
+      HMM x -> showParen (p > 10) $ showString "HMM "
+                                  . showsPrec 11 x
+
+instance (VS.Storable a, Show a, Element a) => Show1 (HMat a)
 
 instance (VS.Storable a, NFData a) => NFData (HMat a s) where
     rnf = \case

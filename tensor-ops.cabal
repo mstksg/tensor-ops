@@ -30,13 +30,14 @@ library
                        TensorOps.Run
                        TensorOps.TOp
                        TensorOps.Tensor
+                       -- util
+                       Data.Type.Sing
   other-modules:       Data.List.Util
                        Data.Type.Combinator.Util
                        Data.Type.Length.Util
                        Data.Type.Nat.Util
                        Data.Type.Product.Util
                        Data.Type.Remove.Util
-                       Data.Type.Sing
                        Data.Type.SnocProd
                        Data.Type.Vector.Util
                        Data.Vector.Sized

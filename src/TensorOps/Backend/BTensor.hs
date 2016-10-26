@@ -1,3 +1,4 @@
+{-# LANGUAGE ApplicativeDo         #-}
 {-# LANGUAGE EmptyCase             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE GADTs                 #-}
@@ -7,6 +8,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeInType            #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -26,6 +28,7 @@ import           Data.Kind
 import           Data.List.Util
 import           Data.Monoid
 import           Data.Nested hiding             (unScalar, unVector, gmul')
+import           Data.Semigroup
 import           Data.Singletons
 import           Data.Singletons.Prelude hiding (Reverse, Head, sReverse, (:-))
 import           Data.Type.Combinator
@@ -62,6 +65,25 @@ data BTensor :: (k -> Type -> Type) -> (BShape k -> Type) -> [k] -> Type where
 
 type BTensorL = BTensor (Flip2 TCV.VecT   I)
 type BTensorV = BTensor (Flip2 VS.VectorT I)
+
+instance (Nesting Proxy Show v, Show1 b, Show (ElemB b)) => Show (BTensor v b s) where
+    showsPrec p = \case
+      BTS x  -> showParen (p > 10) $ showString "BTS "
+                                   . showsPrec 11 x
+      BTV xs -> showParen (p > 10) $ showString "BTV "
+                                   . showsPrec1 11 xs
+      BTM xs -> showParen (p > 10) $ showString "BTM "
+                                   . showsPrec1 11 xs
+      BTN xs -> showParen (p > 10) $ showString "BTN "
+                                   . showsPrec' 11 xs
+      where
+        showsPrec' :: forall n s'. Int -> v n (BTensor v b s') -> ShowS
+        showsPrec' p' xs = showsPrec p' xs
+            \\ (nesting Proxy :: Show (BTensor v b s')
+                              :- Show (v n (BTensor v b s'))
+               )
+
+instance (Nesting Proxy Show v, Show1 b, Show (ElemB b)) => Show1 (BTensor v b)
 
 instance (NFData (ElemB b), NFData1 b, Nesting Proxy NFData v) => Nesting1 Proxy NFData (BTensor v b) where
     nesting1 _ = Wit

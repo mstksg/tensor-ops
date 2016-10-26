@@ -159,6 +159,9 @@ class Nesting1 (w :: k -> Type) (c :: j -> Constraint) (v :: k -> j) where
 instance Nesting w NFData (Flip2 VS.VectorT I) where
     nesting _ = Sub Wit
     {-# INLINE nesting #-}
+instance Nesting w Show (Flip2 VS.VectorT I) where
+    nesting _ = Sub Wit
+    {-# INLINE nesting #-}
 instance Functor f      => Nesting1 w    Functor      (Flip2 VS.VectorT f) where
     nesting1 _ = Wit
     {-# INLINE nesting1 #-}
@@ -177,6 +180,9 @@ instance Distributive f => Nesting1 Sing Distributive (Flip2 VS.VectorT f) where
 
 
 instance Nesting w NFData (Flip2 TCV.VecT I) where
+    nesting _ = Sub Wit
+    {-# INLINE nesting #-}
+instance Nesting w Show (Flip2 TCV.VecT I) where
     nesting _ = Sub Wit
     {-# INLINE nesting #-}
 instance Functor f      => Nesting1 w    Functor      (Flip2 TCV.VecT f) where
