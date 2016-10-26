@@ -41,9 +41,6 @@ module Data.Nested
   , sumRowsNested
   ) where
 
--- import           Data.Type.Length.Util            as TCL
--- import           Data.Type.Product.Util           as TCP
--- import           Type.Class.Higher.Util
 import           Control.Applicative
 import           Control.DeepSeq
 import           Data.Distributive
@@ -225,8 +222,6 @@ instance (NFData a, Nesting Proxy NFData v) => NFData (Nested v js a) where
                  \\ (nesting Proxy :: NFData (Nested v ks a) :- NFData (v j (Nested v ks a)))
     {-# INLINE rnf #-}
 
--- deriving instance ListC (Show <$> ((v <$> js) <&> a)) => Show (Nested v js a)
-
 instance (Num a, Applicative (Nested v js)) => Num (Nested v js a) where
     (+)         = liftA2 (+)
     {-# INLINE (+) #-}
@@ -405,14 +400,6 @@ joinNested = \case
     NS (xs :: v j (Nested v js (Nested v ms a))) ->
       NS $ fmap joinNested xs
         \\ (nesting1 Proxy :: Wit (Functor (v j)))
-
-unjoinNested
-    :: Nesting1 Proxy Functor v
-    => Length ns
-    -> Nested v (ns ++ ms) a
-    -> Nested v ns (Nested v ms a)
-unjoinNested = mapNVecSlices id
-{-# INLINE unjoinNested #-}
 
 mapNVecSlices
     :: forall v ns ms a b. Nesting1 Proxy Functor v

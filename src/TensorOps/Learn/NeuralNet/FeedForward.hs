@@ -16,11 +16,9 @@ module TensorOps.Learn.NeuralNet.FeedForward where
 import           Control.DeepSeq
 import           Control.Monad.Primitive
 import           Data.Kind
-import           Data.Nested
 import           Data.Singletons
 import           Data.Singletons.Prelude hiding ((%:++))
 import           Data.Type.Conjunction
-import           Data.Type.Index
 import           Data.Type.Length
 import           Data.Type.Product              as TCP
 import           Data.Type.Product.Util         as TCP
@@ -35,6 +33,7 @@ import           TensorOps.TOp                  as TO
 import           TensorOps.Tensor               as TT
 import           TensorOps.Types
 import           Type.Class.Higher
+import           Type.Class.Higher.Util
 import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
@@ -46,13 +45,9 @@ data Network :: ([k] -> Type) -> k -> k -> Type where
          , _nParams :: !(Prod t os)
          } -> Network t i o
 
-instance Nesting1 Proxy NFData t => NFData (Network t i o) where
+instance NFData1 t => NFData (Network t i o) where
     rnf = \case
-      N (s :: Sing os) _ p
-        -> p `deepseq` ()
-             \\ (nesting1Every (Proxy @t) (map1 (\_ -> Proxy) (singProd s))
-                    :: Wit (Every NFData (t <$> os))
-                )
+      N _ _ p -> p `deepseq1` ()
 
 netParams
     :: Network t i o

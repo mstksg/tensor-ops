@@ -50,9 +50,6 @@ class NFData1 f where
 deepseq1 :: NFData1 f => f a -> b -> b
 deepseq1 x y = rnf1 x `seq` y
 
--- nfData1 :: NFData1 f :- NFData (f a)
--- nfData1 = 
-
--- data EqDic :: a
-
+force1 :: NFData1 f => f a -> f a
+force1 x = x `deepseq1` x
 

@@ -6,8 +6,6 @@
 
 module TensorOps.Learn.NeuralNet where
 
--- import           Data.Type.Remove
--- import           Data.Type.Uniform
 import           Data.Singletons
 import           Data.Type.Length
 import           TensorOps.Types
@@ -58,8 +56,6 @@ squaredError
     => TensorOp '[ '[o], '[o]] '[ '[] ]
 squaredError = (known, known, TO.negate   )
             ~. (known, known, TO.add      )
-            -- ~. (known, known, TO.map (**2))
-            -- ~. (known, known, SumRows     )
             ~. (known, known, TO.duplicate)
             ~. (known, known, TO.dot      )
             ~. OPØ
@@ -72,17 +68,3 @@ crossEntropy = (known, known, TO.map log)
             ~. (known, known, TO.dot    )
             ~. (known, known, TO.negate )
             ~. OPØ
--- crossEntropy = (known, known, TO.zip' f f')
---             ~. (known, known, SumRows    )
---             ~. OPØ
---   where
---     f :: forall a. RealFloat a => a -> a -> a
---     f p q | q <= 0    = 0
---           | p <= 0    = error "hey why is p <= 0"
---           | otherwise = - log p * q
---     f' :: forall a. RealFloat a => a -> a -> (a, a)
---     f' p q | q <= 0 = if p <= 0 then error "um, 0 0?"
---                                 else (0, -log p)
---            | p <= 0 = error "p <= 0, what gives?"
---            | otherwise = (-q/p, -log p)
-

@@ -23,15 +23,12 @@ import           Data.Finite
 import           Data.Foldable
 import           Data.IDX
 import           Data.Kind
-import           Data.Nested                           (Nesting1(..))
 import           Data.Profunctor
 import           Data.Proxy
-import           Data.Singletons.Prelude hiding        ((:-))
 import           Data.String
 import           Data.Time.Clock
 import           Data.Type.Combinator
 import           Data.Type.Product                     as TCP
-import           Data.Type.Sing
 import           Data.Type.Vector
 import           GHC.Generics                          (Generic)
 import           GHC.TypeLits
@@ -45,9 +42,7 @@ import           TensorOps.Learn.NeuralNet
 import           TensorOps.Learn.NeuralNet.FeedForward
 import           TensorOps.Types
 import           Text.Printf
-import           Type.Class.Higher
-import           Type.Class.Witness
-import           Type.Family.List
+import           Type.Class.Higher.Util
 import           Type.Family.Nat
 import qualified Codec.Compression.GZip                as GZ
 import qualified Control.Foldl                         as F
@@ -168,7 +163,9 @@ learn
     :: forall (t :: [Nat] -> Type).
      ( Tensor t
      , RealFloat (ElemT t)
-     , Nesting1 Proxy NFData t
+     , NFData1 t
+     , NFData (t '[784])
+     , NFData (t '[10])
      )
     => Proxy t
     -> Vec N2 [(Int, VU.Vector Int)]
@@ -176,10 +173,7 @@ learn
     -> [Integer]
     -> Integer
     -> IO ()
-learn _ dat rate layers (fromIntegral->batch)
-        = (\\ (nesting1 Proxy :: Wit (NFData (t '[784])))) $
-          (\\ (nesting1 Proxy :: Wit (NFData (t '[10 ])))) $
-          withSystemRandom                                 $ \g -> do
+learn _ dat rate layers (fromIntegral->batch) = withSystemRandom $ \g -> do
     dat' <- either (ioError . userError . unlines) return
           . validationToEither
           . (traverse . traverse) processDat'
@@ -199,22 +193,6 @@ learn _ dat rate layers (fromIntegral->batch)
 
     printf "rate: %f | batch: %d | layers: %s\n" rate batch (show layers)
 
-    -- putStrLn $ show1 (fst (head tXY))
-    -- putStrLn $ show1 (snd (head tXY))
-
-    -- networkGradient crossEntropy (fst (head tXY)) (snd (head tXY)) net0
-    --     $ \(gr :: Prod t os) -> (\\ (singSings :: SingI os :- ListC (SingI <$> os))) $
-    --   case gr of
-    --     w1 :< b1 :< w2 :< b2 :< Ø -> do
-    --       putStrLn "w1"
-    --       putStrLn $ show1 w1
-    --       putStrLn "b1"
-    --       putStrLn $ show1 b1
-    --       putStrLn "w2"
-    --       putStrLn $ show1 w2
-    --       putStrLn "b2"
-    --       putStrLn $ show1 b2
-
     trainEpochs tXY vXY' g net0
   where
     processDat'
@@ -222,8 +200,7 @@ learn _ dat rate layers (fromIntegral->batch)
         -> Validation [String] (t '[784], t '[10])
     processDat' = eitherToValidation . first (:[]) . processDat
     trainEpochs
-        :: NFData (t '[784], t '[10])
-        => [(t '[784], t '[10])]
+        :: [(t '[784], t '[10])]
         -> [(t '[784], Finite 10)]
         -> GenIO
         -> Network t 784 10
@@ -250,13 +227,8 @@ learn _ dat rate layers (fromIntegral->batch)
                 | V.null xs = return nt
                 | otherwise = do
               printf "Batch %d ...\n" b
-              -- let sm :: Double
-              --     sm = case nt of
-              --           N (s `SCons` _) _ (l :< _)
-              --               -> realToFrac $ sum (TT.toList l) \\ s
-              -- printf "Sum of first layer: %.3f\n" sm
               (nt', t) <- time . return $ trainAll nt xs
-              printf "Trained %d in %s\n" batch (show t)
+              printf "Trained on %d samples in %s\n" (V.length xs) (show t)
               let score = F.fold (validate nt') vd
               printf "Validation: %.3f%% error\n" ((1 - score) * 100)
               trainBatch (succ b) xss nt'

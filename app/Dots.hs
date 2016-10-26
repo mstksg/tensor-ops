@@ -23,7 +23,6 @@ import           Data.Kind
 import           Data.List hiding                      ((\\))
 import           Data.Maybe
 import           Data.Monoid
-import           Data.Nested
 import           Data.Singletons
 import           Data.Singletons.TypeLits
 import           Data.Time.Clock
@@ -39,6 +38,7 @@ import           TensorOps.NatKind
 import           TensorOps.Types
 import           Text.PrettyPrint.ANSI.Leijen hiding   ((<>),(<$>))
 import           Text.Printf
+import           Type.Class.Higher.Util
 import qualified Data.String.Here                      as H
 import qualified TensorOps.Tensor                      as TT
 
@@ -47,9 +47,9 @@ netTest
     :: forall k (t :: [k] -> Type).
      ( Tensor t
      , ElemT t ~ Double
+     , NFData1 t
      , NFData (t '[FromNat 1])
      , NFData (t '[FromNat 2])
-     , Nesting1 Proxy NFData t
      )
     => Proxy t
     -> Double

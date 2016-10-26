@@ -65,6 +65,8 @@ deriving instance (NFData a, Nesting Proxy NFData v) => NFData (NTensor v a ns)
 instance (NFData a, Nesting Proxy NFData v) => Nesting1 w NFData (NTensor v a) where
     nesting1 _ = Wit
 
+instance (NFData a, Nesting Proxy NFData v) => NFData1 (NTensor v a)
+
 genNTensor
     :: forall k (v :: k -> Type -> Type) (ns :: [k]) (a :: Type). Vec v
     => Sing ns

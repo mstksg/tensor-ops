@@ -12,10 +12,6 @@
 
 module Data.Type.Product.Util where
 
--- import           Data.Proxy
--- import           Data.Type.Length.Util            as TCL
--- import           Type.Class.Witness
--- import           Type.Family.List.Util
 import           Control.DeepSeq
 import           Data.Bifunctor
 import           Data.Functor.Identity
@@ -28,6 +24,7 @@ import           Data.Type.Product     as TCP hiding (reverse')
 import           Data.Type.Uniform
 import           Data.Type.Vector
 import           Prelude hiding                      (replicate)
+import           Type.Class.Higher.Util
 import           Type.Class.Known
 import           Type.Family.List
 import           Type.Family.Nat
@@ -36,6 +33,11 @@ instance Every NFData (f <$> as) => NFData (Prod f as) where
     rnf = \case
       Ø       -> ()
       x :< xs -> x `deepseq` xs `deepseq` ()
+
+instance NFData1 f => NFData1 (Prod f) where
+    rnf1 = \case
+      Ø       -> ()
+      x :< xs -> x `deepseq1` xs `deepseq1` ()
 
 splitProd
     :: Length ns
