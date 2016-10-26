@@ -68,17 +68,21 @@ squaredError = (known, known, TO.negate   )
 crossEntropy
     :: forall o. SingI o
     => TensorOp '[ '[o], '[o]] '[ '[] ]
--- crossEntropy = (known, known, TO.map log)
---             ~. (known, known, TO.dot    )
---             ~. (known, known, TO.negate )
---             ~. OPØ
-crossEntropy = (known, known, TO.zip f )
-            ~. (known, known, SumRows  )
+crossEntropy = (known, known, TO.map log)
+            ~. (known, known, TO.dot    )
+            ~. (known, known, TO.negate )
             ~. OPØ
-  where
-    f :: forall a. RealFloat a => a -> a -> a
-    f p q | q <= 0    = 0
-          | p <= 0    = error "hey why is p <= 0"
-          | otherwise = - log p * q
-          -- | otherwise = log (1/p) * q
+-- crossEntropy = (known, known, TO.zip' f f')
+--             ~. (known, known, SumRows    )
+--             ~. OPØ
+--   where
+--     f :: forall a. RealFloat a => a -> a -> a
+--     f p q | q <= 0    = 0
+--           | p <= 0    = error "hey why is p <= 0"
+--           | otherwise = - log p * q
+--     f' :: forall a. RealFloat a => a -> a -> (a, a)
+--     f' p q | q <= 0 = if p <= 0 then error "um, 0 0?"
+--                                 else (0, -log p)
+--            | p <= 0 = error "p <= 0, what gives?"
+--            | otherwise = (-q/p, -log p)
 

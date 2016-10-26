@@ -11,6 +11,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections       #-}
 {-# LANGUAGE TypeApplications    #-}
+{-# LANGUAGE TypeOperators       #-}
 {-# LANGUAGE ViewPatterns        #-}
 
 import           Control.DeepSeq
@@ -25,11 +26,12 @@ import           Data.Kind
 import           Data.Nested                           (Nesting1(..))
 import           Data.Profunctor
 import           Data.Proxy
-import           Data.Singletons.Prelude
+import           Data.Singletons.Prelude hiding        ((:-))
 import           Data.String
 import           Data.Time.Clock
 import           Data.Type.Combinator
 import           Data.Type.Product                     as TCP
+import           Data.Type.Sing
 import           Data.Type.Vector
 import           GHC.Generics                          (Generic)
 import           GHC.TypeLits
@@ -43,7 +45,9 @@ import           TensorOps.Learn.NeuralNet
 import           TensorOps.Learn.NeuralNet.FeedForward
 import           TensorOps.Types
 import           Text.Printf
+import           Type.Class.Higher
 import           Type.Class.Witness
+import           Type.Family.List
 import           Type.Family.Nat
 import qualified Codec.Compression.GZip                as GZ
 import qualified Control.Foldl                         as F
@@ -142,14 +146,14 @@ loadData dataDir = do
         =<< either (ioError . userError . unlines) return mnistDat'
 
 processDat
-    :: forall (n :: Nat) (l :: Nat) t. (Num (ElemT t), KnownNat n, KnownNat l, Tensor t)
+    :: forall (n :: Nat) (l :: Nat) t. (Fractional (ElemT t), KnownNat n, KnownNat l, Tensor t)
     => (Int, VU.Vector Int)
     -> Either String (t '[n], t '[l])
 processDat (l,d) = (,) <$> x <*> y
   where
     x :: Either String (t '[n])
     x = maybe (Left (printf "Bad input vector (Expected %d, got %d)" n (VU.length d))) Right
-      . TT.fromList . map fromIntegral
+      . TT.fromList . map ((/255) . fromIntegral)
       $ VU.toList d
     y :: Either String (t '[l])
     y = maybe (Left (printf "Label out of range (Got %d, expected [0,%d) )" l')) Right
@@ -195,6 +199,22 @@ learn _ dat rate layers (fromIntegral->batch)
 
     printf "rate: %f | batch: %d | layers: %s\n" rate batch (show layers)
 
+    -- putStrLn $ show1 (fst (head tXY))
+    -- putStrLn $ show1 (snd (head tXY))
+
+    -- networkGradient crossEntropy (fst (head tXY)) (snd (head tXY)) net0
+    --     $ \(gr :: Prod t os) -> (\\ (singSings :: SingI os :- ListC (SingI <$> os))) $
+    --   case gr of
+    --     w1 :< b1 :< w2 :< b2 :< Ø -> do
+    --       putStrLn "w1"
+    --       putStrLn $ show1 w1
+    --       putStrLn "b1"
+    --       putStrLn $ show1 b1
+    --       putStrLn "w2"
+    --       putStrLn $ show1 w2
+    --       putStrLn "b2"
+    --       putStrLn $ show1 b2
+
     trainEpochs tXY vXY' g net0
   where
     processDat'
@@ -230,11 +250,11 @@ learn _ dat rate layers (fromIntegral->batch)
                 | V.null xs = return nt
                 | otherwise = do
               printf "Batch %d ...\n" b
-              let sm :: Double
-                  sm = case nt of
-                        N (s `SCons` _) _ (l :< _)
-                            -> realToFrac $ sum (TT.toList l) \\ s
-              printf "Sum of first layer: %.3f\n" sm
+              -- let sm :: Double
+              --     sm = case nt of
+              --           N (s `SCons` _) _ (l :< _)
+              --               -> realToFrac $ sum (TT.toList l) \\ s
+              -- printf "Sum of first layer: %.3f\n" sm
               (nt', t) <- time . return $ trainAll nt xs
               printf "Trained %d in %s\n" batch (show t)
               let score = F.fold (validate nt') vd

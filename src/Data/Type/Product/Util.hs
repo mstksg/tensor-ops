@@ -280,3 +280,14 @@ prodLength = \case
 --         \\ reverseSnoc lA (Proxy @a)
 --         \\ appendAssoc (undefined :: Length as') (LS LZ :: Length '[a]) (TCL.reverse' lA)
 
+mapUniform
+    :: Uniform n ns
+    -> (f n -> g n)
+    -> Prod f ns
+    -> Prod g ns
+mapUniform = \case
+    UØ -> \f -> \case
+      Ø -> Ø
+    US u -> \f -> \case
+      x :< xs -> f x :< mapUniform u f xs
+{-# INLINE mapUniform #-}
