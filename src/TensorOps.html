@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds           #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE FlexibleContexts    #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE GADTs               #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase          #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE PolyKinds           #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators       #-}</span><span>
+</span><a name="line-8"></a><span>
+</span><a name="line-9"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">TensorOps</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-10"></a><span>
+</span><a name="line-11"></a><span class="hs-comment">-- import           Data.List hiding              ((\\))</span><span>
+</span><a name="line-12"></a><span class="hs-comment">-- import           Data.Singletons</span><span>
+</span><a name="line-13"></a><span class="hs-comment">-- import           Data.Type.Combinator</span><span>
+</span><a name="line-14"></a><span class="hs-comment">-- import           Data.Type.Conjunction</span><span>
+</span><a name="line-15"></a><span class="hs-comment">-- import           Data.Type.Index</span><span>
+</span><a name="line-16"></a><span class="hs-comment">-- import           Data.Type.Length.Util         as TCL</span><span>
+</span><a name="line-17"></a><span class="hs-comment">-- import           Data.Type.Uniform</span><span>
+</span><a name="line-18"></a><span class="hs-comment">-- import           TensorOps.Run</span><span>
+</span><a name="line-19"></a><span class="hs-comment">-- import           TensorOps.Types</span><span>
+</span><a name="line-20"></a><span class="hs-comment">-- import           Type.Class.Higher</span><span>
+</span><a name="line-21"></a><span class="hs-comment">-- import           Type.Class.Witness</span><span>
+</span><a name="line-22"></a><span class="hs-comment">-- import           Type.Family.List.Util</span><span>
+</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">Prelude</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>     </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Sing</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>
+</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span>  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCP</span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">select</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">toList</span><span class="hs-special">)</span><span>
+</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Product.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>           </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCP</span><span>
+</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Sing.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Sing</span></a><span>
+</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Types.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span></a><span>
+</span><a name="line-29"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
+</span><a name="line-30"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="TensorOps.Tensor.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Tensor</span></a><span>                 </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TT</span><span>
+</span><a name="line-31"></a><span>
+</span><a name="line-32"></a><span>
+</span><a name="line-33"></a><span class="hs-identifier">runTensorOp</span><span>
+</span><a name="line-34"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-1627902205"><a href="#local-1627902205"><span class="hs-identifier">t</span></a></a><span> </span><a name="local-1627902206"><a href="#local-1627902206"><span class="hs-identifier">ns</span></a></a><span> </span><a name="local-1627902207"><a href="#local-1627902207"><span class="hs-identifier">ms</span></a></a><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#Tensor"><span class="hs-identifier hs-type">Tensor</span></a><span> </span><a href="#local-1627902205"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">RealFloat</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627902205"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-35"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><a href="TensorOps.Types.html#TensorOp"><span class="hs-identifier hs-type">TensorOp</span></a><span> </span><a href="#local-1627902206"><span class="hs-identifier hs-type">ns</span></a><span> </span><a href="#local-1627902207"><span class="hs-identifier hs-type">ms</span></a><span>
+</span><a name="line-36"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Prod</span><span> </span><a href="#local-1627902205"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627902206"><span class="hs-identifier hs-type">ns</span></a><span>
+</span><a name="line-37"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Prod</span><span> </span><a href="#local-1627902205"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627902207"><span class="hs-identifier hs-type">ms</span></a><span>
+</span><a name="line-38"></a><a name="runTensorOp"><a href="TensorOps.html#runTensorOp"><span class="hs-identifier">runTensorOp</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-keyword">case</span><span>
+</span><a name="line-39"></a><span>    </span><a href="TensorOps.Types.html#OP%D8"><span class="hs-identifier hs-var">OP&#216;</span></a><span>                 </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">id</span><span>
+</span><a name="line-40"></a><span>    </span><a href="TensorOps.Types.html#Pop"><span class="hs-identifier hs-var">Pop</span></a><span> </span><a name="local-1627902208"><a href="#local-1627902208"><span class="hs-identifier">sA</span></a></a><span> </span><a name="local-1627902209"><a href="#local-1627902209"><span class="hs-identifier">sB</span></a></a><span> </span><a name="local-1627902210"><a href="#local-1627902210"><span class="hs-identifier">sD</span></a></a><span> </span><a name="local-1627902211"><a href="#local-1627902211"><span class="hs-identifier">o</span></a></a><span> </span><a name="local-1627902212"><a href="#local-1627902212"><span class="hs-identifier">os</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.html#runTensorOp"><span class="hs-identifier hs-var">runTensorOp</span></a><span> </span><a href="#local-1627902212"><span class="hs-identifier hs-var">os</span></a><span>
+</span><a name="line-41"></a><span>                       </span><span class="hs-operator hs-var">.</span><span> </span><a href="Data.Type.Product.Util.html#overProdInit"><span class="hs-identifier hs-var">overProdInit</span></a><span> </span><span class="hs-special">(</span><a href="Data.Type.Sing.html#singLength"><span class="hs-identifier hs-var">singLength</span></a><span> </span><a href="#local-1627902208"><span class="hs-identifier hs-var">sA</span></a><span class="hs-special">)</span><span>
+</span><a name="line-42"></a><span>                                      </span><span class="hs-special">(</span><a href="Data.Type.Sing.html#singLength"><span class="hs-identifier hs-var">singLength</span></a><span> </span><a href="#local-1627902210"><span class="hs-identifier hs-var">sD</span></a><span class="hs-special">)</span><span>
+</span><a name="line-43"></a><span>                                      </span><span class="hs-special">(</span><span class="hs-identifier">runTOp</span><span> </span><a href="#local-1627902211"><span class="hs-identifier hs-var">o</span></a><span class="hs-special">)</span><span>
+</span><a name="line-44"></a><span>
+</span><a name="line-45"></a><span class="hs-identifier">gradTensorOp</span><span>
+</span><a name="line-46"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-1627902203"><a href="#local-1627902203"><span class="hs-identifier">ns</span></a></a><span> </span><a name="local-1627902204"><a href="#local-1627902204"><span class="hs-identifier">t</span></a></a><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#Tensor"><span class="hs-identifier hs-type">Tensor</span></a><span> </span><a href="#local-1627902204"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">RealFloat</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627902204"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-47"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><a href="TensorOps.Types.html#TensorOp"><span class="hs-identifier hs-type">TensorOp</span></a><span> </span><a href="#local-1627902203"><span class="hs-identifier hs-type">ns</span></a><span> </span><span class="hs-char">'[ '[] ]
+    -&gt; Prod t ns    -- ^ inputs
+    -&gt; Prod t ns    -- ^ d target / d inputs
+gradTensorOp = \case
+    OP&#216;            -&gt; \_ -&gt; only $ TT.konst 1
+    -- ns ~ a ++ d
+    Pop (sA :: Sing a)
+        (sB :: Sing b)
+        (sD :: Sing d)
+        (o  :: TOp a b)
+        (os :: OpPipe TOp (b ++ d) '[ '[] ])
+                   -&gt; \x -&gt; let lA   :: Length a
+                                lA   = singLength sA
+                                lB   :: Length b
+                                lB   = singLength sB
+                                lD   :: Length d
+                                lD   = singLength sD
+                                y    :: Prod t (b ++ d)
+                                y    = overProdInit lA lD
+                                                    (runTOp o)
+                                                    x
+                                dtdy :: Prod t (b ++ d)
+                                dtdy = gradTensorOp os y
+                                res  :: Prod t (a ++ d)
+                                res  = overProdInit lB lD
+                                                    (gradTOp o (takeProd lA lD x))
+                                                    dtdy
+                            in  res
+</span></pre></body></html>

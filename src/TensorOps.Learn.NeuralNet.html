@@ -12,7 +12,11 @@
 </span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Known</span><span>
 </span><a name="line-13"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="TensorOps.TOp.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">TOp</span></a><span>        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TO</span><span>
 </span><a name="line-14"></a><span>
-</span><a name="line-15"></a><span class="hs-keyword">data</span><span> </span><a name="Activation"><a href="TensorOps.Learn.NeuralNet.html#Activation"><span class="hs-identifier">Activation</span></a></a><span> </span><a name="local-1627893633"><a href="#local-1627893633"><span class="hs-identifier">k</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Act"><a href="TensorOps.Learn.NeuralNet.html#Act"><span class="hs-identifier">Act</span></a></a><span> </span><span class="hs-special">{</span><span> </span><a name="getAct"><a href="TensorOps.Learn.NeuralNet.html#getAct"><span class="hs-identifier">getAct</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span class="hs-special">(</span><a name="local-1627893634"><a href="#local-1627893634"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-1627893633"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">)</span><span class="hs-operator">.</span><span> </span><span class="hs-identifier hs-type">SingI</span><span> </span><a href="#local-1627893634"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="TensorOps.Types.html#TensorOp"><span class="hs-identifier hs-type">TensorOp</span></a><span> </span><span class="hs-char">'[ '[a] ] '[ '[a] ] }
+</span><a name="line-15"></a><span class="hs-keyword">newtype</span><span> </span><a name="Activation"><a href="TensorOps.Learn.NeuralNet.html#Activation"><span class="hs-identifier">Activation</span></a></a><span> </span><a name="local-1627893262"><a href="#local-1627893262"><span class="hs-identifier">k</span></a></a><span>
+</span><a name="line-16"></a><span>        </span><span class="hs-glyph">=</span><span> </span><a name="Act"><a href="TensorOps.Learn.NeuralNet.html#Act"><span class="hs-identifier">Act</span></a></a><span> </span><span class="hs-special">{</span><span> </span><a name="getAct"><a href="TensorOps.Learn.NeuralNet.html#getAct"><span class="hs-identifier">getAct</span></a></a><span>
+</span><a name="line-17"></a><span>                    </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span class="hs-special">(</span><a name="local-1627893263"><a href="#local-1627893263"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-1627893262"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">)</span><span class="hs-operator">.</span><span> </span><span class="hs-identifier hs-type">SingI</span><span> </span><a href="#local-1627893263"><span class="hs-identifier hs-type">a</span></a><span>
+</span><a name="line-18"></a><span>                    </span><span class="hs-glyph">=&gt;</span><span> </span><a href="TensorOps.Types.html#TensorOp"><span class="hs-identifier hs-type">TensorOp</span></a><span> </span><span class="hs-char">'[ '[a] ] '[ '[a] ]
+              }
 
 actMap
     :: (forall a. RealFloat a =&gt; a -&gt; a)
@@ -44,11 +48,11 @@ logistic' x = logix * (1 - logix)
 softmax
     :: SingI i
     =&gt; TensorOp '[ '[i] ] '[ '[i] ]
-softmax = (known, known, TO.map       exp          )
-       ~. (known, known, TO.duplicate              )
-       ~. (known, known, SumRows                   )
-       ~. (known, known, TO.map       recip        )
-       ~. (known, known, GMul         LZ LZ (LS LZ))
+softmax = (known, known, TO.map       exp       )
+       ~. (known, known, TO.duplicate           )
+       ~. (known, known, TO.sumRows             )
+       ~. (known, known, TO.map       recip     )
+       ~. (known, known, TO.outer     LZ (LS LZ))
        ~. OP&#216;
 
 squaredError
