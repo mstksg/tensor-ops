@@ -72,12 +72,12 @@ opts :: Parser Opts
 opts = O <$> option auto
                ( long "rate" <> short 'r' <> metavar "STEP"
               <> help "Neural network learning rate"
-              <> value 0.01 <> showDefault
+              <> value 0.005 <> showDefault
                )
          <*> option auto
                ( long "layers" <> short 'l' <> metavar "LIST"
               <> help "List of hidden layer sizes"
-              <> value [300] <> showDefault
+              <> value [300,150] <> showDefault
                )
          <*> option auto
                ( long "batch" <> short 'b' <> metavar "AMOUNT"
@@ -144,16 +144,16 @@ loadData dataDir = do
 processDat
     :: forall (n :: Nat) (l :: Nat) t. (Fractional (ElemT t), KnownNat n, KnownNat l, Tensor t)
     => (Int, VU.Vector Int)
-    -> Either String (t '[n], t '[l])
+    -> Either String (t '[n], (t '[l], Finite l))
 processDat (l,d) = (,) <$> x <*> y
   where
     x :: Either String (t '[n])
     x = maybe (Left (printf "Bad input vector (Expected %d, got %d)" n (VU.length d))) Right
       . TT.fromList . map ((/255) . fromIntegral)
       $ VU.toList d
-    y :: Either String (t '[l])
+    y :: Either String (t '[l], Finite l)
     y = maybe (Left (printf "Label out of range (Got %d, expected [0,%d) )" l')) Right
-      . flip fmap (packFinite (fromIntegral l) :: Maybe (Finite l)) $ \fl ->
+      . flip fmap (packFinite (fromIntegral l) :: Maybe (Finite l)) $ \fl -> (,fl) $
           TT.generate $ \(i :< Ø) -> if i == fl then 1 else 0
     n :: Integer
     n = natVal (Proxy @n)
@@ -183,25 +183,23 @@ learn _ dat rate layers (fromIntegral->batch) = withSystemRandom $ \g -> do
     dat'' <- evaluate $ force dat'
     putStrLn "Data processed."
 
-    let tXY, vXY :: [(t '[784], t '[10])]
+    let tXY, vXY :: [(t '[784], (t '[10], Finite 10))]
         (tXY, vXY) = case dat'' of
                        I t :* I v :* ØV -> (t,v)
-
-        vXY' = (map . second) TT.argMax vXY
 
     net0 :: Network t 784 10
             <- genNet (layers `zip` repeat (actMap logistic)) actSoftmax g
 
     printf "rate: %f | batch: %d | layers: %s\n" rate batch (show layers)
 
-    trainEpochs tXY vXY' g net0
+    trainEpochs tXY ((map . second) snd vXY) g net0
   where
     processDat'
         :: (Int, VU.Vector Int)
-        -> Validation [String] (t '[784], t '[10])
+        -> Validation [String] (t '[784], (t '[10], Finite 10))
     processDat' = eitherToValidation . first (:[]) . processDat
     trainEpochs
-        :: [(t '[784], t '[10])]
+        :: [(t '[784], (t '[10], Finite 10))]
         -> [(t '[784], Finite 10)]
         -> GenIO
         -> Network t 784 10
@@ -221,17 +219,19 @@ learn _ dat rate layers (fromIntegral->batch) = withSystemRandom $ \g -> do
           where
             trainBatch
                 :: Integer
-                -> V.Vector (t '[784], t '[10])
+                -> V.Vector (t '[784], (t '[10], Finite 10))
                 -> Network t 784 10
                 -> IO (Network t 784 10)
             trainBatch b (V.splitAt batch->(xs,xss)) nt
                 | V.null xs = return nt
                 | otherwise = do
               printf "Batch %d ...\n" b
-              (nt', t) <- time . return $ trainAll nt xs
+              (nt', t) <- time . return $ trainAll nt ((fmap . second) fst xs)
               printf "Trained on %d / %d samples in %s\n" (V.length xs) (length tr) (show t)
-              let score = F.fold (validate nt') vd
-              printf "Validation: %.2f%% error\n" ((1 - score) * 100)
+              let tscore = F.fold (validate nt') ((fmap . second) snd xs)
+                  vscore = F.fold (validate nt') vd
+              printf "Training:   %.2f%% error\n" ((1 - tscore) * 100)
+              printf "Validation: %.2f%% error\n" ((1 - vscore) * 100)
               trainBatch (succ b) xss nt'
         validate
             :: Network t 784 10
