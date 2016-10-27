@@ -12,7 +12,11 @@ import           TensorOps.Types
 import           Type.Class.Known
 import qualified TensorOps.TOp        as TO
 
-data Activation k = Act { getAct :: forall (a :: k). SingI a => TensorOp '[ '[a] ] '[ '[a] ] }
+newtype Activation k
+        = Act { getAct
+                    :: forall (a :: k). SingI a
+                    => TensorOp '[ '[a] ] '[ '[a] ]
+              }
 
 actMap
     :: (forall a. RealFloat a => a -> a)
@@ -44,11 +48,11 @@ logistic' x = logix * (1 - logix)
 softmax
     :: SingI i
     => TensorOp '[ '[i] ] '[ '[i] ]
-softmax = (known, known, TO.map       exp          )
-       ~. (known, known, TO.duplicate              )
-       ~. (known, known, SumRows                   )
-       ~. (known, known, TO.map       recip        )
-       ~. (known, known, GMul         LZ LZ (LS LZ))
+softmax = (known, known, TO.map       exp       )
+       ~. (known, known, TO.duplicate           )
+       ~. (known, known, TO.sumRows             )
+       ~. (known, known, TO.map       recip     )
+       ~. (known, known, TO.outer     LZ (LS LZ))
        ~. OPØ
 
 squaredError

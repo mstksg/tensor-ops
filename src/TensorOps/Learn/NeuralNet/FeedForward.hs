@@ -25,10 +25,9 @@ import           Data.Type.Product.Util         as TCP
 import           Data.Type.Sing
 import           Statistics.Distribution.Normal
 import           System.Random.MWC
-import           TensorOps.Gradient
+import           TensorOps
 import           TensorOps.Learn.NeuralNet
 import           TensorOps.NatKind
-import           TensorOps.Run
 import           TensorOps.TOp                  as TO
 import           TensorOps.Tensor               as TT
 import           TensorOps.Types
@@ -155,9 +154,9 @@ ffLayer g = (\w b -> N sing ffLayer' (w :< b :< Ø))
   where
     ffLayer'
         :: TensorOp '[ '[i], '[o,i], '[o]] '[ '[o] ]
-    ffLayer' = (known, known, TO.swap                   )
-            ~. (known, known, GMul    (LS LZ) (LS LZ) LZ)
-            ~. (known, known, TO.add                    )
+    ffLayer' = (known, known, TO.swap            )
+            ~. (known, known, TO.inner (LS LZ) LZ)
+            ~. (known, known, TO.add             )
             ~. OPØ
 
 genNet
