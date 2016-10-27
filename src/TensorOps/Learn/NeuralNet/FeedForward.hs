@@ -105,7 +105,7 @@ trainNetwork loss r x y = \case
             inp  :: Prod t ('[i] ': os >: '[o])
             inp = x :< p >: y
             grad :: Prod t os
-            grad = takeProd (singLength s) (LS LZ :: Length '[ '[o]])
+            grad = takeProd @'[ '[o] ] (singLength s)
                  . tail'
                  $ gradTOp o' inp
             -- this is a bottleneck for large matrices
@@ -134,7 +134,7 @@ networkGradient loss x y = \case
             inp  :: Prod t ('[i] ': os >: '[o])
             inp = x :< p >: y
             grad :: Prod t os
-            grad = takeProd (singLength s) (LS LZ :: Length '[ '[o]])
+            grad = takeProd @'[ '[o] ] (singLength s)
                  . tail'
                  $ gradTOp o' inp
         in  f grad \\ s

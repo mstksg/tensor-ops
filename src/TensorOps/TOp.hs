@@ -179,7 +179,7 @@ scale α = TOp (only . scaleT α . TCP.head')
 {-# INLINE scale #-}
 
 first
-    :: forall os ns ms. (Known Length ns, Known Length ms)
+    :: forall ns ms os. (Known Length ns, Known Length ms)
     => TOp ns ms
     -> TOp (ns ++ os) (ms ++ os)
 first = (*** idOp @os)

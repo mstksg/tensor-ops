@@ -164,12 +164,29 @@ idOp
     => TOp ns ns
 idOp = id
 
+firstOp
+    :: forall os ns ms. (Known Length ns, Known Length ms)
+    => TOp ns ms
+    -> TOp (ns ++ os) (ms ++ os)
+firstOp (TOp f g) = TOp f' g'
+  where
+    f'  :: forall t. (Tensor t, RealFloat (ElemT t))
+        => Prod t (ns ++ os)
+        -> Prod t (ms ++ os)
+    f' = overProdInit @os known f
+    g'  :: forall t. (Tensor t, RealFloat (ElemT t))
+        => Prod t (ns ++ os)
+        -> Prod t (ms ++ os)
+        -> Prod t (ns ++ os)
+    g' (takeProd @os known -> xs) = overProdInit @os known (g xs)
+
+
 (*>>)
     :: forall as bs cs ds. (Known Length as, Known Length bs)
     => TOp as bs
     -> TOp (bs ++ cs) ds
     -> TOp (as ++ cs) ds
-t1 *>> t2 = (t1 *** idOp @cs) >>> t2
+t1 *>> t2 = firstOp @cs t1 >>> t2
 infixr 0 *>>
 
 (<<*)

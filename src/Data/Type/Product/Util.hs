@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes  #-}
 {-# LANGUAGE ConstraintKinds      #-}
 {-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE FlexibleContexts     #-}
@@ -49,35 +50,33 @@ splitProd = \case
       x :< xs -> first (x :<) (splitProd l xs)
 
 takeProd
-    :: Length ns
-    -> Length ms
+    :: forall ms f ns. ()
+    => Length ns
     -> Prod f (ns ++ ms)
     -> Prod f ns
 takeProd = \case
-    LZ   -> \_ _ -> Ø
-    LS l -> \lM -> \case
-      x :< xs -> x :< takeProd l lM xs
+    LZ   -> \_ -> Ø
+    LS l -> \case
+      x :< xs -> x :< takeProd @ms l xs
 
 overProdInit
-    :: Length ns
-    -> Length os
+    :: forall os g ns ms. Length ns
     -> (Prod g ns -> Prod g ms)
     -> Prod g (ns ++ os)
     -> Prod g (ms ++ os)
-overProdInit lN lO f = runIdentity . prodInit lN lO (Identity . f)
+overProdInit lN f = runIdentity . prodInit @os lN (Identity . f)
 {-# INLINE overProdInit #-}
 
 prodInit
-    :: Functor f
+    :: forall os f g ns ms. Functor f
     => Length ns
-    -> Length os
     -> (Prod g ns -> f (Prod g ms))
     -> Prod g (ns ++ os)
     -> f (Prod g (ms ++ os))
-prodInit lN lO f = case lN of
+prodInit lN f = case lN of
     LZ     -> \xs -> (`TCP.append'` xs) <$> f Ø
     LS lN' -> \case
-      x :< xs -> prodInit lN' lO (\xs' -> f (x :< xs')) xs
+      x :< xs -> prodInit @os lN' (\xs' -> f (x :< xs')) xs
 {-# INLINE prodInit #-}
 
 overProdSplit
@@ -303,7 +302,7 @@ mapUniform
     -> Prod f ns
     -> Prod g ns
 mapUniform = \case
-    UØ -> \f -> \case
+    UØ -> \_ -> \case
       Ø -> Ø
     US u -> \f -> \case
       x :< xs -> f x :< mapUniform u f xs
