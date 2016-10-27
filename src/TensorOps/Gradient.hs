@@ -45,20 +45,10 @@ gradTOp sNs sMs = (\\ witSings sNs) $
       US _ -> \x -> vecToProd getI uN
                   . TT.gradLift f (prodToVec I uN x)
                   . prodToVec I uM
-    -- SumT u  -> \_ -> flip TCP.replicate u . TCP.head'
     SumT u  -> \xs -> \case
       dtdz :< Ø -> mapUniform u (\_ -> dtdz) xs
     Scale α -> \_ -> only . scaleT α . TCP.head'
     GMul lM lO lN -> \case
-      -- lM   :: Length m
-      -- lO   :: Length o
-      -- lN   :: Length n
-      -- x    :: t (Head ns)
-      --      :: t (m ++ o)
-      -- y    :: t (Head (Tail ns))
-      --      :: t (Reverse o ++ n)
-      -- dtdz :: t (Head ms)
-      --      :: t (m ++ n)
       x :< y :< Ø -> \case
         dtdz :< Ø -> let rlO = TCL.reverse' lO
                          entailCatRev
@@ -66,36 +56,11 @@ gradTOp sNs sMs = (\\ witSings sNs) $
                                 -> p b
                                 -> (SingI (a ++ b) :- SingI (Reverse (a ++ b)))
                          entailCatRev _ _ = entailSing sReverse
-      -- gmul :: Length m
-      --      -> Length n
-      --      -> Length o
-      --      -> t (m ++ n)
-      --      -> t (Reverse n ++ o)
-      --      -> t (m ++ o)
-      -- transp y :: t (Reverse (Reverse o ++ n))
-      --          :: t (Reverse n ++ Reverse (Reverse o))
-      --          :: t (Reverse n ++ o)
-      -- therefore we need:
-      --   Reverse (Reverse o ++ n)  :~: Reverse n ++ Reverse (Reverse o)
-      --   Reverse (Reverse o)       :~: o
                      in  (gmul lM lN lO dtdz (transp y)
                            \\ reverseConcat rlO lN
                            \\ reverseReverse lO
                            \\ entailCatRev rlO lN
                          )
-      -- gmul :: Length (Reverse o)
-      --      -> Length (Reverse m)
-      --      -> Length n
-      --      -> t (Reverse o ++ Reverse m)
-      --      -> t (Reverse (Reverse m) ++ n)
-      --      -> t (Reverse o ++ n)
-      -- transp x :: t (Reverse (m ++ o))
-      --          :: t (Reverse o ++ Reverse m)
-      -- dtdz     :: t (m ++ o)
-      --          :: t (Reverse (Reverse m) ++ o)
-      -- therefore we need:
-      --   Reverse (m ++ o)    :~: Reverse o ++ Reverse m
-      --   Reverse (Reverse m) :~: m
                       :< (gmul rlO (TCL.reverse' lM) lN
                                (transp x)
                                dtdz

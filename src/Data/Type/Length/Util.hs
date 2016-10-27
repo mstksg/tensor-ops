@@ -33,6 +33,12 @@ append' = \case
     LZ   -> id
     LS l -> LS . append' l
 
+cons
+    :: Proxy a
+    -> Length as
+    -> Length (a ': as)
+cons _ = LS
+
 tail'
     :: Length (n ': ns)
     -> Length ns

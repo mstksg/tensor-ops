@@ -71,7 +71,7 @@ opts :: Parser Opts
 opts = O <$> option auto
                ( long "rate" <> short 'r' <> metavar "STEP"
               <> help "Neural network learning rate"
-              <> value 0.001 <> showDefault
+              <> value 0.01 <> showDefault
                )
          <*> option auto
                ( long "layers" <> short 'l' <> metavar "LIST"
@@ -228,9 +228,9 @@ learn _ dat rate layers (fromIntegral->batch) = withSystemRandom $ \g -> do
                 | otherwise = do
               printf "Batch %d ...\n" b
               (nt', t) <- time . return $ trainAll nt xs
-              printf "Trained on %d samples in %s\n" (V.length xs) (show t)
+              printf "Trained on %d / %d samples in %s\n" (V.length xs) (length tr) (show t)
               let score = F.fold (validate nt') vd
-              printf "Validation: %.3f%% error\n" ((1 - score) * 100)
+              printf "Validation: %.2f%% error\n" ((1 - score) * 100)
               trainBatch (succ b) xss nt'
         validate
             :: Network t 784 10

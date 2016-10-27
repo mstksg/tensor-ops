@@ -26,6 +26,7 @@ library
                        TensorOps.Gradient
                        TensorOps.Learn.NeuralNet
                        TensorOps.Learn.NeuralNet.FeedForward
+                       TensorOps.Learn.NeuralNet.Recurrent
                        TensorOps.NatKind
                        TensorOps.Run
                        TensorOps.TOp
