@@ -22,8 +22,8 @@ import           Data.Foldable
 import           Data.Kind
 import           Data.List hiding                      ((\\))
 import           Data.Maybe
-import           Data.Monoid
 import           Data.Singletons
+import           Data.Monoid
 import           Data.Singletons.TypeLits
 import           Data.Time.Clock
 import           Options.Applicative

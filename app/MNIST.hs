@@ -23,6 +23,7 @@ import           Data.Finite
 import           Data.Foldable
 import           Data.IDX
 import           Data.Kind
+import           Data.Monoid
 import           Data.Profunctor
 import           Data.Proxy
 import           Data.String
