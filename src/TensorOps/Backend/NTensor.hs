@@ -142,11 +142,11 @@ instance
     type ElemT  (NTensor v a) = a
 
     liftT
-        :: forall (n :: TCN.N) (m :: TCN.N) (o :: [k]). SingI o
-        => (TCV.Vec m (TCV.Vec n a -> a))
+        :: forall (n :: TCN.N) (o :: [k]). SingI o
+        => (TCV.Vec n a -> a)
         -> TCV.Vec n (NTensor v a o)
-        -> TCV.Vec m (NTensor v a o)
-    liftT f = fmap NTensor . liftNested f . fmap getNVec
+        -> NTensor v a o
+    liftT f = NTensor . liftNested f . fmap getNVec
     {-# INLINE liftT #-}
 
     sumT = sum'

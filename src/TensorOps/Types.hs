@@ -26,7 +26,6 @@ import           Data.Finite
 import           Data.Kind
 import           Data.Singletons
 import           Data.Singletons.Prelude hiding (Reverse, (%:++))
-import           Data.Type.Index
 import           Data.Type.Length               as TCL
 import           Data.Type.Product
 import           Data.Type.Sing
@@ -40,7 +39,6 @@ import           Type.Class.Higher
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
-import           Type.Family.Nat
 
 {-# RULES
 "realToFrac/Double->Double" realToFrac = id :: Double -> Double
@@ -52,9 +50,9 @@ class NatKind k => Tensor (t :: [k] -> Type) where
 
     -- TODO: can we detach Vec from liftT ?
     liftT   :: SingI o
-            => Vec m (Vec n (ElemT t) -> ElemT t)
+            => (Vec n (ElemT t) -> ElemT t)
             -> Vec n (t o)
-            -> Vec m (t o)
+            -> t o
     gmul    :: (SingI (Reverse os ++ ns), SingI (ms ++ ns))
             => Length ms
             -> Length os

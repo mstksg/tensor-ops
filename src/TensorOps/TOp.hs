@@ -35,31 +35,46 @@ import qualified Data.Type.Product.Util          as TCP
 import qualified TensorOps.Tensor                as TT
 import qualified TensorOps.Types                 as T
 
+-- -- | Lift any `R^N -> R^M` function over every element in a n-tensor list,
+-- -- producing a m-tensor list.
+-- liftOp
+--     :: SingI o
+--     => Uniform o ns
+--     -> Uniform o ms
+--     -> Vec (Len ms) (VFunc (Len ns))
+--     -> TOp ns ms
+-- liftOp = \case
+--     UØ -> \case
+--       UØ     -> \ØV ->
+--         TOp (\_   -> Ø)
+--             (\_ _ -> Ø)
+--       m@(US _) -> \fs ->
+--         TOp (\_   -> vecToProd getI m $
+--                       TT.konst . ($ ØV) . vfFunc <$> fs
+--             )
+--             (\_ _ -> Ø)
+--     n@(US _) -> \case
+--       UØ    -> \ØV ->
+--         TOp (\_   -> Ø                           )
+--             (\_ _ -> TCP.replicate (TT.konst 0) n)
+--       m@(US _) -> \fs ->
+--         TOp (vecToProd getI m . liftT (vfFunc <$> fs) . prodToVec I n)
+--             (\x -> vecToProd getI n . TT.gradLift fs (prodToVec I n x) . prodToVec I m)
+
 -- | Lift any `R^N -> R^M` function over every element in a n-tensor list,
 -- producing a m-tensor list.
 liftOp
     :: SingI o
     => Uniform o ns
-    -> Uniform o ms
-    -> Vec (Len ms) (VFunc (Len ns))
-    -> TOp ns ms
+    -> VFunc (Len ns)
+    -> TOp ns '[o]
 liftOp = \case
-    UØ -> \case
-      UØ     -> \ØV ->
-        TOp (\_   -> Ø)
-            (\_ _ -> Ø)
-      m@(US _) -> \fs ->
-        TOp (\_   -> vecToProd getI m $
-                      TT.konst . ($ ØV) . vfFunc <$> fs
-            )
-            (\_ _ -> Ø)
-    n@(US _) -> \case
-      UØ    -> \ØV ->
-        TOp (\_   -> Ø                           )
-            (\_ _ -> TCP.replicate (TT.konst 0) n)
-      m@(US _) -> \fs ->
-        TOp (vecToProd getI m . liftT (vfFunc <$> fs) . prodToVec I n)
-            (\x -> vecToProd getI n . TT.gradLift fs (prodToVec I n x) . prodToVec I m)
+    UØ -> \f ->
+      TOp (\_   -> only . TT.konst $ vfFunc f ØV)
+          (\_ _ -> Ø                            )
+    n@(US _) -> \f ->
+        TOp (only . liftT (vfFunc f) . prodToVec I n)
+            (\x -> vecToProd getI n . TT.gradLift f (prodToVec I n x) . TCP.head')
 
 gmul
     :: forall ms os ns. (SingI (Reverse os ++ ns), SingI (ms ++ ns), SingI (ms ++ os))
@@ -176,10 +191,9 @@ map' :: SingI n
       => (forall a. RealFloat a => a -> a)
      -> (forall a. RealFloat a => a -> a)
      -> TOp '[n] '[n]
-map' f f' = liftOp (US UØ) (US UØ)
+map' f f' = liftOp (US UØ)
                    (VF (f . getI . TCV.head')
                        ((:+ ØV) . f' . getI . TCV.head')
-                 :+ ØV
                    )
 {-# INLINE map' #-}
 
@@ -189,30 +203,6 @@ map :: SingI n
     -> TOp '[n] '[n]
 map f = map' f (diff f)
 {-# INLINE map #-}
-
-mapN' :: SingI n
-      => Uniform n ns
-      -> (forall a. RealFloat a => a -> a)
-      -> (forall a. RealFloat a => a -> a)
-      -> TOp ns ns
-mapN' u f f' = liftOp u u (vgen_ $ \i -> I (VF (\v -> f (index' i v))
-                                               (\v -> vgen_ $ \i' -> I $
-                                                        if i' == i
-                                                          then f' (index' i v)
-                                                          else 0
-                                               )
-                                           )
-                          )
-                 \\ uniformLength u
-{-# INLINE mapN' #-}
-
-mapN
-    :: SingI n
-    => Uniform n ns
-    -> (forall a. RealFloat a => a -> a)
-    -> TOp ns ns
-mapN u f = mapN' u f (diff f)
-{-# INLINE mapN #-}
 
 add :: SingI n
     => TOp '[ n, n ] '[ n ]
@@ -228,7 +218,7 @@ zipN'
     -> (forall a. RealFloat a => Vec (Len ns) a -> a)
     -> (forall a. RealFloat a => Vec (Len ns) a -> Vec (Len ns) a)
     -> TOp ns '[n]
-zipN' u f f' = liftOp u (US UØ) (VF f f' :+ ØV)
+zipN' u f f' = liftOp u (VF f f')
 {-# INLINE zipN' #-}
 
 zipN

@@ -34,17 +34,14 @@ import           Data.Proxy
 import           Data.Semigroup
 import           Data.Singletons
 import           Data.Type.Combinator
-import           Data.Type.Fin
 import           Data.Type.Length
 import           Data.Type.Product hiding         (toList)
 import           Data.Type.Sing
 import           Data.Type.Vector                 as TCV
-import           Data.Type.Vector.Util            as TCV
 import           Prelude hiding                   (zip, map, zip3)
 import           TensorOps.NatKind
 import           TensorOps.Types
 import           Type.Class.Higher
-import           Type.Class.Known
 import           Type.Class.Witness hiding        (inner, outer, Const)
 import           Type.Family.List
 import           Type.Family.List.Util
@@ -61,7 +58,7 @@ map
     => (ElemT t -> ElemT t)
     -> t o
     -> t o
-map f = getI . TCV.head' . liftT ((f . getI . TCV.head') :+ ØV) . (:+ ØV)
+map f = liftT (f . getI . TCV.head') . (:+ ØV)
 {-# INLINE map #-}
 
 add :: (Tensor t, SingI o)
@@ -74,7 +71,7 @@ zipN
     => (Vec n (ElemT t) -> ElemT t)
     -> Vec n (t o)
     -> t o
-zipN f = getI . TCV.head' . liftT (f :+ ØV)
+zipN f = liftT f
 {-# INLINE zipN #-}
 
 zip :: (SingI o, Tensor t)
@@ -95,28 +92,42 @@ zip3
 zip3 f x y z = zipN (\case I x' :* I y' :* I z' :* ØV -> f x' y' z') (x :+ y :+ z :+ ØV)
 {-# INLINE zip3 #-}
 
--- | This is a huge bottleneck, I think?
---
--- Implementation issue -- shouldn't need Sing o if n or m is zero
---
+-- -- | This is a huge bottleneck, I think?
+-- --
+-- -- Implementation issue -- shouldn't need Sing o if n or m is zero
+-- --
+-- gradLift
+--     :: forall o n m t. (Tensor t, RealFloat (ElemT t), SingI o)
+--     => Vec m (VFunc n)
+--     -> Vec n (t o)    -- ^ inputs
+--     -> Vec m (t o)    -- ^ d target / d outputs
+--     -> Vec n (t o)    -- ^ d target / d inputs
+-- gradLift fs xs dtdys =
+--     liftT (vgen_ (\i -> I (uncurry (go i) . splitVec known)))
+--           (xs `TCV.append'` dtdys)
+--       \\ xs
+--   where
+--     go  :: Fin n
+--         -> Vec n (ElemT t)
+--         -> Vec m (ElemT t)
+--         -> ElemT t
+--     go i x dtdy = sumV $ (vap . liftA2) (\d f -> d * index' i (vfGrad f x)) dtdy fs
+--     {-# INLINE go #-}
+-- {-# INLINE gradLift #-}
+
+-- | TODO: memoize vfGrad f x somehow?
 gradLift
-    :: forall o n m t. (Tensor t, RealFloat (ElemT t), SingI o)
-    => Vec m (VFunc n)
+    :: forall o n t. (Tensor t, RealFloat (ElemT t), SingI o)
+    => VFunc n
     -> Vec n (t o)    -- ^ inputs
-    -> Vec m (t o)    -- ^ d target / d outputs
+    -> t o            -- ^ d target / d outputs
     -> Vec n (t o)    -- ^ d target / d inputs
-gradLift fs xs dtdys =
-    liftT (vgen_ (\i -> I (uncurry (go i) . splitVec known)))
-          (xs `TCV.append'` dtdys)
-      \\ xs
-  where
-    go  :: Fin n
-        -> Vec n (ElemT t)
-        -> Vec m (ElemT t)
-        -> ElemT t
-    go i x dtdy = sumV $ (vap . liftA2) (\d f -> d * index' i (vfGrad f x)) dtdy fs
-    {-# INLINE go #-}
+gradLift f xs dtdy = (\\ xs) $
+    vgen_ $ \i -> I $
+      liftT (\case I d :* x -> d * index' i (vfGrad f x))
+            (I dtdy :* xs)
 {-# INLINE gradLift #-}
+
 
 inner
     :: forall t ms ns o. (Tensor t, SingI (o ': ns), SingI (ms ++ ns))

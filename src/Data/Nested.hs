@@ -541,10 +541,10 @@ nIxRows = \case
 
 liftNested
     :: Distributive (Nested v ns)
-    => (TCV.Vec m (TCV.Vec n a -> a))
+    => (TCV.Vec n a -> a)
     -> TCV.Vec n (Nested v ns a)
-    -> TCV.Vec m (Nested v ns a)
-liftNested f xs = fmap (\g -> TCV.liftVecD g xs) f
+    -> Nested v ns a
+liftNested = TCV.liftVecD
 {-# INLINE liftNested #-}
 
 sumRowsNested
