@@ -28,7 +28,6 @@ import           Data.Kind
 import           Data.List.Util
 import           Data.Monoid
 import           Data.Nested hiding             (unScalar, unVector, gmul')
-import           Data.Semigroup
 import           Data.Singletons
 import           Data.Singletons.Prelude hiding (Reverse, Head, sReverse, (:-))
 import           Data.Type.Combinator
@@ -344,35 +343,29 @@ zipBTensorElems = \case
 {-# INLINE zipBTensorElems #-}
 
 liftBTensor
-    :: forall v b ns m n.
+    :: forall v b ns n.
      ( BLAS b
      , Nesting1 Proxy Functor      v
      , Nesting1 Sing  Distributive v
      )
     => Sing ns
-    -> TCV.Vec m (TCV.Vec n (ElemB b) -> ElemB b)
+    -> (TCV.Vec n (ElemB b) -> ElemB b)
     -> TCV.Vec n (BTensor v b ns)
-    -> TCV.Vec m (BTensor v b ns)
+    -> BTensor v b ns
 liftBTensor = \case
-    SNil                         -> \fs xs ->
+    SNil                         -> \f xs ->
         let xs' = unScalar <$> xs
-        in  BTS . ($ xs') <$> fs
-    sN `SCons` SNil              -> \fs xs ->
+        in  BTS $ f xs'
+    sN `SCons` SNil              -> \f xs ->
         let xs' = unVector <$> xs
-        in  BTV <$> liftB (SBV sN)    fs xs'
-    sN `SCons` (sM `SCons` SNil) -> \fs xs ->
+        in  BTV $ liftB (SBV sN) f xs'
+    sN `SCons` (sM `SCons` SNil) -> \f xs ->
         let xs' = unMatrix <$> xs
-        in  BTM <$> liftB (SBM sN sM) fs xs'
-    (s :: Sing k) `SCons` ss@(_ `SCons` (_ `SCons` _)) -> \fs xs ->
+        in  BTM $ liftB (SBM sN sM) f xs'
+    (s :: Sing k) `SCons` ss@(_ `SCons` (_ `SCons` _)) -> \f xs ->
         let xs' = unNested <$> xs
-        in  (\\ (nesting1 s     :: Wit (Distributive (v k)))) $
-              flip fmap fs $ \f ->
-                BTN . fmap (getI . TCV.head') $
-                  TCV.liftVecD (liftBTensor ss (I f TCV.:* TCV.ØV))
-                               xs'
-            -- (\\ (nesting1 Proxy :: Wit (Traversable  (v k)))) $
-            --   fmap BTN . sequenceA . TCV.liftVecD (liftBTensor ss fs)
-            --     $ xs'
+        in  BTN $ TCV.liftVecD (liftBTensor ss f) xs'
+              \\ (nesting1 s     :: Wit (Distributive (v k)))
 {-# INLINE liftBTensor #-}
 
 mapBTM
@@ -794,9 +787,9 @@ instance
 
     liftT
         :: SingI ns
-        => TCV.Vec m (TCV.Vec n (ElemB b) -> ElemB b)
+        => (TCV.Vec n (ElemB b) -> ElemB b)
         -> TCV.Vec n (BTensor v b ns)
-        -> TCV.Vec m (BTensor v b ns)
+        -> BTensor v b ns
     liftT = liftBTensor sing
     {-# INLINE liftT #-}
 

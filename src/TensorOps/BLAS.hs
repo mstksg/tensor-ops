@@ -40,7 +40,6 @@ import           Data.Type.Product              as TCP
 import           Data.Type.Sing
 import           Data.Type.Vector               (VecT(..), Vec)
 import           TensorOps.NatKind
-import qualified Data.Type.Vector               as TCV
 
 $(singletons [d|
   data BShape a = BV !a | BM !a !a
@@ -92,9 +91,9 @@ class NatKind k => BLAS (b :: BShape k -> Type) where
     type ElemB b :: Type
     liftB
         :: Sing s
-        -> Vec m (Vec n (ElemB b) -> ElemB b)
+        -> (Vec n (ElemB b) -> ElemB b)
         -> Vec n (b s)
-        -> Vec m (b s)
+        -> b s
     axpy
         :: ElemB b          -- ^ α
         -> b ('BV n)        -- ^ x
@@ -204,7 +203,6 @@ zipB
     -> b s
     -> b s
     -> b s
-zipB s f x y = getI . TCV.head'
-             $ liftB s (I (\(I x' :* I y' :* ØV) -> f x' y') :* ØV)
+zipB s f x y = liftB s (\(I x' :* I y' :* ØV) -> f x' y')
                        (I x :* I y :* ØV)
 {-# INLINE zipB #-}

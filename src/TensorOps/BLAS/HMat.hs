@@ -106,34 +106,31 @@ instance (Container Vector a, Numeric a) => BLAS (HMat a) where
     -- TODO: rewrite rules
     -- write in parallel?
     liftB
-        :: forall n m s. ()
+        :: forall n s. ()
         => Sing s
-        -> Vec m (Vec n a -> a)
+        -> (Vec n a -> a)
         -> Vec n (HMat a s)
-        -> Vec m (HMat a s)
-    liftB s fs xs = fmap go fs
-      where
-        go :: (Vec n a -> a) -> HMat a s
-        go f = case xs of
-          ØV -> case s of
-            SBV sN    -> HMV $ konst (f ØV) ( fromIntegral (fromSing sN) )
-            SBM sN sM -> HMM $ konst (f ØV) ( fromIntegral (fromSing sN)
-                                            , fromIntegral (fromSing sM)
-                                            )
-          I x :* ØV -> case x of
-            HMV x' -> HMV (cmap (f . (:* ØV) . I) x')
-            HMM x' -> HMM (cmap (f . (:* ØV) . I) x')
-          I x :* I y :* ØV -> case x of
-            HMV x' -> case y of
-              HMV y' -> HMV $ VS.zipWith (curryV2' f) x' y'
-            HMM x' -> case y of
-              HMM y' -> HMM $ liftMatrix2 (VS.zipWith (curryV2' f)) x' y'
-          I x :* I y :* I z :* ØV -> case x of
-            HMV x' -> case y of
-              HMV y' -> case z of
-                HMV z' -> HMV $ VS.zipWith3 (curryV3' f) x' y' z'
-            _ -> liftB' s f xs
+        -> HMat a s
+    liftB s f = \case
+        ØV -> case s of
+          SBV sN    -> HMV $ konst (f ØV) ( fromIntegral (fromSing sN) )
+          SBM sN sM -> HMM $ konst (f ØV) ( fromIntegral (fromSing sN)
+                                          , fromIntegral (fromSing sM)
+                                          )
+        I x :* ØV -> case x of
+          HMV x' -> HMV (cmap (f . (:* ØV) . I) x')
+          HMM x' -> HMM (cmap (f . (:* ØV) . I) x')
+        I x :* I y :* ØV -> case x of
+          HMV x' -> case y of
+            HMV y' -> HMV $ VS.zipWith (curryV2' f) x' y'
+          HMM x' -> case y of
+            HMM y' -> HMM $ liftMatrix2 (VS.zipWith (curryV2' f)) x' y'
+        xs@(I x :* I y :* I z :* ØV) -> case x of
+          HMV x' -> case y of
+            HMV y' -> case z of
+              HMV z' -> HMV $ VS.zipWith3 (curryV3' f) x' y' z'
           _ -> liftB' s f xs
+        xs@(_ :* _ :* _ :* _ :* _) -> liftB' s f xs
 
     axpy α (HMV x) my
         = HMV

@@ -34,17 +34,14 @@ import           Data.Proxy
 import           Data.Semigroup
 import           Data.Singletons
 import           Data.Type.Combinator
-import           Data.Type.Fin
 import           Data.Type.Length
 import           Data.Type.Product hiding         (toList)
 import           Data.Type.Sing
 import           Data.Type.Vector                 as TCV
-import           Data.Type.Vector.Util            as TCV
 import           Prelude hiding                   (zip, map, zip3)
 import           TensorOps.NatKind
 import           TensorOps.Types
 import           Type.Class.Higher
-import           Type.Class.Known
 import           Type.Class.Witness hiding        (inner, outer, Const)
 import           Type.Family.List
 import           Type.Family.List.Util
@@ -61,7 +58,7 @@ map
     => (ElemT t -> ElemT t)
     -> t o
     -> t o
-map f = getI . TCV.head' . liftT ((f . getI . TCV.head') :+ ØV) . (:+ ØV)
+map f = liftT (f . getI . TCV.head') . (:+ ØV)
 {-# INLINE map #-}
 
 add :: (Tensor t, SingI o)
@@ -74,7 +71,7 @@ zipN
     => (Vec n (ElemT t) -> ElemT t)
     -> Vec n (t o)
     -> t o
-zipN f = getI . TCV.head' . liftT (f :+ ØV)
+zipN f = liftT f
 {-# INLINE zipN #-}
 
 zip :: (SingI o, Tensor t)
@@ -118,23 +115,17 @@ zip3 f x y z = zipN (\case I x' :* I y' :* I z' :* ØV -> f x' y' z') (x :+ y :+
 --     {-# INLINE go #-}
 -- {-# INLINE gradLift #-}
 
--- | viable alternative?
+-- | TODO: memoize vfGrad f x somehow?
 gradLift
-    :: forall o n m t. (Tensor t, RealFloat (ElemT t), SingI o)
+    :: forall o n t. (Tensor t, RealFloat (ElemT t), SingI o)
     => VFunc n
     -> Vec n (t o)    -- ^ inputs
     -> t o            -- ^ d target / d outputs
     -> Vec n (t o)    -- ^ d target / d inputs
 gradLift f xs dtdy = (\\ xs) $
-    vgen_ $ \i -> TCV.head' $ liftT (I (\case I d :* x -> go i x d) :* ØV)
-                                    (I dtdy :* xs)
-  where
-    go  :: Fin n
-        -> Vec n (ElemT t)
-        -> ElemT t
-        -> ElemT t
-    go i x d = d * index' i (vfGrad f x)
-    {-# INLINE go #-}
+    vgen_ $ \i -> I $
+      liftT (\case I d :* x -> d * index' i (vfGrad f x))
+            (I dtdy :* xs)
 {-# INLINE gradLift #-}
 
 
