@@ -25,7 +25,7 @@ import           Data.Type.Uniform
 import           Data.Type.Vector                as TCV
 import           Numeric.AD
 import           Prelude hiding                  (map, replicate, zip, negate)
-import           TensorOps.Types                 as T
+import           TensorOps.Types as T hiding     (gmul)
 import           Type.Class.Higher
 import           Type.Class.Witness hiding       (inner)
 import           Type.Family.List
@@ -33,6 +33,7 @@ import           Type.Family.List.Util
 import           Type.Family.Nat
 import qualified Data.Type.Product.Util          as TCP
 import qualified TensorOps.Tensor                as TT
+import qualified TensorOps.Types                 as T
 
 -- | Lift any `R^N -> R^M` function over every element in a n-tensor list,
 -- producing a m-tensor list.
@@ -60,19 +61,19 @@ liftOp = \case
         TOp (vecToProd getI m . liftT (vfFunc <$> fs) . prodToVec I n)
             (\x -> vecToProd getI n . TT.gradLift fs (prodToVec I n x) . prodToVec I m)
 
-gmulOp
+gmul
     :: forall ms os ns. (SingI (Reverse os ++ ns), SingI (ms ++ ns), SingI (ms ++ os))
     => Length ms
     -> Length os
     -> Length ns
     -> TOp '[ (ms ++ os), (Reverse os ++ ns) ] '[ ms ++ ns ]
-gmulOp lM lO lN = TOp f g
+gmul lM lO lN = TOp f g
   where
     f   :: Tensor t
         => Prod t '[ (ms ++ os), (Reverse os ++ ns) ]
         -> Prod t '[ ms ++ ns ]
     f = \case
-      x :< y :< Ø -> only $ gmul lM lO lN x y
+      x :< y :< Ø -> only $ T.gmul lM lO lN x y
     g   :: Tensor t
         => Prod t '[ (ms ++ os), (Reverse os ++ ns) ]
         -> Prod t '[ ms ++ ns ]
@@ -85,12 +86,12 @@ gmulOp lM lO lN = TOp f g
                                 -> p b
                                 -> (SingI (a ++ b) :- SingI (Reverse (a ++ b)))
                          entailCatRev _ _ = entailSing sReverse
-                     in  (gmul lM lN lO dtdz (transp y)
+                     in  (T.gmul lM lN lO dtdz (transp y)
                            \\ reverseConcat rlO lN
                            \\ reverseReverse lO
                            \\ entailCatRev rlO lN
                          )
-                      :< (gmul rlO (TCL.reverse' lM) lN
+                      :< (T.gmul rlO (TCL.reverse' lM) lN
                                (transp x)
                                dtdz
                             \\ reverseConcat lM lO
@@ -298,9 +299,17 @@ inner
     => Length ms
     -> Length ns
     -> TOp '[ms >: o, o ': ns] '[ ms ++ ns ]
-inner lM lN = gmulOp lM (LS LZ) lN
+inner lM lN = gmul lM (LS LZ) lN
                 \\ appendSnoc lM (Proxy @o)
 {-# INLINE inner #-}
+
+outer
+    :: (SingI ms, SingI ns, SingI (ms ++ ns))
+    => Length ms
+    -> Length ns
+    -> TOp '[ms, ns] '[ ms ++ ns ]
+outer lM lN = gmul lM LZ lN
+                \\ appendNil lM
 
 dot :: SingI m
     => TOp '[ '[m], '[m] ] '[ '[] ]
