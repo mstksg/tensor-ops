@@ -21,17 +21,18 @@ library
                        Data.Type.Uniform
                        TensorOps.BLAS
                        TensorOps.BLAS.HMat
-                       TensorOps.Backend.BTensor
-                       TensorOps.Backend.NTensor
-                       TensorOps.Gradient
-                       TensorOps.Learn.NeuralNet
-                       TensorOps.Learn.NeuralNet.FeedForward
-                       TensorOps.Learn.NeuralNet.Recurrent
+                       TensorOps
+                       -- TensorOps.Backend.BTensor
+                       -- TensorOps.Backend.NTensor
+                       -- TensorOps.Gradient
+                       -- TensorOps.Learn.NeuralNet
+                       -- TensorOps.Learn.NeuralNet.FeedForward
+                       -- TensorOps.Learn.NeuralNet.Recurrent
                        TensorOps.NatKind
                        TensorOps.Run
                        TensorOps.TOp
                        TensorOps.Tensor
-                       -- util
+                       -- -- util
                        Data.Type.Sing
                        Type.Class.Higher.Util
   other-modules:       Data.List.Util
@@ -66,52 +67,52 @@ library
                        -- -ddump-to-file
   default-language:    Haskell2010
 
-executable tensor-ops-dots
-  hs-source-dirs:      app
-  main-is:             Dots.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2 -Wall
-                       -- -ddump-rule-firings
-                       -- -ddump-to-file
-  build-depends:       base
-                     , ansi-wl-pprint
-                     , deepseq
-                     , here
-                     , mwc-random
-                     , optparse-applicative
-                     , singletons
-                     , statistics
-                     , tensor-ops
-                     , time
-  default-language:    Haskell2010
+-- executable tensor-ops-dots
+--   hs-source-dirs:      app
+--   main-is:             Dots.hs
+--   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2 -Wall
+--                        -- -ddump-rule-firings
+--                        -- -ddump-to-file
+--   build-depends:       base
+--                      , ansi-wl-pprint
+--                      , deepseq
+--                      , here
+--                      , mwc-random
+--                      , optparse-applicative
+--                      , singletons
+--                      , statistics
+--                      , tensor-ops
+--                      , time
+--   default-language:    Haskell2010
 
-executable tensor-ops-mnist
-  hs-source-dirs:      app
-  main-is:             MNIST.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2 -Wall
-                       -- -ddump-rule-firings
-                       -- -ddump-to-file
-  build-depends:       base
-                     , bytestring
-                     , deepseq
-                     , directory
-                     , either
-                     , filepath
-                     , finite-typelits
-                     , foldl
-                     , http-conduit
-                     , mnist-idx
-                     , mwc-random
-                     , optparse-applicative
-                     , profunctors
-                     , singletons
-                     , tensor-ops
-                     , text
-                     , time
-                     , transformers
-                     , type-combinators
-                     , vector
-                     , zlib
-  default-language:    Haskell2010
+-- executable tensor-ops-mnist
+--   hs-source-dirs:      app
+--   main-is:             MNIST.hs
+--   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2 -Wall
+--                        -- -ddump-rule-firings
+--                        -- -ddump-to-file
+--   build-depends:       base
+--                      , bytestring
+--                      , deepseq
+--                      , directory
+--                      , either
+--                      , filepath
+--                      , finite-typelits
+--                      , foldl
+--                      , http-conduit
+--                      , mnist-idx
+--                      , mwc-random
+--                      , optparse-applicative
+--                      , profunctors
+--                      , singletons
+--                      , tensor-ops
+--                      , text
+--                      , time
+--                      , transformers
+--                      , type-combinators
+--                      , vector
+--                      , zlib
+--   default-language:    Haskell2010
 
 test-suite tensor-ops-test
   type:                exitcode-stdio-1.0

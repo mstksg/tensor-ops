@@ -118,39 +118,43 @@ data VFunc n
 -- newtype VFunc n = VF { getVF :: forall a. RealFloat a => Vec n a -> a }
 
 data TOp :: [[k]] -> [[k]] -> Type where
-    -- | Lift any `R^N -> R^M` function over every element in a n-tensor list,
-    -- producing a m-tensor list.
-    Lift    :: !(Uniform o ns)
-            -> !(Uniform o ms)
-            -- -> (forall a. RealFloat a => Vec (Len ns) a -> Vec (Len ms) a)
-            -- -> (forall a. RealFloat a => Vec (Len ms) (Vec (Len ns) a -> a))
-            -> !(Vec (Len ms) (VFunc (Len ns)))
-            -> TOp ns ms
-    -- | Generalized tensor product
-    GMul    :: !(Length ms)
-            -> !(Length os)
-            -> !(Length ns)
-            -> TOp '[ (ms ++ os), (Reverse os ++ ns) ] '[ ms ++ ns ]
-    -- | Transpose (reverse indices)
-    --
-    -- TODO: allow for arbitrary permutation
-    Transp  :: !(Length ns)
-            -> TOp '[ns] '[Reverse ns]
-    -- -- | Fold along the principle direction
-    -- Fold    :: Length ns
-    --         -> (forall a. RealFloat a => F.Fold a a)
-    --         -> TOp '[n ': ns] '[ns]
-    -- should this also include indices to go backwards?  how can this be
-    -- statically verified?
-    Shuffle :: !(Prod (Index ns) ms)
-            -> TOp ns ms
-    -- SumRow  :: !(Remove ns n ms)
-    --         -> TOp '[ ns ] '[ ms ]
-    SumRows :: TOp '[ n ': ns ] '[ ns ]
-    SumT    :: !(Uniform n ns)
-            -> TOp ns '[n]
-    Scale   :: !(forall a. RealFloat a => a)
-            -> TOp '[ ns ] '[ ns ]
+    TOp :: { runTOp  :: !(forall t. (Tensor t, RealFloat (ElemT t)) => Prod t ns -> Prod t ms)
+           , gradTOp :: !(forall t. (Tensor t, RealFloat (ElemT t)) => Prod t ns -> Prod t ms -> Prod t ns)
+           } -> TOp ns ms
+
+    -- -- | Lift any `R^N -> R^M` function over every element in a n-tensor list,
+    -- -- producing a m-tensor list.
+    -- Lift    :: !(Uniform o ns)
+    --         -> !(Uniform o ms)
+    --         -- -> (forall a. RealFloat a => Vec (Len ns) a -> Vec (Len ms) a)
+    --         -- -> (forall a. RealFloat a => Vec (Len ms) (Vec (Len ns) a -> a))
+    --         -> !(Vec (Len ms) (VFunc (Len ns)))
+    --         -> TOp ns ms
+    -- -- | Generalized tensor product
+    -- GMul    :: !(Length ms)
+    --         -> !(Length os)
+    --         -> !(Length ns)
+    --         -> TOp '[ (ms ++ os), (Reverse os ++ ns) ] '[ ms ++ ns ]
+    -- -- | Transpose (reverse indices)
+    -- --
+    -- -- TODO: allow for arbitrary permutation
+    -- Transp  :: !(Length ns)
+    --         -> TOp '[ns] '[Reverse ns]
+    -- -- -- | Fold along the principle direction
+    -- -- Fold    :: Length ns
+    -- --         -> (forall a. RealFloat a => F.Fold a a)
+    -- --         -> TOp '[n ': ns] '[ns]
+    -- -- should this also include indices to go backwards?  how can this be
+    -- -- statically verified?
+    -- Shuffle :: !(Prod (Index ns) ms)
+    --         -> TOp ns ms
+    -- -- SumRow  :: !(Remove ns n ms)
+    -- --         -> TOp '[ ns ] '[ ms ]
+    -- SumRows :: TOp '[ n ': ns ] '[ ns ]
+    -- SumT    :: !(Uniform n ns)
+    --         -> TOp ns '[n]
+    -- Scale   :: !(forall a. RealFloat a => a)
+    --         -> TOp '[ ns ] '[ ns ]
 
 -- | TODO: replace with `syntactic`?
 data OpPipe :: ([k] -> [k] -> Type) -> [k] -> [k] -> Type where
@@ -210,4 +214,3 @@ infixr 4 ~.
 (_, lD, x) ~. y = pop lD x y
 
 instance Eq1 Finite
-
