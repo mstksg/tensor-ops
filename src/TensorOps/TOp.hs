@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
@@ -10,6 +11,7 @@
 
 module TensorOps.TOp where
 
+import           Control.Category
 import           Data.Foldable
 import           Data.Proxy
 import           Data.Singletons
@@ -24,9 +26,10 @@ import           Data.Type.Sing
 import           Data.Type.Uniform
 import           Data.Type.Vector                as TCV
 import           Numeric.AD
-import           Prelude hiding                  (map, replicate, zip, negate)
+import           Prelude hiding                  (map, replicate, zip, negate, (.), id)
 import           TensorOps.Types as T hiding     (gmul)
 import           Type.Class.Higher
+import           Type.Class.Known
 import           Type.Class.Witness hiding       (inner)
 import           Type.Family.List
 import           Type.Family.List.Util
@@ -148,6 +151,15 @@ shuffle is = TOp (TCP.select is) (\_ -> gr)
             g (k :&: d) = case testEquality k i of
               Just Refl -> [d]
               Nothing   -> []
+    {-# INLINE gr #-}
+
+shuffleF
+    :: forall ns ms. ()
+    => (forall f. Prod f ns -> Prod f ms)
+    -> (forall f. Prod f ms -> Prod f ns)
+    -> TOp ns ms
+shuffleF f g = TOp f (\_ -> g)
+{-# INLINE shuffleF #-}
 
 sumRows
     :: forall n ns. (SingI n, SingI ns)
@@ -175,6 +187,11 @@ scale α = TOp (only . scaleT α . TCP.head')
               (\_ -> only . scaleT α . TCP.head')
 {-# INLINE scale #-}
 
+first
+    :: forall ns ms os. (Known Length ns, Known Length ms)
+    => TOp ns ms
+    -> TOp (ns ++ os) (ms ++ os)
+first = (*** idOp @os)
 
 konst
     :: forall n ns. SingI n

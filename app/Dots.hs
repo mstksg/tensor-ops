@@ -73,7 +73,7 @@ netTest _ rate n hs g = withSingI (sFromNat @k (SNat @1)) $
             <- genNet (hs `zip` repeat actLogistic) actLogistic g
     let trained = foldl' trainEach net0 (zip inps outs)
           where
-            trainEach :: (SingI i, SingI o)
+            trainEach :: SingI o
                       => Network t i o
                       -> (t '[i], t '[o])
                       -> Network t i o

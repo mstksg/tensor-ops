@@ -21,12 +21,11 @@ library
                        Data.Type.Uniform
                        TensorOps.BLAS
                        TensorOps.BLAS.HMat
-                       TensorOps
                        TensorOps.Backend.BTensor
                        TensorOps.Backend.NTensor
                        TensorOps.Learn.NeuralNet
                        TensorOps.Learn.NeuralNet.FeedForward
-                       TensorOps.Learn.NeuralNet.Recurrent
+                       -- TensorOps.Learn.NeuralNet.Recurrent
                        TensorOps.NatKind
                        TensorOps.TOp
                        TensorOps.Tensor
