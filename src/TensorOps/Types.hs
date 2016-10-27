@@ -137,6 +137,7 @@ gradTOp o xs = gradTOp' o xs (only (getI $ generateA (\_ -> I 1)))
 instance Category TOp where
     id = TOp id
              (flip const)
+    {-# INLINE id #-}
 
     (.) :: forall as bs cs. ()
         => TOp bs cs
@@ -148,21 +149,20 @@ instance Category TOp where
             => Prod t as
             -> Prod t cs
         f3 = f2 . f1
+        {-# INLINE f3 #-}
         g3  :: forall t. (Tensor t, RealFloat (ElemT t))
             => Prod t as
             -> Prod t cs
             -> Prod t as
-        g3 xs ds = g1 xs ds'
-          where
-            ys :: Prod t bs
-            ys  = f1 xs
-            ds' :: Prod t bs
-            ds' = g2 ys ds
+        g3 xs ds = g1 xs (g2 (f1 xs) ds)
+        {-# INLINE g3 #-}
+    {-# INLINE (.) #-}
 
 idOp
     :: forall ns. ()
     => TOp ns ns
 idOp = id
+{-# INLINE idOp #-}
 
 firstOp
     :: forall os ns ms. (Known Length ns, Known Length ms)
@@ -174,12 +174,14 @@ firstOp (TOp f g) = TOp f' g'
         => Prod t (ns ++ os)
         -> Prod t (ms ++ os)
     f' = overProdInit @os known f
+    {-# INLINE f' #-}
     g'  :: forall t. (Tensor t, RealFloat (ElemT t))
         => Prod t (ns ++ os)
         -> Prod t (ms ++ os)
         -> Prod t (ns ++ os)
     g' (takeProd @os known -> xs) = overProdInit @os known (g xs)
-
+    {-# INLINE g' #-}
+{-# INLINE firstOp #-}
 
 (*>>)
     :: forall as bs cs ds. (Known Length as, Known Length bs)
@@ -188,6 +190,7 @@ firstOp (TOp f g) = TOp f' g'
     -> TOp (as ++ cs) ds
 t1 *>> t2 = firstOp @cs t1 >>> t2
 infixr 0 *>>
+{-# INLINE (*>>) #-}
 
 (<<*)
     :: forall as bs cs ds. (Known Length as, Known Length bs)
@@ -196,6 +199,7 @@ infixr 0 *>>
     -> TOp (as ++ cs) ds
 (<<*) = flip ((*>>) @as @bs @cs @ds)
 infixr 2 <<*
+{-# INLINE (<<*) #-}
 
 (***)
     :: forall as bs cs ds. (Known Length as, Known Length cs)
@@ -208,11 +212,14 @@ TOp f1 g1 *** TOp f2 g2 = TOp f3 g3
         => Prod t (as ++ bs)
         -> Prod t (cs ++ ds)
     f3 = overProdSplit known f1 f2
+    {-# INLINE f3 #-}
     g3  :: forall t. (Tensor t, RealFloat (ElemT t))
         => Prod t (as ++ bs)
         -> Prod t (cs ++ ds)
         -> Prod t (as ++ bs)
     g3 (splitProd known->(xs, ys)) = overProdSplit known (g1 xs) (g2 ys)
+    {-# INLINE g3 #-}
+{-# INLINE (***) #-}
 
 (&&&)
     :: forall as bs cs. (Known Length bs, SingI as)
@@ -225,6 +232,7 @@ TOp f1 g1 &&& TOp f2 g2 = TOp f3 g3
         => Prod t as
         -> Prod t (bs ++ cs)
     f3 = TCP.append' <$> f1 <*> f2
+    {-# INLINE f3 #-}
     g3  :: forall t. (Tensor t, RealFloat (ElemT t))
         => Prod t as
         -> Prod t (bs ++ cs)
@@ -234,6 +242,8 @@ TOp f1 g1 &&& TOp f2 g2 = TOp f3 g3
                      (singProd sing)
                      (g1 xs dtdys)
                      (g2 xs dtdzs)
+    {-# INLINE g3 #-}
+{-# INLINE (&&&) #-}
 
 
 -- -- | TODO: replace with `syntactic`?

@@ -151,6 +151,15 @@ shuffle is = TOp (TCP.select is) (\_ -> gr)
             g (k :&: d) = case testEquality k i of
               Just Refl -> [d]
               Nothing   -> []
+    {-# INLINE gr #-}
+
+shuffleF
+    :: forall ns ms. ()
+    => (forall f. Prod f ns -> Prod f ms)
+    -> (forall f. Prod f ms -> Prod f ns)
+    -> TOp ns ms
+shuffleF f g = TOp f (\_ -> g)
+{-# INLINE shuffleF #-}
 
 sumRows
     :: forall n ns. (SingI n, SingI ns)

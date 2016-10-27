@@ -48,6 +48,7 @@ splitProd = \case
     LZ   -> \p -> (Ø, p)
     LS l -> \case
       x :< xs -> first (x :<) (splitProd l xs)
+{-# INLINE splitProd #-}
 
 takeProd
     :: forall ms f ns. ()
@@ -58,6 +59,7 @@ takeProd = \case
     LZ   -> \_ -> Ø
     LS l -> \case
       x :< xs -> x :< takeProd @ms l xs
+{-# INLINE takeProd #-}
 
 overProdInit
     :: forall os g ns ms. Length ns
@@ -227,6 +229,7 @@ zipProdWith f = \case
       Ø -> Ø
     x :< xs -> \case
       y :< ys -> f x y :< zipProdWith f xs ys
+{-# INLINE zipProdWith #-}
 
 zipProdWith3
     :: (forall a. f a -> g a -> h a -> j a)
@@ -242,7 +245,7 @@ zipProdWith3 f = \case
       y :< ys -> \case
         z :< zs ->
           f x y z :< zipProdWith3 f xs ys zs
-
+{-# INLINE zipProdWith3 #-}
 
 
 -- collect
