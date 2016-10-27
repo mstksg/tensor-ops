@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
@@ -10,6 +11,7 @@
 
 module TensorOps.TOp where
 
+import           Control.Category
 import           Data.Foldable
 import           Data.Proxy
 import           Data.Singletons
@@ -24,9 +26,10 @@ import           Data.Type.Sing
 import           Data.Type.Uniform
 import           Data.Type.Vector                as TCV
 import           Numeric.AD
-import           Prelude hiding                  (map, replicate, zip, negate)
+import           Prelude hiding                  (map, replicate, zip, negate, (.), id)
 import           TensorOps.Types as T hiding     (gmul)
 import           Type.Class.Higher
+import           Type.Class.Known
 import           Type.Class.Witness hiding       (inner)
 import           Type.Family.List
 import           Type.Family.List.Util
@@ -175,6 +178,11 @@ scale α = TOp (only . scaleT α . TCP.head')
               (\_ -> only . scaleT α . TCP.head')
 {-# INLINE scale #-}
 
+first
+    :: forall os ns ms. (Known Length ns, Known Length ms)
+    => TOp ns ms
+    -> TOp (ns ++ os) (ms ++ os)
+first = (*** idOp @os)
 
 konst
     :: forall n ns. SingI n

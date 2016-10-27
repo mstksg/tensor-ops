@@ -218,17 +218,32 @@ zipProd3 = \case
         z :< zs -> (x :&: y :&: z) :< zipProd3 xs ys zs
 
 
--- zipProd'
---     :: Every c as
---     => (forall a. c a => f a -> g a -> h a)
---     -> Prod f as
---     -> Prod g as
---     -> Prod h as
--- zipProd' f = \case
---     Ø -> \case
---       Ø -> Ø
---     x :< xs -> \case
---       y :< ys -> f x y :< zipProd xs ys
+zipProdWith
+    :: (forall a. f a -> g a -> h a)
+    -> Prod f as
+    -> Prod g as
+    -> Prod h as
+zipProdWith f = \case
+    Ø -> \case
+      Ø -> Ø
+    x :< xs -> \case
+      y :< ys -> f x y :< zipProdWith f xs ys
+
+zipProdWith3
+    :: (forall a. f a -> g a -> h a -> j a)
+    -> Prod f as
+    -> Prod g as
+    -> Prod h as
+    -> Prod j as
+zipProdWith3 f = \case
+    Ø -> \case
+      Ø -> \case
+        Ø -> Ø
+    x :< xs -> \case
+      y :< ys -> \case
+        z :< zs ->
+          f x y z :< zipProdWith3 f xs ys zs
+
 
 
 -- collect

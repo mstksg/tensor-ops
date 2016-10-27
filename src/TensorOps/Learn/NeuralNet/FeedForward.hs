@@ -13,34 +13,32 @@
 
 module TensorOps.Learn.NeuralNet.FeedForward where
 
+import           Control.Category hiding           (id, (.))
 import           Control.DeepSeq
 import           Control.Monad.Primitive
 import           Data.Kind
 import           Data.Singletons
-import           Data.Singletons.Prelude hiding ((%:++))
 import           Data.Type.Conjunction
 import           Data.Type.Length
-import           Data.Type.Product              as TCP
-import           Data.Type.Product.Util         as TCP
+import           Data.Type.Product                 as TCP
+import           Data.Type.Product.Util            as TCP
 import           Data.Type.Sing
 import           Statistics.Distribution.Normal
 import           System.Random.MWC
-import           TensorOps
 import           TensorOps.Learn.NeuralNet
 import           TensorOps.NatKind
-import           TensorOps.TOp                  as TO
-import           TensorOps.Tensor               as TT
+import           TensorOps.TOp                     as TO
+import           TensorOps.Tensor                  as TT
 import           TensorOps.Types
 import           Type.Class.Higher
 import           Type.Class.Higher.Util
-import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
 
 data Network :: ([k] -> Type) -> k -> k -> Type where
     N :: { _nsOs    :: !(Sing os)
-         , _nOp     :: !(TensorOp ('[i] ': os) '[ '[o] ])
+         , _nOp     :: !(TOp ('[i] ': os) '[ '[o] ])
          , _nParams :: !(Prod t os)
          } -> Network t i o
 
@@ -56,64 +54,60 @@ netParams n f = case n of
     N o _ p -> f p \\ o
 
 (~*~)
-    :: (SingI a, SingI b)
-    => Network t a b
+    :: Network t a b
     -> Network t b c
     -> Network t a c
 N sOs1 o1 p1 ~*~ N sOs2 o2 p2 =
-    N (sOs1 %:++ sOs2)
-      (pappend (sing `SCons` sOs1) sing sOs2 o1 o2)
-      (p1 `TCP.append'` p2)
+    N (sOs1 %:++ sOs2) (o1 *>> o2) (p1 `TCP.append'` p2)
+        \\ singLength sOs1
 infixr 4 ~*~
 
-(~*) :: (SingI a, SingI b)
-     => TensorOp '[ '[a] ] '[ '[b] ]
+(~*) :: TOp '[ '[a] ] '[ '[b] ]
      -> Network t b c
      -> Network t a c
-f ~* N sO o p = N sO (pappend sing sing sO f o) p
+f ~* N sO o p = N sO (f *>> o) p
 infixr 4 ~*
 
-(*~) :: (SingI a, SingI b)
-     => Network t a b
-     -> TensorOp '[ '[b] ] '[ '[c] ]
+(*~) :: Network t a b
+     -> TOp '[ '[b] ] '[ '[c] ]
      -> Network t a c
-N sO o p *~ f = N sO (pappend (sing `SCons` sO) sing SNil o f) p
-                  \\ appendNil (singLength sO)
+N sO o p *~ f = N sO (o >>> f) p
 infixl 5 *~
 
 nmap
-     :: (SingI o, SingI i)
+     :: SingI o
      => (forall a. RealFloat a => a -> a)
      -> Network t i o
      -> Network t i o
-nmap f n = n *~ pipe (TO.map f)
+nmap f n = n *~ TO.map f
 
 runNetwork
     :: (RealFloat (ElemT t), Tensor t)
     => Network t i o
     -> t '[i]
     -> t '[o]
-runNetwork (N _ o p) = head' . runTensorOp o . (:< p)
+runNetwork (N _ o p) = head' . runTOp o . (:< p)
 
 trainNetwork
-    :: forall i o t. (SingI i, SingI o, Tensor t, RealFloat (ElemT t))
-    => TensorOp '[ '[o], '[o] ] '[ '[] ]
+    :: forall i o t. (Tensor t, RealFloat (ElemT t))
+    => TOp '[ '[o], '[o] ] '[ '[] ]
     -> ElemT t
     -> t '[i]
     -> t '[o]
     -> Network t i o
     -> Network t i o
 trainNetwork loss r x y = \case
-    N (s :: Sing os) (o :: TensorOp ('[i] ': os) '[ '[o]]) (p :: Prod t os) ->
+    N (s :: Sing os) (o :: TOp ('[i] ': os) '[ '[o]]) (p :: Prod t os) ->
       (\\ appendSnoc (singLength s) (Proxy @('[o]))) $
-        let o'   :: TensorOp ('[i] ': os >: '[o]) '[ '[]]
-            o' = pappend (sing `SCons` s) sing sing o loss
+        let o'   :: TOp ('[i] ': os >: '[o]) '[ '[]]
+            o' = (\\ singLength s) $
+                    o *>> loss
             inp  :: Prod t ('[i] ': os >: '[o])
             inp = x :< p >: y
             grad :: Prod t os
             grad = takeProd (singLength s) (LS LZ :: Length '[ '[o]])
                  . tail'
-                 $ gradTensorOp o' inp
+                 $ gradTOp o' inp
             -- this is a bottleneck for large matrices
             p'   :: Prod t os
             p' = map1 (\(s1 :&: o1 :&: g1) -> (\\ s1) $ TT.zip stepFunc o1 g1)
@@ -124,24 +118,25 @@ trainNetwork loss r x y = \case
     stepFunc o' g' = o' - r * g'
 
 networkGradient
-    :: forall i o t r. (SingI i, SingI o, Tensor t, RealFloat (ElemT t))
-    => TensorOp '[ '[o], '[o] ] '[ '[] ]
+    :: forall i o t r. (Tensor t, RealFloat (ElemT t))
+    => TOp '[ '[o], '[o] ] '[ '[] ]
     -> t '[i]
     -> t '[o]
     -> Network t i o
     -> (forall os. SingI os => Prod t os -> r)
     -> r
 networkGradient loss x y = \case
-    N (s :: Sing os) (o :: TensorOp ('[i] ': os) '[ '[o]]) (p :: Prod t os) ->
+    N (s :: Sing os) (o :: TOp ('[i] ': os) '[ '[o]]) (p :: Prod t os) ->
       \f -> (\\ appendSnoc (singLength s) (Proxy @('[o]))) $
-        let o'   :: TensorOp ('[i] ': os >: '[o]) '[ '[]]
-            o' = pappend (sing `SCons` s) sing sing o loss
+        let o'   :: TOp ('[i] ': os >: '[o]) '[ '[]]
+            o' = (\\ singLength s) $
+                    o *>> loss
             inp  :: Prod t ('[i] ': os >: '[o])
             inp = x :< p >: y
             grad :: Prod t os
             grad = takeProd (singLength s) (LS LZ :: Length '[ '[o]])
                  . tail'
-                 $ gradTensorOp o' inp
+                 $ gradTOp o' inp
         in  f grad \\ s
 
 ffLayer
@@ -153,11 +148,10 @@ ffLayer g = (\w b -> N sing ffLayer' (w :< b :< Ø))
           <*> genRand (normalDistr 0 0.5) g
   where
     ffLayer'
-        :: TensorOp '[ '[i], '[o,i], '[o]] '[ '[o] ]
-    ffLayer' = (known, known, TO.swap            )
-            ~. (known, known, TO.inner (LS LZ) LZ)
-            ~. (known, known, TO.add             )
-            ~. OPØ
+        :: TOp '[ '[i], '[o,i], '[o]] '[ '[o] ]
+    ffLayer' = TO.swap
+           >>> TO.inner (LS LZ) LZ
+           *>> TO.add
 
 genNet
     :: forall k o i m (t :: [k] -> Type). (SingI o, SingI i, PrimMonad m, Tensor t)
