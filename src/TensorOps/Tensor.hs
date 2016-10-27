@@ -95,28 +95,48 @@ zip3
 zip3 f x y z = zipN (\case I x' :* I y' :* I z' :* ØV -> f x' y' z') (x :+ y :+ z :+ ØV)
 {-# INLINE zip3 #-}
 
--- | This is a huge bottleneck, I think?
---
--- Implementation issue -- shouldn't need Sing o if n or m is zero
---
+-- -- | This is a huge bottleneck, I think?
+-- --
+-- -- Implementation issue -- shouldn't need Sing o if n or m is zero
+-- --
+-- gradLift
+--     :: forall o n m t. (Tensor t, RealFloat (ElemT t), SingI o)
+--     => Vec m (VFunc n)
+--     -> Vec n (t o)    -- ^ inputs
+--     -> Vec m (t o)    -- ^ d target / d outputs
+--     -> Vec n (t o)    -- ^ d target / d inputs
+-- gradLift fs xs dtdys =
+--     liftT (vgen_ (\i -> I (uncurry (go i) . splitVec known)))
+--           (xs `TCV.append'` dtdys)
+--       \\ xs
+--   where
+--     go  :: Fin n
+--         -> Vec n (ElemT t)
+--         -> Vec m (ElemT t)
+--         -> ElemT t
+--     go i x dtdy = sumV $ (vap . liftA2) (\d f -> d * index' i (vfGrad f x)) dtdy fs
+--     {-# INLINE go #-}
+-- {-# INLINE gradLift #-}
+
+-- | viable alternative?
 gradLift
     :: forall o n m t. (Tensor t, RealFloat (ElemT t), SingI o)
-    => Vec m (VFunc n)
+    => VFunc n
     -> Vec n (t o)    -- ^ inputs
-    -> Vec m (t o)    -- ^ d target / d outputs
+    -> t o            -- ^ d target / d outputs
     -> Vec n (t o)    -- ^ d target / d inputs
-gradLift fs xs dtdys =
-    liftT (vgen_ (\i -> I (uncurry (go i) . splitVec known)))
-          (xs `TCV.append'` dtdys)
-      \\ xs
+gradLift f xs dtdy = (\\ xs) $
+    vgen_ $ \i -> TCV.head' $ liftT (I (\case I d :* x -> go i x d) :* ØV)
+                                    (I dtdy :* xs)
   where
     go  :: Fin n
         -> Vec n (ElemT t)
-        -> Vec m (ElemT t)
         -> ElemT t
-    go i x dtdy = sumV $ (vap . liftA2) (\d f -> d * index' i (vfGrad f x)) dtdy fs
+        -> ElemT t
+    go i x d = d * index' i (vfGrad f x)
     {-# INLINE go #-}
 {-# INLINE gradLift #-}
+
 
 inner
     :: forall t ms ns o. (Tensor t, SingI (o ': ns), SingI (ms ++ ns))

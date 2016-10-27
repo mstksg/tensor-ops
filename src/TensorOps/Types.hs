@@ -52,9 +52,9 @@ class NatKind k => Tensor (t :: [k] -> Type) where
 
     -- TODO: can we detach Vec from liftT ?
     liftT   :: SingI o
-            => Vec m (Vec n (ElemT t) -> ElemT t)
+            => (Vec n (ElemT t) -> ElemT t)
             -> Vec n (t o)
-            -> Vec m (t o)
+            -> t o
     gmul    :: (SingI (Reverse os ++ ns), SingI (ms ++ ns))
             => Length ms
             -> Length os
