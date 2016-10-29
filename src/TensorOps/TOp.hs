@@ -20,7 +20,7 @@ import           Data.Type.Conjunction
 import           Data.Type.Index
 import           Data.Type.Length                as TCL
 import           Data.Type.Length.Util           as TCL
-import           Data.Type.Product as TCP hiding (append', toList)
+import           Data.Type.Product as TCP hiding (toList)
 import           Data.Type.Product.Util
 import           Data.Type.Sing
 import           Data.Type.Uniform
@@ -137,6 +137,16 @@ shuffleF
     -> TOp ns ms
 shuffleF f g = TOp f (\_ -> g)
 {-# INLINE shuffleF #-}
+
+shuffleF'
+    :: forall ns ms. SingI ns
+    => (forall f. Prod f ns -> Prod f ms)
+    -> (forall f. Prod f ms -> Prod ([] :.: f) ns)
+    -> TOp ns ms
+shuffleF' f g = TOp f $ \_ ->
+    zipProdWith (\s (Comp xs) -> sumT xs \\ s) (singProd sing)
+  . g
+{-# INLINE shuffleF' #-}
 
 sumRows
     :: forall n ns. (SingI n, SingI ns)
@@ -320,3 +330,24 @@ swap'
 swap' lN lM = shuffleF (swapProd @ns @ms lN)
                        (swapProd @ms @ns lM)
 {-# INLINE swap' #-}
+
+drop
+    :: forall ns ms. SingI (ns ++ ms)
+    => Length ns
+    -> TOp (ns ++ ms) ms
+drop lN = shuffleF' (dropProd lN)
+                    ( (pgen lN (\_ -> Comp []) `TCP.append'`)
+                    . map1 (Comp . (:[]))
+                    )
+{-# INLINE drop #-}
+
+take
+    :: forall ns ms. SingI (ns ++ ms)
+    => Length ns
+    -> Length ms
+    -> TOp (ns ++ ms) ns
+take lN lM = shuffleF' (takeProd @ms lN)
+                       ( (`TCP.append'` pgen lM (\_ -> Comp []))
+                       . map1 (Comp . (:[]))
+                       )
+{-# INLINE take #-}

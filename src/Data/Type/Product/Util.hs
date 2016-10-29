@@ -365,3 +365,19 @@ mapUniform = \case
     US u -> \f -> \case
       x :< xs -> f x :< mapUniform u f xs
 {-# INLINE mapUniform #-}
+
+pgen
+    :: forall f as. ()
+    => Length as
+    -> (forall a. Index as a -> f a)
+    -> Prod f as
+pgen = \case
+    LZ   -> \_ -> Ø
+    LS l -> \f -> f IZ :< pgen l (f . IS)
+
+pgen_
+    :: forall f as. Known Length as
+    => (forall a. Index as a -> f a)
+    -> Prod f as
+pgen_ = pgen known
+

@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
@@ -14,14 +15,17 @@ import           Control.Category hiding        ((.), id)
 import           Data.Kind
 import           Data.Singletons
 import           Data.Singletons.Prelude hiding ((%:++))
-import           Data.Type.Index
+import           Data.Type.Conjunction
 import           Data.Type.Length               as TCL
 import           Data.Type.Length.Util          as TCL
 import           Data.Type.Product              as TCP
 import           Data.Type.Product.Util         as TCP
 import           Data.Type.Sing
+import           Data.Type.Vector               as TCV
 import           TensorOps.TOp                  as TO
+import           TensorOps.Tensor               as TT
 import           TensorOps.Types
+import           Type.Class.Higher
 import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
@@ -95,3 +99,72 @@ runNetwork x (N sS sO o s p) =
       . runTOp o
       $ x :< (s `TCP.append'` p)
 
+trainNetwork
+    :: Tensor t
+    => ElemT t
+    -> VecT n t '[i]
+    -> VecT n t '[o]
+    -> Network t i o
+    -> Network t i o
+trainNetwork = undefined
+
+trainNetwork1
+    :: forall t i o. (Tensor t, RealFloat (ElemT t))
+    => TOp '[ '[o], '[o] ] '[ '[] ]
+    -> ElemT t
+    -> ElemT t
+    -> t '[i]
+    -> t '[o]
+    -> Network t i o
+    -> Network t i o
+trainNetwork1 loss rP rS x y = \case
+    N (sS :: Sing ss)
+      (sO :: Sing os)
+      (o  :: TOp ('[i] ': ss ++ os) ('[o] ': ss))
+      (s  :: Prod t ss)
+      (p  :: Prod t os) -> (\\ sS) $
+                           (\\ sS %:++ sOnly SNil) $
+      let o' :: TOp ('[o] ': '[i] ': ss ++ os) '[ '[] ]
+          o' = secondOp @'[ '[o] ] o
+           >>> firstOp loss
+           >>> TO.swap' (LS LZ) (singLength sS)
+           >>> TO.drop (singLength sS)
+          inp :: Prod t ('[o] ': '[i] ': ss ++ os)
+          inp = y :< x :< s `TCP.append'` p
+          grad :: Prod t (ss ++ os)
+          grad = dropProd (LS (LS LZ))
+               $ gradTOp o' inp
+          gS :: Prod t ss
+          gP :: Prod t os
+          (gS, gP) = splitProd (singLength sS) grad
+          s' :: Prod t ss
+          s' = map1 (\(s1 :&: o1 :&: g1) -> TT.zip (stepFunc rS) o1 g1 \\ s1)
+             $ zipProd3 (singProd sS) s gS
+          p' :: Prod t os
+          p' = map1 (\(s1 :&: o1 :&: g1) -> TT.zip (stepFunc rP) o1 g1 \\ s1)
+             $ zipProd3 (singProd sO) p gP
+      in  N sS sO o s' p'
+  where
+    stepFunc :: ElemT t -> ElemT t -> ElemT t -> ElemT t
+    stepFunc r o' g' = o' - r * g'
+    {-# INLINE stepFunc #-}
+
+foop
+    :: forall i o ss os ps. ()
+    => Length ss
+    -> Length os
+    -> Length ps
+    -> TOp ('[i] ': ss ++ os) ('[o] ': ss)
+    -> TOp ('[i] ': ss ++ os ++ ps) (ss ++ ps >: '[o])
+foop lS lO lP o = (\\ appendAssoc lS lO lP                         ) $
+                  (\\ appendAssoc lS lP (LS LZ :: Length '[ '[o] ])) $
+                  (\\ appendSnoc  lP (Proxy @'[o])                 ) $
+                  (\\ lS                                           ) $
+                  (\\ lS `TCL.append'` lO                          ) $
+         firstOp @ps o
+     >>> TO.swap' (LS LZ) (lS `TCL.append'` lP)
+
+-- foop = secondOp @'[ '[o] ] o
+--  >>> firstOp loss
+--  >>> TO.swap' (LS LZ) (singLength sS)
+--  >>> TO.drop (singLength sS)

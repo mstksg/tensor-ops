@@ -270,8 +270,9 @@ learn _ dat rate layers (fromIntegral->batch) ind =
                   vscore = F.fold (validate nt') vd
               printf "Training:   %.2f%% error\n" ((1 - tscore) * 100)
               printf "Validation: %.2f%% error\n" ((1 - vscore) * 100)
-              xi' <- fmap (fromMaybe xi) . forM ind' $ \i -> do
-                  let xi' = induceNum nt' i 1 1000 xi
+              xi' <- fmap (fromMaybe undefined) . forM ind' $ \i -> do
+                  putStrLn (renderOut xi)
+                  let xi' = induceNum nt' i 1 10000 xi
                   putStrLn (renderOut xi')
                   return xi'
               trainBatch (succ b) xss nt' xi'
@@ -292,7 +293,6 @@ learn _ dat rate layers (fromIntegral->batch) ind =
         -> Network t 784 10
     trainAll = foldl' $ \nt (i,o) -> nt `deepseq`
         trainNetwork crossEntropy rate' i o nt
-        -- trainNetwork squaredError rate' i o nt
     rate' :: ElemT t
     rate' = realToFrac rate
     induceNum
@@ -335,7 +335,7 @@ renderOut = unlines
         x <- state $ splitAt 28
         lift . tell . Endo . (++) . (:[]) $
             map (render . realToFrac)
-          . concatMap (\x -> [x,x])
+          . concatMap (\y -> [y,y])
           $ x
     render :: Double -> Char
     render r | r <= 0.2  = ' '
