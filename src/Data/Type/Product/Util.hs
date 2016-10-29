@@ -41,7 +41,8 @@ instance NFData1 f => NFData1 (Prod f) where
       x :< xs -> x `deepseq1` xs `deepseq1` ()
 
 splitProd
-    :: Length ns
+    :: forall ms f ns. ()
+    => Length ns
     -> Prod f (ns ++ ms)
     -> (Prod f ns, Prod f ms)
 splitProd = \case
@@ -60,6 +61,18 @@ takeProd = \case
     LS l -> \case
       x :< xs -> x :< takeProd @ms l xs
 {-# INLINE takeProd #-}
+
+dropProd
+    :: forall ns ms f. ()
+    => Length ns
+    -> Prod f (ns ++ ms)
+    -> Prod f ms
+dropProd = \case
+    LZ   -> id
+    LS l -> \case
+      x :< xs -> dropProd l xs
+{-# INLINE dropProd #-}
+
 
 overProdInit
     :: forall os g ns ms. Length ns
@@ -80,6 +93,28 @@ prodInit lN f = case lN of
     LS lN' -> \case
       x :< xs -> prodInit @os lN' (\xs' -> f (x :< xs')) xs
 {-# INLINE prodInit #-}
+
+overProdTail
+    :: forall os g ns ms. ()
+    => Length os
+    -> (Prod g ns -> Prod g ms)
+    -> Prod g (os ++ ns)
+    -> Prod g (os ++ ms)
+overProdTail lO f = runIdentity . prodTail lO (Identity . f)
+{-# INLINE overProdTail #-}
+
+prodTail
+    :: forall os f g ns ms. Functor f
+    => Length os
+    -> (Prod g ns -> f (Prod g ms))
+    -> Prod g (os ++ ns)
+    -> f (Prod g (os ++ ms))
+prodTail lO f = case lO of
+    LZ     -> f
+    LS lO' -> \case
+      x :< xs -> (x :<) <$> prodTail lO' f xs
+{-# INLINE prodTail #-}
+
 
 overProdSplit
     :: Length ns
@@ -114,6 +149,14 @@ prodSplit' lN f = case lN of
     LS lN' -> \case
       x :< xs -> prodSplit' lN' (\(xs', ys) -> f (x :< xs', ys)) xs
 {-# INLINE prodSplit' #-}
+
+swapProd
+    :: forall as bs f. Length as
+    -> Prod f (as ++ bs)
+    -> Prod f (bs ++ as)
+swapProd lA xs = case splitProd @bs lA xs of
+    (ys,zs) -> zs `TCP.append'` ys
+{-# INLINE swapProd #-}
 
 vecToProd
     :: forall a b f g as. ()

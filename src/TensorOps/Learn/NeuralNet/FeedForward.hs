@@ -13,25 +13,26 @@
 
 module TensorOps.Learn.NeuralNet.FeedForward where
 
-import           Control.Category hiding           (id, (.))
+import           Control.Category hiding        (id, (.))
 import           Control.DeepSeq
 import           Control.Monad.Primitive
 import           Data.Kind
 import           Data.Singletons
 import           Data.Type.Conjunction
 import           Data.Type.Length
-import           Data.Type.Product                 as TCP
-import           Data.Type.Product.Util            as TCP
+import           Data.Type.Product              as TCP
+import           Data.Type.Product.Util         as TCP
 import           Data.Type.Sing
 import           Statistics.Distribution.Normal
 import           System.Random.MWC
 import           TensorOps.Learn.NeuralNet
 import           TensorOps.NatKind
-import           TensorOps.TOp                     as TO
-import           TensorOps.Tensor                  as TT
+import           TensorOps.TOp                  as TO
+import           TensorOps.Tensor               as TT
 import           TensorOps.Types
 import           Type.Class.Higher
 import           Type.Class.Higher.Util
+import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
@@ -97,25 +98,50 @@ trainNetwork
     -> Network t i o
     -> Network t i o
 trainNetwork loss r x y = \case
-    N (s :: Sing os) (o :: TOp ('[i] ': os) '[ '[o]]) (p :: Prod t os) ->
-      (\\ appendSnoc (singLength s) (Proxy @('[o]))) $
-        let o'   :: TOp ('[i] ': os >: '[o]) '[ '[]]
-            o' = (\\ singLength s) $
-                    o *>> loss
-            inp  :: Prod t ('[i] ': os >: '[o])
-            inp = x :< p >: y
-            grad :: Prod t os
-            grad = takeProd @'[ '[o] ] (singLength s)
-                 . tail'
-                 $ gradTOp o' inp
-            -- this is a bottleneck for large matrices
-            p'   :: Prod t os
-            p' = map1 (\(s1 :&: o1 :&: g1) -> (\\ s1) $ TT.zip stepFunc o1 g1)
-               $ zipProd3 (singProd s) p grad
-        in  N s o p'
+    N s o p ->
+      let p' = map1 (\(s1 :&: o1 :&: g1) -> (\\ s1) $ TT.zip stepFunc o1 g1)
+             $ zipProd3 (singProd s) p (tail' $ netGrad loss x y s o p)
+      in  N s o p'
   where
     stepFunc :: ElemT t -> ElemT t -> ElemT t
     stepFunc o' g' = o' - r * g'
+
+induceNetwork
+    :: forall i o t. (Tensor t, RealFloat (ElemT t), SingI i)
+    => TOp '[ '[o], '[o] ] '[ '[] ]
+    -> ElemT t
+    -> t '[o]
+    -> Network t i o
+    -> t '[i]
+    -> t '[i]
+induceNetwork loss r y = \case
+    N s o p -> \x -> TT.zip stepFunc x (head' $ netGrad loss x y s o p)
+  where
+    stepFunc :: ElemT t -> ElemT t -> ElemT t
+    stepFunc o' g' = o' - r * g'
+
+
+netGrad
+    :: forall i o os t. (Tensor t, RealFloat (ElemT t))
+    => TOp '[ '[o], '[o] ] '[ '[] ]
+    -> t '[i]
+    -> t '[o]
+    -> Sing os
+    -> TOp ('[i] ': os) '[ '[o] ]
+    -> Prod t os
+    -> Prod t ('[i] ': os)
+netGrad loss x y s o p = (\\ appendSnoc lO (Proxy @'[o])) $
+                         (\\ lO                         ) $
+                         takeProd @'[ '[o] ] (LS lO)
+                       $ gradTOp o' inp
+  where
+    lO  :: Length os
+    lO = singLength s
+    o'  :: ((os ++ '[ '[o] ]) ~ (os >: '[o]), Known Length os)
+        => TOp ('[i] ': os >: '[o]) '[ '[]]
+    o' = o *>> loss
+    inp  :: Prod t ('[i] ': os >: '[o])
+    inp = x :< p >: y
 
 networkGradient
     :: forall i o t r. (Tensor t, RealFloat (ElemT t))
@@ -126,18 +152,7 @@ networkGradient
     -> (forall os. SingI os => Prod t os -> r)
     -> r
 networkGradient loss x y = \case
-    N (s :: Sing os) (o :: TOp ('[i] ': os) '[ '[o]]) (p :: Prod t os) ->
-      \f -> (\\ appendSnoc (singLength s) (Proxy @('[o]))) $
-        let o'   :: TOp ('[i] ': os >: '[o]) '[ '[]]
-            o' = (\\ singLength s) $
-                    o *>> loss
-            inp  :: Prod t ('[i] ': os >: '[o])
-            inp = x :< p >: y
-            grad :: Prod t os
-            grad = takeProd @'[ '[o] ] (singLength s)
-                 . tail'
-                 $ gradTOp o' inp
-        in  f grad \\ s
+    N s o p -> \f -> f (tail' $ netGrad loss x y s o p) \\ s
 
 ffLayer
     :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t)

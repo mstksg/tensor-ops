@@ -72,7 +72,7 @@ opts :: Parser Opts
 opts = O <$> option auto
                ( long "rate" <> short 'r' <> metavar "STEP"
               <> help "Neural network learning rate"
-              <> value 0.005 <> showDefault
+              <> value 0.01 <> showDefault
                )
          <*> option auto
                ( long "layers" <> short 'l' <> metavar "LIST"

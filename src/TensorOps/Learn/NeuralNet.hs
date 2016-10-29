@@ -48,7 +48,7 @@ softmax
     => TOp '[ '[i] ] '[ '[i] ]
 softmax = TO.map exp
       >>> TO.duplicate
-      >>> TO.first (TO.sumRows >>> TO.map recip)
+      >>> firstOp (TO.sumRows >>> TO.map recip)
       >>> TO.outer LZ (LS LZ)
 
 squaredError
@@ -63,6 +63,6 @@ squaredError = TO.negate
 crossEntropy
     :: forall o. SingI o
     => TOp '[ '[o], '[o]] '[ '[] ]
-crossEntropy = TO.map log    -- TODO: try out mapping inverse log?
+crossEntropy = TO.map log
            *>> TO.dot
            >>> TO.negate

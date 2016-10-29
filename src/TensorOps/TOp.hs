@@ -187,11 +187,11 @@ scale α = TOp (only . scaleT α . TCP.head')
               (\_ -> only . scaleT α . TCP.head')
 {-# INLINE scale #-}
 
-first
-    :: forall ns ms os. (Known Length ns, Known Length ms)
-    => TOp ns ms
-    -> TOp (ns ++ os) (ms ++ os)
-first = (*** idOp @os)
+-- first
+--     :: forall os ns ms. (Known Length ns, Known Length ms)
+--     => TOp ns ms
+--     -> TOp (ns ++ os) (ms ++ os)
+-- first = (*** idOp @os)
 
 konst
     :: forall n ns. SingI n
@@ -329,3 +329,12 @@ swap = TOp (\case x :< y :< Ø -> y :< x :< Ø)
               d1 :< d2 :< Ø -> d2 :< d1 :< Ø
            )
 {-# INLINE swap #-}
+
+swap'
+    :: forall ns ms. ()
+    => Length ns
+    -> Length ms
+    -> TOp (ns ++ ms) (ms ++ ns)
+swap' lN lM = shuffleF (swapProd @ns @ms lN)
+                       (swapProd @ms @ns lM)
+{-# INLINE swap' #-}

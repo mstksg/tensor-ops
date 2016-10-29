@@ -25,7 +25,7 @@ library
                        TensorOps.Backend.NTensor
                        TensorOps.Learn.NeuralNet
                        TensorOps.Learn.NeuralNet.FeedForward
-                       -- TensorOps.Learn.NeuralNet.Recurrent
+                       TensorOps.Learn.NeuralNet.Recurrent
                        TensorOps.NatKind
                        TensorOps.TOp
                        TensorOps.Tensor

@@ -183,6 +183,26 @@ firstOp (TOp f g) = TOp f' g'
     {-# INLINE g' #-}
 {-# INLINE firstOp #-}
 
+secondOp
+    :: forall os ns ms. Known Length os
+    => TOp ns ms
+    -> TOp (os ++ ns) (os ++ ms)
+secondOp (TOp f g) = TOp f' g'
+  where
+    f'  :: forall t. (Tensor t, RealFloat (ElemT t))
+        => Prod t (os ++ ns)
+        -> Prod t (os ++ ms)
+    f' = overProdTail @os known f
+    {-# INLINE f' #-}
+    g'  :: forall t. (Tensor t, RealFloat (ElemT t))
+        => Prod t (os ++ ns)
+        -> Prod t (os ++ ms)
+        -> Prod t (os ++ ns)
+    g' (dropProd @os known -> xs) = overProdTail @os known (g xs)
+    {-# INLINE g' #-}
+{-# INLINE secondOp #-}
+
+
 (*>>)
     :: forall as bs cs ds. (Known Length as, Known Length bs)
     => TOp as bs
