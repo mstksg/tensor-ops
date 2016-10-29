@@ -34,11 +34,13 @@ instance Every NFData (f <$> as) => NFData (Prod f as) where
     rnf = \case
       Ø       -> ()
       x :< xs -> x `deepseq` xs `deepseq` ()
+    {-# INLINE rnf #-}
 
 instance NFData1 f => NFData1 (Prod f) where
     rnf1 = \case
       Ø       -> ()
       x :< xs -> x `deepseq1` xs `deepseq1` ()
+    {-# INLINE rnf1 #-}
 
 splitProd
     :: forall ms f ns. ()
@@ -175,6 +177,8 @@ vecToProd f = go
         ØV      -> Ø
       US uB -> \case
         x :* xs -> f x :< go uB xs
+    {-# INLINE go #-}
+{-# INLINE vecToProd #-}
 
 prodToVec
     :: forall a b as f g. ()
@@ -193,6 +197,8 @@ prodToVec f = go
         Ø       -> ØV
       US u -> \case
         x :< xs -> f x :* prodToVec f u xs
+    {-# INLINE go #-}
+{-# INLINE prodToVec #-}
 
 unselect
     :: forall as bs f. (Known Length as, Known Length bs)
@@ -223,6 +229,7 @@ unselect is xs = go indices
             k :< ks -> case testEquality i k of
               Just Refl -> Just j
               Nothing   -> go' js ks
+{-# INLINE unselect #-}
 
 replicate
     :: forall a f as. ()
@@ -237,6 +244,8 @@ replicate x = go
     go = \case
       UØ   -> Ø
       US u -> x :< go u
+    {-# INLINE go #-}
+{-# INLINE replicate #-}
 
 zipProd
     :: Prod f as
@@ -247,6 +256,7 @@ zipProd = \case
       Ø -> Ø
     x :< xs -> \case
       y :< ys -> (x :&: y) :< zipProd xs ys
+{-# INLINE zipProd #-}
 
 zipProd3
     :: Prod f as
@@ -260,6 +270,7 @@ zipProd3 = \case
     x :< xs -> \case
       y :< ys -> \case
         z :< zs -> (x :&: y :&: z) :< zipProd3 xs ys zs
+{-# INLINE zipProd3 #-}
 
 
 zipProdWith
@@ -326,6 +337,7 @@ prodLength
 prodLength = \case
     Ø       -> LZ
     _ :< xs -> LS (prodLength xs)
+{-# INLINE prodLength #-}
 
 
 -- reverse'Help

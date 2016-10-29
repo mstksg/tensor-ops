@@ -46,6 +46,7 @@ data Network :: ([k] -> Type) -> k -> k -> Type where
 instance NFData1 t => NFData (Network t i o) where
     rnf = \case
       N _ _ p -> p `deepseq1` ()
+    {-# INLINE rnf #-}
 
 netParams
     :: Network t i o
@@ -62,18 +63,21 @@ N sOs1 o1 p1 ~*~ N sOs2 o2 p2 =
     N (sOs1 %:++ sOs2) (o1 *>> o2) (p1 `TCP.append'` p2)
         \\ singLength sOs1
 infixr 4 ~*~
+{-# INLINE (~*~) #-}
 
 (~*) :: TOp '[ '[a] ] '[ '[b] ]
      -> Network t b c
      -> Network t a c
 f ~* N sO o p = N sO (f *>> o) p
 infixr 4 ~*
+{-# INLINE (~*) #-}
 
 (*~) :: Network t a b
      -> TOp '[ '[b] ] '[ '[c] ]
      -> Network t a c
 N sO o p *~ f = N sO (o >>> f) p
 infixl 5 *~
+{-# INLINE (*~) #-}
 
 nmap
      :: SingI o
@@ -81,6 +85,7 @@ nmap
      -> Network t i o
      -> Network t i o
 nmap f n = n *~ TO.map f
+{-# INLINE nmap #-}
 
 runNetwork
     :: (RealFloat (ElemT t), Tensor t)
@@ -88,6 +93,7 @@ runNetwork
     -> t '[i]
     -> t '[o]
 runNetwork (N _ o p) = head' . runTOp o . (:< p)
+{-# INLINE runNetwork #-}
 
 trainNetwork
     :: forall i o t. (Tensor t, RealFloat (ElemT t))
@@ -105,6 +111,8 @@ trainNetwork loss r x y = \case
   where
     stepFunc :: ElemT t -> ElemT t -> ElemT t
     stepFunc o' g' = o' - r * g'
+    {-# INLINE stepFunc #-}
+{-# INLINE trainNetwork #-}
 
 induceNetwork
     :: forall i o t. (Tensor t, RealFloat (ElemT t), SingI i)
@@ -119,7 +127,20 @@ induceNetwork loss r y = \case
   where
     stepFunc :: ElemT t -> ElemT t -> ElemT t
     stepFunc o' g' = o' - r * g'
+    {-# INLINE stepFunc #-}
+{-# INLINE induceNetwork #-}
 
+networkGradient
+    :: forall i o t r. (Tensor t, RealFloat (ElemT t))
+    => TOp '[ '[o], '[o] ] '[ '[] ]
+    -> t '[i]
+    -> t '[o]
+    -> Network t i o
+    -> (forall os. SingI os => Prod t os -> r)
+    -> r
+networkGradient loss x y = \case
+    N s o p -> \f -> f (tail' $ netGrad loss x y s o p) \\ s
+{-# INLINE networkGradient #-}
 
 netGrad
     :: forall i o os t. (Tensor t, RealFloat (ElemT t))
@@ -142,17 +163,7 @@ netGrad loss x y s o p = (\\ appendSnoc lO (Proxy @'[o])) $
     o' = o *>> loss
     inp  :: Prod t ('[i] ': os >: '[o])
     inp = x :< p >: y
-
-networkGradient
-    :: forall i o t r. (Tensor t, RealFloat (ElemT t))
-    => TOp '[ '[o], '[o] ] '[ '[] ]
-    -> t '[i]
-    -> t '[o]
-    -> Network t i o
-    -> (forall os. SingI os => Prod t os -> r)
-    -> r
-networkGradient loss x y = \case
-    N s o p -> \f -> f (tail' $ netGrad loss x y s o p) \\ s
+{-# INLINE netGrad #-}
 
 ffLayer
     :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t)
@@ -167,6 +178,8 @@ ffLayer g = (\w b -> N sing ffLayer' (w :< b :< Ø))
     ffLayer' = TO.swap
            >>> TO.inner (LS LZ) LZ
            *>> TO.add
+    {-# INLINE ffLayer' #-}
+{-# INLINE ffLayer #-}
 
 genNet
     :: forall k o i m (t :: [k] -> Type). (SingI o, SingI i, PrimMonad m, Tensor t)
@@ -186,4 +199,6 @@ genNet xs0 f g = go sing xs0
         n <- go sl xs
         l <- ffLayer g
         return $ l *~ getAct f' ~*~ n
+    {-# INLINE go #-}
+{-# INLINE genNet #-}
 

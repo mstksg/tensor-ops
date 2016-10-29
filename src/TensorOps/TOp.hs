@@ -29,7 +29,6 @@ import           Numeric.AD
 import           Prelude hiding                  (map, replicate, zip, negate, (.), id)
 import           TensorOps.Types as T hiding     (gmul)
 import           Type.Class.Higher
-import           Type.Class.Known
 import           Type.Class.Witness hiding       (inner)
 import           Type.Family.List
 import           Type.Family.List.Util
@@ -37,32 +36,6 @@ import           Type.Family.Nat
 import qualified Data.Type.Product.Util          as TCP
 import qualified TensorOps.Tensor                as TT
 import qualified TensorOps.Types                 as T
-
--- -- | Lift any `R^N -> R^M` function over every element in a n-tensor list,
--- -- producing a m-tensor list.
--- liftOp
---     :: SingI o
---     => Uniform o ns
---     -> Uniform o ms
---     -> Vec (Len ms) (VFunc (Len ns))
---     -> TOp ns ms
--- liftOp = \case
---     UØ -> \case
---       UØ     -> \ØV ->
---         TOp (\_   -> Ø)
---             (\_ _ -> Ø)
---       m@(US _) -> \fs ->
---         TOp (\_   -> vecToProd getI m $
---                       TT.konst . ($ ØV) . vfFunc <$> fs
---             )
---             (\_ _ -> Ø)
---     n@(US _) -> \case
---       UØ    -> \ØV ->
---         TOp (\_   -> Ø                           )
---             (\_ _ -> TCP.replicate (TT.konst 0) n)
---       m@(US _) -> \fs ->
---         TOp (vecToProd getI m . liftT (vfFunc <$> fs) . prodToVec I n)
---             (\x -> vecToProd getI n . TT.gradLift fs (prodToVec I n x) . prodToVec I m)
 
 -- | Lift any `R^N -> R^M` function over every element in a n-tensor list,
 -- producing a m-tensor list.
@@ -78,6 +51,7 @@ liftOp = \case
     n@(US _) -> \f ->
         TOp (only . liftT (vfFunc f) . prodToVec I n)
             (\x -> vecToProd getI n . TT.gradLift f (prodToVec I n x) . TCP.head')
+{-# INLINE liftOp #-}
 
 gmul
     :: forall ms os ns. (SingI (Reverse os ++ ns), SingI (ms ++ ns), SingI (ms ++ os))
@@ -117,6 +91,7 @@ gmul lM lO lN = TOp f g
                             \\ entailCatRev lM lO
                          )
                       :< Ø
+{-# INLINE gmul #-}
 
 -- TODO: allow for arbitrary permutation
 transpOp
@@ -126,6 +101,7 @@ transpOp
 transpOp lN = TOp (only . transp . TCP.head')
                   (\_ -> only . transp . TCP.head')
     \\ reverseReverse lN
+{-# INLINE transpOp #-}
 
 shuffle
     :: forall ns ms. SingI ns
@@ -152,6 +128,7 @@ shuffle is = TOp (TCP.select is) (\_ -> gr)
               Just Refl -> [d]
               Nothing   -> []
     {-# INLINE gr #-}
+{-# INLINE shuffle #-}
 
 shuffleF
     :: forall ns ms. ()
@@ -169,6 +146,7 @@ sumRows = TOp (only . T.sumRows . TCP.head')
                   x :< Ø -> \case
                     dtdz :< Ø -> only $ mapRows (LS LZ) (\_ -> dtdz) x
               )
+{-# INLINE sumRows #-}
 
 sumOp
     :: SingI n
@@ -178,6 +156,7 @@ sumOp u = TOp (only . sumT . toList . prodToVec I u)
               (\xs -> \case
                   dtdz :< Ø -> mapUniform u (\_ -> dtdz) xs
               )
+{-# INLINE sumOp #-}
 
 scale
     :: SingI ns
@@ -200,9 +179,11 @@ konst
     -> TOp '[] ns
 konst u x = TOp (\_ -> TCP.replicate (TT.konst x) u)
                 (\_ _ -> Ø)
+{-# INLINE konst #-}
 
 negate :: SingI ns => TOp '[ns] '[ns]
 negate = scale (-1)
+{-# INLINE negate #-}
 
 map' :: SingI n
       => (forall a. RealFloat a => a -> a)
@@ -317,6 +298,7 @@ outer
     -> TOp '[ms, ns] '[ ms ++ ns ]
 outer lM lN = gmul lM LZ lN
                 \\ appendNil lM
+{-# INLINE outer #-}
 
 dot :: SingI m
     => TOp '[ '[m], '[m] ] '[ '[] ]

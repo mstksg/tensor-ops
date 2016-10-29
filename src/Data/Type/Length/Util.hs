@@ -32,18 +32,21 @@ append'
 append' = \case
     LZ   -> id
     LS l -> LS . append' l
+{-# INLINE append' #-}
 
 cons
     :: Proxy a
     -> Length as
     -> Length (a ': as)
 cons _ = LS
+{-# INLINE cons #-}
 
 tail'
     :: Length (n ': ns)
     -> Length ns
 tail' = \case
     LS l -> l
+{-# INLINE tail' #-}
 
 -- TODO: could PROBABLY just be unsafeCoerce?
 reverse'
@@ -87,14 +90,18 @@ snocLengthHelp lB sB = \case
   where
     p :: forall c cs. Length (c ': cs) -> Proxy c
     p _ = Proxy
+    {-# INLINE p #-}
     l :: forall c cs. Length (c ': cs) -> Length '[c]
     l _ = LS LZ
+    {-# INLINE l #-}
+{-# INLINE snocLengthHelp #-}
 
 -- | could this be unsafeCoerce?
 snocLength
     :: Length as
     -> SnocLength as
 snocLength l = snocLengthHelp LZ SnocZ l
+{-# INLINE snocLength #-}
 
 -- | could just be unsafeCoerce lol
 snocLengthLength
@@ -103,6 +110,7 @@ snocLengthLength
 snocLengthLength = \case
     SnocZ     -> LZ
     SnocS l s -> snocLengthLength l >: s
+{-# INLINE snocLengthLength #-}
 
 snocLengthReverse
     :: SnocLength as
@@ -112,6 +120,7 @@ snocLengthReverse = \case
     SnocS (s :: SnocLength bs) (p :: Proxy b) ->
       LS (snocLengthReverse s)
         \\ snocReverse (snocLengthLength s) p
+{-# INLINE snocLengthReverse #-}
 
 -- | A @'MaxLength' n as@ is a witness that the list @as@ has a length of
 -- at most @n@.
@@ -149,6 +158,8 @@ splitting = \case
     x :< xs -> case splitting n xs of
       Fewer m xs'    -> Fewer (MLS m) (x :< xs')
       Split e xs' ys -> Split (ELS e) (x :< xs') ys
+{-# INLINE splitting #-}
+
 
 maxLength
     :: Nat n
@@ -164,6 +175,7 @@ maxLength = \case
       Proved m    -> Proved (MLS m)
       Disproved r -> Disproved $ \case
         MLS m -> r m
+{-# INLINE maxLength #-}
 
 exactLength
     :: Nat n
@@ -179,6 +191,7 @@ exactLength = \case
       Proved e    -> Proved (ELS e)
       Disproved r -> Disproved $ \case
         ELS e -> r e
+{-# INLINE exactLength #-}
 
 fromMaxLength
     :: MaxLength n as
@@ -186,6 +199,7 @@ fromMaxLength
 fromMaxLength = \case
     MLZ   -> LZ
     MLS m -> LS (fromMaxLength m)
+{-# INLINE fromMaxLength #-}
 
 fromExactLength
     :: ExactLength n as
@@ -193,6 +207,7 @@ fromExactLength
 fromExactLength = \case
     ELZ   -> LZ
     ELS m -> LS (fromExactLength m)
+{-# INLINE fromExactLength #-}
 
 weakenExactLength
     :: ExactLength n as
@@ -200,6 +215,7 @@ weakenExactLength
 weakenExactLength = \case
   ELZ   -> MLZ
   ELS e -> MLS (weakenExactLength e)
+{-# INLINE weakenExactLength #-}
 
 weakenMaxLength
     :: (n :<=: m)
@@ -211,6 +227,7 @@ weakenMaxLength = \case
     LTES l -> \case
       MLZ   -> MLZ
       MLS s -> MLS (weakenMaxLength l s)
+{-# INLINE weakenMaxLength #-}
 
 data SplittingEnd :: N -> ([k] -> Type) -> [k] -> Type where
     FewerEnd
@@ -237,6 +254,7 @@ splittingEnd n xs = case splitting n xs of
           Left  e  -> SplitEnd e  (y :< Ø ) zs
           Right m' -> FewerEnd m' (y :< zs)
         SplitEnd e ys' zs -> SplitEnd e (y :< ys') zs
+{-# INLINE splittingEnd #-}
 
 consMaxLength
     :: Nat n
@@ -250,6 +268,7 @@ consMaxLength = \case
       MLS m -> case consMaxLength n m of
         Left e   -> Left  (ELS e)
         Right m' -> Right (MLS m')
+{-# INLINE consMaxLength #-}
 
 commuteProd
     :: Length as
@@ -263,6 +282,7 @@ commuteProd = \case
       x :< xs -> \ys ->
         case commuteProd lA lC xs ys of
           (xs', ys') -> (x :< xs', ys')
+{-# INLINE commuteProd #-}
 
 lengthProd
     :: Length as
@@ -270,3 +290,4 @@ lengthProd
 lengthProd = \case
     LZ   -> Ø
     LS l -> Proxy :< lengthProd l
+{-# INLINE lengthProd #-}
