@@ -16,46 +16,57 @@
 </span><a name="line-16"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#netParams"><span class="hs-identifier hs-var">netParams</span></a><span>
 </span><a name="line-17"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#runNetwork"><span class="hs-identifier hs-var">runNetwork</span></a><span>
 </span><a name="line-18"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#runNetworkSt"><span class="hs-identifier hs-var">runNetworkSt</span></a><span>
-</span><a name="line-19"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#~%2A~"><span class="hs-operator hs-var">~*~</span></a><span class="hs-special">)</span><span>
-</span><a name="line-20"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#%2A~"><span class="hs-operator hs-var">*~</span></a><span class="hs-special">)</span><span>
-</span><a name="line-21"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#~%2A"><span class="hs-operator hs-var">~*</span></a><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#nmap"><span class="hs-identifier hs-var">nmap</span></a><span>
-</span><a name="line-23"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#trainNetwork"><span class="hs-identifier hs-var">trainNetwork</span></a><span>
-</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#networkGradient"><span class="hs-identifier hs-var">networkGradient</span></a><span>
-</span><a name="line-25"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-26"></a><span>
-</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Category</span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-var">.</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">id</span><span class="hs-special">)</span><span>
-</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">DeepSeq</span><span>
-</span><a name="line-29"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span class="hs-operator">.</span><span class="hs-identifier">State</span><span>
-</span><a name="line-30"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
-</span><a name="line-31"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
-</span><a name="line-32"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
-</span><a name="line-33"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Conjunction</span><span>
-</span><a name="line-34"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCL</span><span>
-</span><a name="line-35"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Length.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>   </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCL</span><span>
-</span><a name="line-36"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
-</span><a name="line-37"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span>       </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCP</span><span>
-</span><a name="line-38"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Product.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCP</span><span>
-</span><a name="line-39"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Sing.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Sing</span></a><span>
-</span><a name="line-40"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Uniform.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Uniform</span></a><span>
-</span><a name="line-41"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
-</span><a name="line-42"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Vector.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>   </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
-</span><a name="line-43"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.TOp.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">TOp</span></a><span>           </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TO</span><span>
-</span><a name="line-44"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Tensor.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Tensor</span></a><span>        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TT</span><span>
-</span><a name="line-45"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Types.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span></a><span>
-</span><a name="line-46"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span>
-</span><a name="line-47"></a><span class="hs-keyword">import</span><span>           </span><a href="Type.Class.Higher.Util.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
-</span><a name="line-48"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Known</span><span>
-</span><a name="line-49"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
-</span><a name="line-50"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
-</span><a name="line-51"></a><span class="hs-keyword">import</span><span>           </span><a href="Type.Family.List.Util.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
-</span><a name="line-52"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
-</span><a name="line-53"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Unsafe</span><span class="hs-operator">.</span><span class="hs-identifier">Coerce</span><span>
-</span><a name="line-54"></a><span>
-</span><a name="line-55"></a><span class="hs-keyword">data</span><span> </span><a name="Network"><a href="TensorOps.Learn.NeuralNet.Recurrent.html#Network"><span class="hs-identifier">Network</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><a href="#local-1627968237"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627968237"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627968237"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-56"></a><span>    </span><a name="N"><a href="TensorOps.Learn.NeuralNet.Recurrent.html#N"><span class="hs-identifier">N</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">{</span><span> </span><a name="_nsSs"><a href="TensorOps.Learn.NeuralNet.Recurrent.html#_nsSs"><span class="hs-identifier">_nsSs</span></a></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Sing</span><span> </span><a href="#local-1627968238"><span class="hs-identifier hs-type">ss</span></a><span class="hs-special">)</span><span>
-</span><a name="line-57"></a><span>         </span><span class="hs-special">,</span><span> </span><a name="_nsPs"><a href="TensorOps.Learn.NeuralNet.Recurrent.html#_nsPs"><span class="hs-identifier">_nsPs</span></a></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Sing</span><span> </span><a href="#local-1627968239"><span class="hs-identifier hs-type">ps</span></a><span class="hs-special">)</span><span>
-</span><a name="line-58"></a><span>         </span><span class="hs-special">,</span><span> </span><a name="_nOp"><a href="TensorOps.Learn.NeuralNet.Recurrent.html#_nOp"><span class="hs-identifier">_nOp</span></a></a><span>     </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><a href="TensorOps.Types.html#TOp"><span class="hs-identifier hs-type">TOp</span></a><span> </span><span class="hs-special">(</span><span class="hs-char">'[i] ': ss ++ ps) ('[o] ': ss))
+</span><a name="line-19"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#genNet"><span class="hs-identifier hs-var">genNet</span></a><span>
+</span><a name="line-20"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#fullyConnected"><span class="hs-identifier hs-var">fullyConnected</span></a><span>
+</span><a name="line-21"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#ffLayer"><span class="hs-identifier hs-var">ffLayer</span></a><span>
+</span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#stateless"><span class="hs-identifier hs-var">stateless</span></a><span>
+</span><a name="line-23"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#~%2A~"><span class="hs-operator hs-var">~*~</span></a><span class="hs-special">)</span><span>
+</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#%2A~"><span class="hs-operator hs-var">*~</span></a><span class="hs-special">)</span><span>
+</span><a name="line-25"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#~%2A"><span class="hs-operator hs-var">~*</span></a><span class="hs-special">)</span><span>
+</span><a name="line-26"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#nmap"><span class="hs-identifier hs-var">nmap</span></a><span>
+</span><a name="line-27"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#trainNetwork"><span class="hs-identifier hs-var">trainNetwork</span></a><span>
+</span><a name="line-28"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.Recurrent.html#networkGradient"><span class="hs-identifier hs-var">networkGradient</span></a><span>
+</span><a name="line-29"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-30"></a><span>
+</span><a name="line-31"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Category</span><span> </span><span class="hs-keyword">hiding</span><span>               </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-var">.</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">id</span><span class="hs-special">)</span><span>
+</span><a name="line-32"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">DeepSeq</span><span>
+</span><a name="line-33"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span class="hs-operator">.</span><span class="hs-identifier">Primitive</span><span>
+</span><a name="line-34"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span class="hs-operator">.</span><span class="hs-identifier">State</span><span>
+</span><a name="line-35"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
+</span><a name="line-36"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
+</span><a name="line-37"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">Prelude</span><span>               </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Sing</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-38"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
+</span><a name="line-39"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Conjunction</span><span>
+</span><a name="line-40"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>                      </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCL</span><span>
+</span><a name="line-41"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Length.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>                 </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCL</span><span>
+</span><a name="line-42"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-43"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span>                     </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCP</span><span>
+</span><a name="line-44"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Product.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>                </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCP</span><span>
+</span><a name="line-45"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Sing.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Sing</span></a><span>
+</span><a name="line-46"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Uniform.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Uniform</span></a><span>
+</span><a name="line-47"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>                      </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
+</span><a name="line-48"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Vector.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>                 </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
+</span><a name="line-49"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Statistics</span><span class="hs-operator">.</span><span class="hs-identifier">Distribution</span><span class="hs-operator">.</span><span class="hs-identifier">Normal</span><span>
+</span><a name="line-50"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">System</span><span class="hs-operator">.</span><span class="hs-identifier">Random</span><span class="hs-operator">.</span><span class="hs-identifier">MWC</span><span>
+</span><a name="line-51"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Learn.NeuralNet.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Learn</span><span class="hs-operator">.</span><span class="hs-identifier">NeuralNet</span></a><span>
+</span><a name="line-52"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.NatKind.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">NatKind</span></a><span>
+</span><a name="line-53"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.TOp.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">TOp</span></a><span>                         </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TO</span><span>
+</span><a name="line-54"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Tensor.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Tensor</span></a><span>                      </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TT</span><span>
+</span><a name="line-55"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Types.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span></a><span>
+</span><a name="line-56"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span>
+</span><a name="line-57"></a><span class="hs-keyword">import</span><span>           </span><a href="Type.Class.Higher.Util.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-58"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Known</span><span>
+</span><a name="line-59"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
+</span><a name="line-60"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
+</span><a name="line-61"></a><span class="hs-keyword">import</span><span>           </span><a href="Type.Family.List.Util.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-62"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-63"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Unsafe</span><span class="hs-operator">.</span><span class="hs-identifier">Coerce</span><span>
+</span><a name="line-64"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="TensorOps.Learn.NeuralNet.FeedForward.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Learn</span><span class="hs-operator">.</span><span class="hs-identifier">NeuralNet</span><span class="hs-operator">.</span><span class="hs-identifier">FeedForward</span></a><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">FF</span><span>
+</span><a name="line-65"></a><span>
+</span><a name="line-66"></a><span class="hs-keyword">data</span><span> </span><a name="Network"><a href="TensorOps.Learn.NeuralNet.Recurrent.html#Network"><span class="hs-identifier">Network</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><a href="#local-1627971404"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627971404"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627971404"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-67"></a><span>    </span><a name="N"><a href="TensorOps.Learn.NeuralNet.Recurrent.html#N"><span class="hs-identifier">N</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">{</span><span> </span><a name="_nsSs"><a href="TensorOps.Learn.NeuralNet.Recurrent.html#_nsSs"><span class="hs-identifier">_nsSs</span></a></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Sing</span><span> </span><a href="#local-1627971405"><span class="hs-identifier hs-type">ss</span></a><span class="hs-special">)</span><span>
+</span><a name="line-68"></a><span>         </span><span class="hs-special">,</span><span> </span><a name="_nsPs"><a href="TensorOps.Learn.NeuralNet.Recurrent.html#_nsPs"><span class="hs-identifier">_nsPs</span></a></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Sing</span><span> </span><a href="#local-1627971406"><span class="hs-identifier hs-type">ps</span></a><span class="hs-special">)</span><span>
+</span><a name="line-69"></a><span>         </span><span class="hs-special">,</span><span> </span><a name="_nOp"><a href="TensorOps.Learn.NeuralNet.Recurrent.html#_nOp"><span class="hs-identifier">_nOp</span></a></a><span>     </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><a href="TensorOps.Types.html#TOp"><span class="hs-identifier hs-type">TOp</span></a><span> </span><span class="hs-special">(</span><span class="hs-char">'[i] ': ss ++ ps) ('[o] ': ss))
          , _nState  :: !(Prod t ss)
          , _nParams :: !(Prod t ps)
          } -&gt; Network t i o
@@ -73,12 +84,86 @@ netParams = \case
     N sS sP _ s p -&gt; \f -&gt; f s p \\ sS \\ sP
 
 buildNet
-    :: (SingI ss, SingI ps)
-    =&gt; TOp ('[i] ': ss ++ ps) ('[o] ': ss)
-    -&gt; Prod t ss
-    -&gt; Prod t ps
+    :: forall ss ps i o t. (SingI ss, SingI ps)
+    =&gt; TOp ('[i] ': ss ++ ps) ('[o] ': ss)  -- ^ Tensor operation for network
+    -&gt; Prod t ss        -- ^ Initial states
+    -&gt; Prod t ps        -- ^ Network parameters
     -&gt; Network t i o
 buildNet = N sing sing
+
+fullyConnected
+    :: forall k (i :: k) (o :: k) (m :: Type -&gt; Type) (t :: [k] -&gt; Type).
+     ( SingI i
+     , SingI o
+     , PrimMonad m
+     , Tensor t
+     )
+    =&gt; Activation k         -- ^ Activation function for internal state
+    -&gt; Gen (PrimState m)
+    -&gt; m (Network t i o)
+fullyConnected a g = (\s w w' b -&gt; buildNet @'[ '[o] ] @'[ '[o,o], '[o,i], '[o] ]
+                                     fc (s :&lt; &#216;) (w' :&lt; w :&lt; b :&lt; &#216;)
+                     )
+          &lt;$&gt; genRand (normalDistr 0 0.5) g
+          &lt;*&gt; genRand (normalDistr 0 0.5) g
+          &lt;*&gt; genRand (normalDistr 0 0.5) g
+          &lt;*&gt; genRand (normalDistr 0 0.5) g
+  where
+    fc  :: TOp '[ '[i], '[o], [o,o], '[o,i], '[o]] '[ '[o], '[o] ]
+    fc = secondOp @'[ '[i] ] (
+           firstOp @'[ '[o,i], '[o] ] (TO.swap &gt;&gt;&gt; TO.inner (LS LZ) LZ)
+       &gt;&gt;&gt; firstOp @'[ '[o] ]         TO.swap
+         )
+     &gt;&gt;&gt; firstOp @'[ '[o], '[o] ] (
+           TO.swap
+       &gt;&gt;&gt; TO.inner (LS LZ) LZ
+         )
+     &gt;&gt;&gt; TO.add3
+     &gt;&gt;&gt; TO.duplicate
+     &gt;&gt;&gt; secondOp @'[ '[o] ] (getAct a)
+    {-# INLINE fc #-}
+{-# INLINE fullyConnected #-}
+
+stateless
+    :: FF.Network t i o
+    -&gt; Network t i o
+stateless = \case
+    FF.N sP o p -&gt; N SNil sP o &#216; p
+{-# INLINE stateless #-}
+
+ffLayer
+    :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t)
+    =&gt; Gen (PrimState m)
+    -&gt; m (Network t i o)
+ffLayer g = stateless &lt;$&gt; FF.ffLayer g
+{-# INLINE ffLayer #-}
+
+genNet
+    :: forall k o i m (t :: [k] -&gt; Type). (SingI o, SingI i, PrimMonad m, Tensor t)
+    =&gt; [(Integer, (Activation k, Maybe (Activation k)))]
+    -&gt; Activation k
+    -&gt; Maybe (Activation k)
+    -&gt; Gen (PrimState m)
+    -&gt; m (Network t i o)
+genNet xs0 f fS g = go sing xs0
+  where
+    go  :: forall (j :: k). ()
+        =&gt; Sing j
+        -&gt; [(Integer, (Activation k, Maybe (Activation k)))]
+        -&gt; m (Network t j o)
+    go sj = (\\ sj) $ \case
+      []        -&gt; fmap (*~ getAct f) $ case fS of
+        Just fS' -&gt; fullyConnected fS' g
+        Nothing  -&gt; ffLayer g
+      (x,(f', fS')):xs -&gt; withNatKind x $ \sl -&gt; (\\ sl) $ do
+        n &lt;- go sl xs
+        l &lt;- case fS' of
+          Nothing   -&gt; ffLayer g
+          Just fS'' -&gt; fullyConnected fS'' g
+        return $ l *~ getAct f' ~*~ n
+    {-# INLINE go #-}
+{-# INLINE genNet #-}
+
 
 (~*~)
     :: forall k (t :: [k] -&gt; Type) a b c. ()
@@ -237,11 +322,11 @@ trainNetwork
      , SingI i
      , SingI o
      )
-    =&gt; TOp '[ '[o], '[o] ] '[ ('[] :: [k]) ]
-    -&gt; ElemT t
-    -&gt; ElemT t
-    -&gt; Vec n (t '[i])
-    -&gt; Vec n (t '[o])
+    =&gt; TOp '[ '[o], '[o] ] '[ ('[] :: [k]) ]    -- ^ loss function (input, target)
+    -&gt; ElemT t          -- ^ train rate for initial state
+    -&gt; ElemT t          -- ^ train rate for network parameters
+    -&gt; Vec n (t '[i])   -- ^ inputs
+    -&gt; Vec n (t '[o])   -- ^ targets
     -&gt; Network t i o
     -&gt; Network t i o
 trainNetwork loss rS rP xs ys = \case
@@ -267,9 +352,9 @@ networkGradient
      , SingI i
      , SingI o
      )
-    =&gt; TOp '[ '[o], '[o] ] '[ ('[] :: [k]) ]
-    -&gt; Vec n (t '[i])
-    -&gt; Vec n (t '[o])
+    =&gt; TOp '[ '[o], '[o] ] '[ ('[] :: [k]) ]    -- ^ loss function (output, target)
+    -&gt; Vec n (t '[i])       -- ^ inputs
+    -&gt; Vec n (t '[o])       -- ^ targets
     -&gt; Network t i o
     -&gt; (forall ss ps. (SingI ss, SingI ps) =&gt; Vec n (t '[i]) -&gt; Prod t ss -&gt; Prod t ps -&gt; r)
     -&gt; r

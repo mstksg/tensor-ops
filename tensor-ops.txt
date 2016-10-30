@@ -318,6 +318,7 @@ negate :: SingI ns => TOp '[ns] '[ns]
 map' :: SingI n => (forall a. RealFloat a => a -> a) -> (forall a. RealFloat a => a -> a) -> TOp '[n] '[n]
 map :: SingI n => (forall a. RealFloat a => a -> a) -> TOp '[n] '[n]
 add :: SingI n => TOp '[n, n] '[n]
+add3 :: SingI n => TOp '[n, n, n] '[n]
 zipN' :: SingI n => Uniform n ns -> (forall a. RealFloat a => Vec (Len ns) a -> a) -> (forall a. RealFloat a => Vec (Len ns) a -> Vec (Len ns) a) -> TOp ns '[n]
 zipN :: SingI n => Uniform n ns -> (forall a. RealFloat a => Vec (Len ns) a -> a) -> TOp ns '[n]
 zip' :: SingI n => (forall a. RealFloat a => a -> a -> a) -> (forall a. RealFloat a => a -> a -> (a, a)) -> TOp '[n, n] '[n]
@@ -370,10 +371,14 @@ instance forall k (t :: [k] -> *) (i :: k) (o :: k). Type.Class.Higher.Util.NFDa
 
 module TensorOps.Learn.NeuralNet.Recurrent
 data Network :: ([k] -> Type) -> k -> k -> Type
-buildNet :: (SingI ss, SingI ps) => TOp ('[i] : (ss ++ ps)) ('[o] : ss) -> Prod t ss -> Prod t ps -> Network t i o
+buildNet :: forall ss ps i o t. (SingI ss, SingI ps) => TOp ('[i] : (ss ++ ps)) ('[o] : ss) -> Prod t ss -> Prod t ps -> Network t i o
 netParams :: Network t i o -> (forall ss ps. (SingI ss, SingI ps) => Prod t ss -> Prod t ps -> r) -> r
 runNetwork :: (RealFloat (ElemT t), Tensor t) => Network t i o -> t '[i] -> (t '[o], Network t i o)
 runNetworkSt :: (RealFloat (ElemT t), Tensor t, MonadState (Network t i o) m) => t '[i] -> m (t '[o])
+genNet :: forall k o i m (t :: [k] -> Type). (SingI o, SingI i, PrimMonad m, Tensor t) => [(Integer, (Activation k, Maybe (Activation k)))] -> Activation k -> Maybe (Activation k) -> Gen (PrimState m) -> m (Network t i o)
+fullyConnected :: forall k (i :: k) (o :: k) (m :: Type -> Type) (t :: [k] -> Type). (SingI i, SingI o, PrimMonad m, Tensor t) => Activation k -> Gen (PrimState m) -> m (Network t i o)
+ffLayer :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t) => Gen (PrimState m) -> m (Network t i o)
+stateless :: Network t i o -> Network t i o
 (~*~) :: forall k (t :: [k] -> Type) a b c. Network t a b -> Network t b c -> Network t a c
 infixr 4 ~*~
 (*~) :: Network t a b -> TOp '['[b]] '['[c]] -> Network t a c
