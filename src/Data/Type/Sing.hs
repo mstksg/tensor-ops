@@ -17,7 +17,7 @@ module Data.Type.Sing where
 import           Data.Bifunctor
 import           Data.Kind
 import           Data.Singletons
-import           Data.Singletons.Prelude.List hiding (Length, Reverse, sReverse, Head, (%:++))
+import           Data.Singletons.Prelude.List hiding (Length, Reverse, sReverse, Head, (%:++), Replicate)
 import           Data.Type.Index
 import           Data.Type.Length
 import           Data.Type.Nat
@@ -27,6 +27,7 @@ import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.Constraint
 import           Type.Family.List
+import           Type.Family.List.Util
 import           Type.Family.Nat
 
 instance Witness ØC (SingI a) (Sing a) where
@@ -175,3 +176,11 @@ sOnly
     :: Sing a
     -> Sing '[a]
 sOnly = (`SCons` SNil)
+
+replicateSing
+    :: Sing a
+    -> Nat n
+    -> Sing (Replicate n a)
+replicateSing s = \case
+    Z_   -> SNil
+    S_ n -> s `SCons` replicateSing s n

@@ -211,3 +211,23 @@ foldl1' f = \case
     I x :* ØV          -> x
     I x :* ys@(_ :* _) -> foldl' f x ys
 {-# INLINE foldl1' #-}
+
+reverse'
+    :: forall n f a. ()
+    => VecT n f a
+    -> VecT n f a
+reverse' v0 = go Z_ ØV (known \\ v0) v0
+  where
+    go  :: forall m o. ()
+        => Nat m
+        -> VecT m f a
+        -> Nat o
+        -> VecT o f a
+        -> VecT (m + o) f a
+    go m xs = \case
+      Z_   -> \case
+        ØV      -> xs    \\ addZero m
+      S_ o -> \case
+        y :* ys -> go (S_ m) (y :* xs) o ys
+            \\ succAssoc m o
+{-# INLINE reverse' #-}

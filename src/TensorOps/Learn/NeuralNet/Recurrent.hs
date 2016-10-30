@@ -15,6 +15,7 @@ import           Control.Category hiding        ((.), id)
 import           Data.Kind
 import           Data.Singletons
 import           Data.Singletons.Prelude hiding ((%:++))
+import           Data.Type.Combinator
 import           Data.Type.Conjunction
 import           Data.Type.Length               as TCL
 import           Data.Type.Length.Util          as TCL
@@ -22,7 +23,9 @@ import           Data.Type.Nat
 import           Data.Type.Product              as TCP
 import           Data.Type.Product.Util         as TCP
 import           Data.Type.Sing
+import           Data.Type.Uniform
 import           Data.Type.Vector               as TCV
+import           Data.Type.Vector.Util          as TCV
 import           TensorOps.TOp                  as TO
 import           TensorOps.Tensor               as TT
 import           TensorOps.Types
@@ -31,6 +34,7 @@ import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
 import           Type.Family.List.Util
+import           Type.Family.Nat
 import           Unsafe.Coerce
 
 data Network :: ([k] -> Type) -> k -> k -> Type where
@@ -100,15 +104,6 @@ runNetwork x (N sS sO o s p) =
       . runTOp o
       $ x :< (s `TCP.append'` p)
 
-trainNetwork
-    :: Tensor t
-    => ElemT t
-    -> VecT n t '[i]
-    -> VecT n t '[o]
-    -> Network t i o
-    -> Network t i o
-trainNetwork = undefined
-
 trainNetwork1
     :: forall t i o. (Tensor t, RealFloat (ElemT t))
     => TOp '[ '[o], '[o] ] '[ '[] ]
@@ -150,71 +145,97 @@ trainNetwork1 loss rP rS x y = \case
     stepFunc r o' g' = o' - r * g'
     {-# INLINE stepFunc #-}
 
-foop
-    :: forall i o ss ps. (SingI i, SingI (ss ++ ps))
-    => Length ss
-    -> Length ps
-    -> TOp '[ '[o], '[o] ] '[ '[] ]
-    -> TOp ('[i] ': ss ++ ps) ('[o] ': ss)
-    -> TOp ('[i] ': ss ++ ps ++ '[ '[] ] ++ '[ '[o] ]) (ss ++ ps >: '[])
-foop lS lP loss o = (\\ appendAssoc lS lP (LS (LS LZ) :: Length '[ '[], '[o] ])) $
-                    (\\ appendAssoc lS lP (LS LZ :: Length '[ '[] ]) ) $
-                    (\\ appendAssoc lS lP (LS (LS LZ) :: Length '[ '[], '[] ]) ) $
-                    (\\ appendAssoc lP (LS LZ :: Length '[ '[] ]) (LS LZ :: Length '[ '[o] ])) $
-                    (\\ appendAssoc lP (LS LZ :: Length '[ '[] ]) (LS LZ :: Length '[ '[] ])) $
-                    (\\ appendAssoc lP (LS (LS LZ) :: Length '[ '[], '[o] ]) (LS LZ :: Length '[ '[o] ])) $
-                    (\\ appendAssoc lS (lP `TCL.append'` (LS LZ :: Length '[ '[] ])) (LS LZ :: Length '[ '[o] ])) $
-                    (\\ appendAssoc lS (lP `TCL.append'` (LS LZ :: Length '[ '[] ])) (LS LZ :: Length '[ '[] ])) $
-                    (\\ appendAssoc lS lP (LS (LS LZ) :: Length '[ '[], '[o] ]) ) $
-                    (\\ appendAssoc (LS LZ :: Length '[ '[] ]) (LS LZ :: Length '[ '[o] ]) (LS LZ :: Length '[ '[] ])) $
-                    (\\ appendAssoc (LS LZ :: Length '[ '[] ]) (LS LZ :: Length '[ '[o] ]) (LS LZ :: Length '[ '[o] ])) $
-                    (\\ appendAssoc lS (lP `TCL.append'` (LS (LS LZ) :: Length '[ '[], '[o] ])) (LS LZ :: Length '[ '[o] ])) $
-                    (\\ appendSnoc (lS `TCL.append'` lP) (Proxy @'[])) $
-                    (\\ appendSnoc lP (Proxy @'[])) $
-                    (\\ (unsafeCoerce Refl :: ((ss ++ (ps ++ '[ '[] ])) ++ '[ '[o], '[o] ]) :~: (ss ++ ((ps ++ '[ '[], '[o] ]) ++ '[ '[o] ])))) $
-                    (\\ lS `TCL.append'` lP) $
-                    (\\ lS `TCL.append'` lP `TCL.append'` (LS (LS LZ) :: Length '[ '[], '[o] ])) $
-                    (\\ lS `TCL.append'` lP `TCL.append'` (LS LZ :: Length '[ '[] ])) $
-                    (\\ lS                 ) $
-      firstOp @'[ '[], '[o] ] (o &&& TO.drop @ps (LS lS))
-  >>> firstOp @'[ '[o] ] (TO.swap' (LS LZ :: Length '[ '[o] ]) ((lS `TCL.append'` lP) TCL.>: Proxy @'[]))
-  >>> secondOp @(ss ++ ps >: '[])         loss
-  >>> secondOp @(ss ++ ps) @'[ '[], '[] ] TO.add
-
-boop
-    :: forall ss ps i o n. (SingI i)
-    => Sing ss
+netGrad
+    :: forall k n (t :: [k] -> Type) (i :: k) (o :: k) ss ps.
+     ( Tensor t
+     , RealFloat (ElemT t)
+     , SingI i
+     , SingI o
+     )
+    => TOp '[ '[o], '[o] ] '[ ('[] :: [k]) ]
+    -> Vec n (t '[i])
+    -> Vec n (t '[o])
+    -> Sing ss
     -> Sing ps
-    -> TOp '[ '[o], '[o] ] '[ '[] ]
     -> TOp ('[i] ': ss ++ ps) ('[o] ': ss)
-    -> Nat n
-    -> TOp (Replicate n '[i] ++ ss ++ ps ++ '[ '[] ] ++ Replicate n '[o]) (ss ++ ps >: '[])
-boop sS sP loss o = \case
-    Z_              -> idOp \\ appendSnoc lP (Proxy @'[])
-    S_ (m :: Nat m) -> (\\ (unsafeCoerce Refl :: Replicate m '[i] ++ '[i] ': ss ++ ps ++ '[ '[], '[o] ]
-                                             :~: '[i] ': Replicate m '[i] ++ ss ++ ps ++ '[ '[], '[o] ]
-                           )) $
-                       (\\ (unsafeCoerce Refl :: (Replicate m '[i] ++ ss ++ ps ++ '[ '[], '[o] ]) ++ Replicate m '[o]
-                                             :~: Replicate m '[i] ++ ss ++ ps ++ '[ '[] ] ++ '[o] ': Replicate m '[o]
-                           )) $
-                       (\\ (unsafeCoerce Refl :: (Replicate m '[i] ++ ss ++ ps >: '[]) ++ Replicate m '[o]
-                                             :~: Replicate m '[i] ++ ss ++ ps ++ '[] ': Replicate m '[o]
-                           )) $
-                       (\\ sS %:++ sP) $
-                       (\\ replicateLength @'[i] m) $
-                       (\\ replicateLength @'[i] m `TCL.append'` lS `TCL.append'` lP `TCL.append'` (LS (LS LZ) :: Length '[ '[], '[o] ])) $
-                       (\\ replicateLength @'[i] m `TCL.append'` lS `TCL.append'` lP TCL.>: Proxy @'[]) $
-          firstOp @(Replicate m '[o]) (
-             secondOp @(Replicate m '[i]) (
-                 foop lS lP loss o
-               )
-           )
-      >>> boop sS sP loss o m
+    -> Prod t ss
+    -> Prod t ps
+    -> (Vec n (t '[i]), (Prod t ss, Prod t ps))
+netGrad loss xs ys sS sP o s p =
+      (prodToVec' I n grI, splitProd @ps lS grSP)
   where
+    n :: Nat n
+    n = known   \\ xs
     lS :: Length ss
     lS = singLength sS
     lP :: Length ps
     lP = singLength sP
+    sO :: Sing (Replicate n '[o])
+    sO = replicateSing (sing :: Sing '[o]) n
+    lI :: Length (Replicate n '[i])
+    lI = replicateLength @'[i] n
+    lO :: Length (Replicate n '[o])
+    lO = replicateLength @'[o] n
+    unrolled
+        :: TOp (Replicate n '[i] ++ ss ++ ps) (Replicate n '[o])
+    unrolled = (\\ sS %:++ sO) $
+               (\\ sS %:++ sP) $
+                 unroll sS sP o n
+             >>> TO.drop @(Replicate n '[o]) lS
+    o'  :: TOp (Replicate n '[i] ++ ss ++ ps ++ Replicate n '[o]) '[ '[] ]
+    o' = (\\ appendAssoc lI (lS `TCL.append'` lP) lO) $
+         (\\ appendAssoc lS lP lO) $
+         (\\ lI `TCL.append'` lS `TCL.append'` lP) $
+         (\\ lO) $
+            firstOp @(Replicate n '[o]) unrolled
+        >>> rollup @k lS lP loss n
+    xs' :: Prod t (Replicate n '[i] ++ ss ++ ps ++ Replicate n '[o])
+    xs' = vecToProd' getI (TCV.reverse' xs) `TCP.append'` (s
+            `TCP.append'` (
+              p `TCP.append'` vecToProd' getI ys
+            )
+          )
+    grad :: Prod t (Replicate n '[i] ++ ss ++ ps)
+    grad = (\\ (unsafeCoerce Refl :: Replicate n '[i] ++ ss ++ ps ++ Replicate n '[o]
+                                 :~: (Replicate n '[i] ++ ss ++ ps) ++ Replicate n '[o]
+               )
+           ) $
+      takeProd @(Replicate n '[o]) (lI `TCL.append'` lS `TCL.append'` lP) $ gradTOp o' xs'
+    grI   :: Prod t (Replicate n '[i])
+    grSP  :: Prod t (ss ++ ps)
+    (grI, grSP) = splitProd @(ss ++ ps) lI grad
+{-# INLINE netGrad #-}
+
+trainNetwork
+    :: forall k n (t :: [k] -> Type) (i :: k) (o :: k).
+     ( Tensor t
+     , RealFloat (ElemT t)
+     , SingI i
+     , SingI o
+     )
+    => TOp '[ '[o], '[o] ] '[ ('[] :: [k]) ]
+    -> ElemT t
+    -> ElemT t
+    -> Vec n (t '[i])
+    -> Vec n (t '[o])
+    -> Network t i o
+    -> Network t i o
+trainNetwork loss rS rP xs ys = \case
+    N sS sP o s p ->
+      let (gS, gP) = snd $ netGrad loss xs ys sS sP o s p
+          s' = map1 (f rS) $ zipProd3 (singProd sS) s gS
+          p' = map1 (f rP) $ zipProd3 (singProd sP) p gP
+      in  N sS sP o s' p'
+  where
+    f   :: forall ns. ()
+        => ElemT t
+        -> (Sing :&: t :&: t) ns
+        -> t ns
+    f r (s1 :&: p1 :&: g1) =
+      TT.zip (\p2 g2 -> p2 - r * g2) p1 g1 \\ s1
+    {-# INLINE f #-}
+{-# INLINE trainNetwork #-}
+
 
 unroll
     :: forall ss ps i o n. (SingI (ss ++ ps), SingI i)
@@ -225,25 +246,27 @@ unroll
     -> TOp (Replicate n '[i] ++ ss ++ ps) (ss ++ Replicate n '[o])
 unroll sS sP o = \case
     Z_              -> TO.take lS lP    \\ appendNil lS
-    S_ (m :: Nat m) -> (\\ (unsafeCoerce Refl :: (Replicate m '[i] ++ '[i] ': ss ++ ps)
-                                             :~: ('[i] ': Replicate m '[i] ++ ss ++ ps)
+    S_ (m :: Nat m) -> (\\ (unsafeCoerce Refl :: Replicate m '[i] ++ '[i] ': ss ++ ps
+                                             :~: '[i] ': Replicate m '[i] ++ ss ++ ps
                            )
                        ) $
-                       (\\ (unsafeCoerce Refl :: ((Replicate m '[i] ++ ss ++ ps) ++ '[ '[o] ])
-                                             :~: (Replicate m '[i] ++ ss ++ (ps >: '[o]))
+                       (\\ (unsafeCoerce Refl :: (Replicate m '[i] ++ ss ++ ps) ++ '[ '[o] ]
+                                             :~: Replicate m '[i] ++ ss ++ (ps >: '[o])
                            )
                        ) $
-                       (\\ (unsafeCoerce Refl :: ((ss ++ Replicate m '[o]) ++ '[ '[o] ])
-                                             :~: (ss ++ '[o] ': Replicate m '[o])
+                       (\\ (unsafeCoerce Refl :: (ss ++ Replicate m '[o]) ++ '[ '[o] ]
+                                             :~: ss ++ '[o] ': Replicate m '[o]
                            )
                        ) $
+                       (\\ appendAssoc lS lP (LS LZ :: Length '[ '[o] ])) $
+                       (\\ appendSnoc lP (Proxy @'[o])) $
                        (\\ replicateLength @'[i] m `TCL.append'` lS `TCL.append'` lP) $
                        (\\ lS `TCL.append'` replicateLength @'[o] m) $
                        (\\ replicateLength @'[i] m) $
                        (\\ lS) $
           secondOp @(Replicate m '[i]) @('[i] ': ss ++ ps) @(ss ++ ps >: '[o]) (
                 (o &&& TO.drop @ps @('[i] ': ss) (LS lS))
-             >>> _
+            >>> TO.swap' (LS LZ) (lS `TCL.append'` lP)
           )
       >>> firstOp @'[ '[o] ] @(Replicate m '[i] ++ ss ++ ps) @(ss ++ Replicate m '[o]) (
             unroll sS sP o m
@@ -254,29 +277,32 @@ unroll sS sP o = \case
     lP :: Length ps
     lP = singLength sP
 
--- boop sS sP loss o = \case
---     Z_              -> idOp \\ appendSnoc lP (Proxy @'[])
---     S_ (m :: Nat m) -> (\\ (unsafeCoerce Refl :: Replicate m '[i] ++ '[i] ': ss ++ ps ++ '[ '[], '[o] ]
---                                              :~: '[i] ': Replicate m '[i] ++ ss ++ ps ++ '[ '[], '[o] ]
---                            )) $
---                        (\\ (unsafeCoerce Refl :: (Replicate m '[i] ++ ss ++ ps ++ '[ '[], '[o] ]) ++ Replicate m '[o]
---                                              :~: Replicate m '[i] ++ ss ++ ps ++ '[ '[] ] ++ '[o] ': Replicate m '[o]
---                            )) $
---                        (\\ (unsafeCoerce Refl :: (Replicate m '[i] ++ ss ++ ps >: '[]) ++ Replicate m '[o]
---                                              :~: Replicate m '[i] ++ ss ++ ps ++ '[] ': Replicate m '[o]
---                            )) $
---                        (\\ sS %:++ sP) $
---                        (\\ replicateLength @'[i] m) $
---                        (\\ replicateLength @'[i] m `TCL.append'` lS `TCL.append'` lP `TCL.append'` (LS (LS LZ) :: Length '[ '[], '[o] ])) $
---                        (\\ replicateLength @'[i] m `TCL.append'` lS `TCL.append'` lP TCL.>: Proxy @'[]) $
---           firstOp @(Replicate m '[o]) (
---              secondOp @(Replicate m '[i]) (
---                  foop lS lP loss o
---                )
---            )
---       >>> boop sS sP loss o m
---   where
---     lS :: Length ss
---     lS = singLength sS
---     lP :: Length ps
---     lP = singLength sP
+
+rollup
+    :: forall k (ss :: [[k]]) (ps :: [[k]]) (o :: k) (n :: N). ()
+    => Length ss
+    -> Length ps
+    -> TOp '[ '[o], '[o] ] '[ ('[] :: [k]) ]
+    -> Nat n
+    -> TOp (Replicate n '[o] ++ Replicate n '[o]) '[ ('[] :: [k]) ]
+rollup lS lP loss = \case
+    Z_              -> TO.konst (US UØ) 0
+    S_ (m :: Nat m) ->
+      let lO :: Length (Replicate m '[o])
+          lO = replicateLength @'[o] m
+      in  (\\ (unsafeCoerce Refl :: Replicate m '[o] ++ '[o] ': '[o] ': Replicate m '[o]
+                                :~: '[o] ': Replicate m '[o] ++ '[o] ': Replicate m '[o]
+              )
+            ) $
+            (\\ appendSnoc lO (Proxy @'[])) $
+            (\\ lO) $
+            (\\ lO `TCL.append'` lO) $
+            (\\ appendAssoc lO lO (LS LZ :: Length '[ '[] ])) $
+              secondOp @(Replicate m '[o]) @('[o] ': '[o] ': Replicate m '[o]) @(Replicate m '[o] >: '[]) (
+                  firstOp @(Replicate m '[o]) @('[ '[o], '[o] ]) @('[ '[] ]) loss
+                >>> TO.swap' @'[ '[] ] @(Replicate m '[o]) (LS LZ) lO
+              )
+            >>> firstOp @'[ '[] ] @(Replicate m '[o] ++ Replicate m '[o]) @'[ '[] ] (
+                  rollup lS lP loss m
+                )
+            >>> TO.add

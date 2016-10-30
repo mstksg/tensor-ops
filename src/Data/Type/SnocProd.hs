@@ -77,30 +77,3 @@ prodReverse'
 prodReverse' = snocProdReverse . snocProd
 
 
--- $(singletons [d|
---   data SnocList a = SnocNil | SnocList a :& a
---     deriving (Show, Ord, Eq)
---   |])
-
--- infixl 5 :&
--- infixl 5 :%&
-
--- $(singletons [d|
---   listSnocList :: [a] -> SnocList a
---   listSnocList = \case
---       []   -> SnocNil
---       x:xs -> listSnocList xs :& x
-
---   snocListList :: SnocList a -> [a]
---   snocListList = \case
---       SnocNil -> []
---       xs :& x -> x : snocListList xs
---   |])
-
--- snocListLength
---     :: Sing ns
---     -> Length (SnocListList ns)
--- snocListLength = \case
---     SSnocNil -> LZ
---     ss :%& _ -> LS (snocListLength ss)
-
