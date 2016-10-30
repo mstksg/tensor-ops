@@ -29,7 +29,7 @@ module TensorOps.Learn.NeuralNet.Recurrent
   , networkGradient
   ) where
 
-import           Control.Category hiding               ((.), id)
+import           Control.Category
 import           Control.DeepSeq
 import           Control.Monad.Primitive
 import           Control.Monad.State
@@ -47,6 +47,7 @@ import           Data.Type.Sing
 import           Data.Type.Uniform
 import           Data.Type.Vector                      as TCV
 import           Data.Type.Vector.Util                 as TCV
+import           Prelude hiding                        ((.), id)
 import           Statistics.Distribution.Normal
 import           System.Random.MWC
 import           TensorOps.Learn.NeuralNet
@@ -162,6 +163,9 @@ genNet xs0 f fS g = go sing xs0
     {-# INLINE go #-}
 {-# INLINE genNet #-}
 
+instance Category (Network t) where
+    id  = N SNil SNil idOp Ø Ø
+    (.) = flip (~*~)
 
 (~*~)
     :: forall k (t :: [k] -> Type) a b c. ()

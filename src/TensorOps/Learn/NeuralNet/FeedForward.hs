@@ -26,16 +26,18 @@ module TensorOps.Learn.NeuralNet.FeedForward
   , ffLayer
   ) where
 
-import           Control.Category hiding        (id, (.))
+import           Control.Category
 import           Control.DeepSeq
 import           Control.Monad.Primitive
 import           Data.Kind
 import           Data.Singletons
+import           Data.Singletons.Prelude        (Sing(..))
 import           Data.Type.Conjunction
 import           Data.Type.Length
 import           Data.Type.Product              as TCP
 import           Data.Type.Product.Util         as TCP
 import           Data.Type.Sing
+import           Prelude hiding                 ((.), id)
 import           Statistics.Distribution.Normal
 import           System.Random.MWC
 import           TensorOps.Learn.NeuralNet
@@ -84,6 +86,10 @@ N sPs1 o1 p1 ~*~ N sPs2 o2 p2 =
         \\ singLength sPs1
 infixr 4 ~*~
 {-# INLINE (~*~) #-}
+
+instance Category (Network t) where
+    id = N SNil idOp Ø
+    (.) = flip (~*~)
 
 (~*) :: TOp '[ '[a] ] '[ '[b] ]
      -> Network t b c
