@@ -286,8 +286,9 @@ rollup
     -> Nat n
     -> TOp (Replicate n '[o] ++ Replicate n '[o]) '[ ('[] :: [k]) ]
 rollup lS lP loss = \case
-    Z_              -> TO.konst (US UØ) 0
-    S_ (m :: Nat m) ->
+    Z_                     -> TO.konst (US UØ) 0
+    S_ Z_                  -> loss
+    S_ (m@(S_ _) :: Nat m) ->
       let lO :: Length (Replicate m '[o])
           lO = replicateLength @'[o] m
       in  (\\ (unsafeCoerce Refl :: Replicate m '[o] ++ '[o] ': '[o] ': Replicate m '[o]
