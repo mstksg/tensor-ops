@@ -332,7 +332,7 @@ swap' lN lM = shuffleF (swapProd @ns @ms lN)
 {-# INLINE swap' #-}
 
 drop
-    :: forall ns ms. SingI (ns ++ ms)
+    :: forall ms ns. SingI (ns ++ ms)
     => Length ns
     -> TOp (ns ++ ms) ms
 drop lN = shuffleF' (dropProd lN)
@@ -351,3 +351,4 @@ take lN lM = shuffleF' (takeProd @ms lN)
                        . map1 (Comp . (:[]))
                        )
 {-# INLINE take #-}
+

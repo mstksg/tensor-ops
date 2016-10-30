@@ -33,6 +33,7 @@ append' = \case
     LZ   -> id
     LS l -> LS . append' l
 {-# INLINE append' #-}
+infixr 5 `append'`
 
 cons
     :: Proxy a

@@ -1,19 +1,24 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE GADTs               #-}
-{-# LANGUAGE LambdaCase          #-}
-{-# LANGUAGE PolyKinds           #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications    #-}
-{-# LANGUAGE TypeInType          #-}
-{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE AllowAmbiguousTypes  #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE GADTs                #-}
+{-# LANGUAGE LambdaCase           #-}
+{-# LANGUAGE PolyKinds            #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TypeApplications     #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE TypeInType           #-}
+{-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Type.Family.List.Util where
 
 import           Data.Proxy
 import           Data.Type.Equality
 import           Data.Type.Length
+import           Data.Type.Nat
 import           Type.Class.Witness
 import           Type.Family.List
+import           Type.Family.Nat
 import           Unsafe.Coerce
 
 reverseSnoc
@@ -77,3 +82,33 @@ appendSnoc = \case
 --     -> ((n ': ns) :~: ('[n] ++ ns))
 -- appendCons _ _ = Refl
 
+type family Cycle (n :: N) (as :: [k]) :: [k] where
+    Cycle 'Z     xs = '[]
+    Cycle ('S n) xs = xs ++ Cycle n xs
+
+type family Replicate (n :: N) (a :: k) :: [k] where
+    Replicate 'Z     x = '[]
+    Replicate ('S n) x = x ': Replicate n x
+
+-- TODO: implement and not be lazy
+snocReplicate
+    :: Nat n
+    -> (Replicate ('S n) x :~: Replicate n x >: x)
+snocReplicate _ = unsafeCoerce Refl
+
+assocReplicate
+    :: Nat n
+    -> ((x ': Replicate n x) :~: (Replicate n x >: x))
+assocReplicate _ = unsafeCoerce Refl
+
+replicateLength
+    :: forall x n. ()
+    => Nat n
+    -> Length (Replicate n x)
+replicateLength = \case
+    Z_   -> LZ
+    S_ n -> LS (replicateLength @x n)
+
+reverseReplicate
+    :: (Replicate n xs :~: Reverse (Replicate n x))
+reverseReplicate = unsafeCoerce Refl

@@ -270,9 +270,9 @@ learn _ dat rate layers (fromIntegral->batch) ind =
                   vscore = F.fold (validate nt') vd
               printf "Training:   %.2f%% error\n" ((1 - tscore) * 100)
               printf "Validation: %.2f%% error\n" ((1 - vscore) * 100)
-              xi' <- fmap (fromMaybe undefined) . forM ind' $ \i -> do
+              xi' <- fmap (fromMaybe xi) . forM ind' $ \i -> do
                   putStrLn (renderOut xi)
-                  let xi' = induceNum nt' i 1 10000 xi
+                  let xi' = induceNum nt' i 0.001 10000 xi
                   putStrLn (renderOut xi')
                   return xi'
               trainBatch (succ b) xss nt' xi'
