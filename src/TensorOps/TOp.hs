@@ -220,6 +220,15 @@ add = TOp (\case x :< y :< Ø -> only $ sumT [x,y])
           )
 {-# INLINE add #-}
 
+add3 :: SingI n
+     => TOp '[ n, n, n ] '[ n ]
+add3 = TOp (\case x :< y :< z :< Ø -> only $ sumT [x,y,z])
+           (\_ -> \case
+             dtdz :< Ø -> dtdz :< dtdz :< dtdz :< Ø
+           )
+{-# INLINE add3 #-}
+
+
 zipN'
     :: SingI n
     => Uniform n ns

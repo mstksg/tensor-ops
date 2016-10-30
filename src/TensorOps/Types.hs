@@ -28,15 +28,14 @@ import           Control.Monad.Primitive
 import           Data.Finite
 import           Data.Kind
 import           Data.Singletons
-import           Data.Singletons.Prelude hiding (Reverse, (%:++))
 import           Data.Type.Combinator
-import           Data.Type.Length               as TCL
-import           Data.Type.Product              as TCP
-import           Data.Type.Product.Util         as TCP
+import           Data.Type.Length                  as TCL
+import           Data.Type.Product                 as TCP
+import           Data.Type.Product.Util            as TCP
 import           Data.Type.Sing
 import           Data.Type.Uniform
 import           Data.Type.Vector
-import           Prelude hiding                 ((.), id)
+import           Prelude hiding                    ((.), id)
 import           Statistics.Distribution
 import           System.Random.MWC
 import           TensorOps.NatKind
@@ -44,7 +43,6 @@ import           Type.Class.Higher
 import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
-import           Type.Family.List.Util
 
 {-# RULES
 "realToFrac/Double->Double" realToFrac = id :: Double -> Double

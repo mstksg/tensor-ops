@@ -74,7 +74,7 @@ dropProd
 dropProd = \case
     LZ   -> id
     LS l -> \case
-      x :< xs -> dropProd l xs
+      _ :< xs -> dropProd l xs
 {-# INLINE dropProd #-}
 
 
@@ -389,7 +389,8 @@ vecToProd'
     -> VecT n f b
     -> Prod g (Replicate n a)
 vecToProd' f = \case
-    ØV -> Ø
+    ØV      -> Ø
+    x :* xs -> f x :< vecToProd' f xs
 
 prodToVec'
     :: forall a b f g n. ()

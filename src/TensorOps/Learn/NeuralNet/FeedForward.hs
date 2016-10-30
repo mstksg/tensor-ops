@@ -189,7 +189,7 @@ ffLayer
     :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t)
     => Gen (PrimState m)
     -> m (Network t i o)
-ffLayer g = (\w b -> N sing ffLayer' (w :< b :< Ø))
+ffLayer g = (\w b -> buildNet ffLayer' (w :< b :< Ø))
           <$> genRand (normalDistr 0 0.5) g
           <*> genRand (normalDistr 0 0.5) g
   where

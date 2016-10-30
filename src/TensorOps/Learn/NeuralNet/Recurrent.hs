@@ -16,6 +16,10 @@ module TensorOps.Learn.NeuralNet.Recurrent
   , netParams
   , runNetwork
   , runNetworkSt
+  , genNet
+  , fullyConnected
+  , ffLayer
+  , stateless
   , (~*~)
   , (*~)
   , (~*)
@@ -24,24 +28,30 @@ module TensorOps.Learn.NeuralNet.Recurrent
   , networkGradient
   ) where
 
-import           Control.Category hiding ((.), id)
+import           Control.Category hiding               ((.), id)
 import           Control.DeepSeq
+import           Control.Monad.Primitive
 import           Control.Monad.State
 import           Data.Kind
 import           Data.Singletons
+import           Data.Singletons.Prelude               (Sing(..))
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
-import           Data.Type.Length        as TCL
-import           Data.Type.Length.Util   as TCL
+import           Data.Type.Length                      as TCL
+import           Data.Type.Length.Util                 as TCL
 import           Data.Type.Nat
-import           Data.Type.Product       as TCP
-import           Data.Type.Product.Util  as TCP
+import           Data.Type.Product                     as TCP
+import           Data.Type.Product.Util                as TCP
 import           Data.Type.Sing
 import           Data.Type.Uniform
-import           Data.Type.Vector        as TCV
-import           Data.Type.Vector.Util   as TCV
-import           TensorOps.TOp           as TO
-import           TensorOps.Tensor        as TT
+import           Data.Type.Vector                      as TCV
+import           Data.Type.Vector.Util                 as TCV
+import           Statistics.Distribution.Normal
+import           System.Random.MWC
+import           TensorOps.Learn.NeuralNet
+import           TensorOps.NatKind
+import           TensorOps.TOp                         as TO
+import           TensorOps.Tensor                      as TT
 import           TensorOps.Types
 import           Type.Class.Higher
 import           Type.Class.Higher.Util
@@ -51,6 +61,7 @@ import           Type.Family.List
 import           Type.Family.List.Util
 import           Type.Family.Nat
 import           Unsafe.Coerce
+import qualified TensorOps.Learn.NeuralNet.FeedForward as FF
 
 data Network :: ([k] -> Type) -> k -> k -> Type where
     N :: { _nsSs    :: !(Sing ss)
@@ -73,12 +84,86 @@ netParams = \case
     N sS sP _ s p -> \f -> f s p \\ sS \\ sP
 
 buildNet
-    :: (SingI ss, SingI ps)
-    => TOp ('[i] ': ss ++ ps) ('[o] ': ss)
-    -> Prod t ss
-    -> Prod t ps
+    :: forall ss ps i o t. (SingI ss, SingI ps)
+    => TOp ('[i] ': ss ++ ps) ('[o] ': ss)  -- ^ Tensor operation for network
+    -> Prod t ss        -- ^ Initial states
+    -> Prod t ps        -- ^ Network parameters
     -> Network t i o
 buildNet = N sing sing
+
+fullyConnected
+    :: forall k (i :: k) (o :: k) (m :: Type -> Type) (t :: [k] -> Type).
+     ( SingI i
+     , SingI o
+     , PrimMonad m
+     , Tensor t
+     )
+    => Activation k         -- ^ Activation function for internal state
+    -> Gen (PrimState m)
+    -> m (Network t i o)
+fullyConnected a g = (\s w w' b -> buildNet @'[ '[o] ] @'[ '[o,o], '[o,i], '[o] ]
+                                     fc (s :< Ø) (w' :< w :< b :< Ø)
+                     )
+          <$> genRand (normalDistr 0 0.5) g
+          <*> genRand (normalDistr 0 0.5) g
+          <*> genRand (normalDistr 0 0.5) g
+          <*> genRand (normalDistr 0 0.5) g
+  where
+    fc  :: TOp '[ '[i], '[o], [o,o], '[o,i], '[o]] '[ '[o], '[o] ]
+    fc = secondOp @'[ '[i] ] (
+           firstOp @'[ '[o,i], '[o] ] (TO.swap >>> TO.inner (LS LZ) LZ)
+       >>> firstOp @'[ '[o] ]         TO.swap
+         )
+     >>> firstOp @'[ '[o], '[o] ] (
+           TO.swap
+       >>> TO.inner (LS LZ) LZ
+         )
+     >>> TO.add3
+     >>> TO.duplicate
+     >>> secondOp @'[ '[o] ] (getAct a)
+    {-# INLINE fc #-}
+{-# INLINE fullyConnected #-}
+
+stateless
+    :: FF.Network t i o
+    -> Network t i o
+stateless = \case
+    FF.N sP o p -> N SNil sP o Ø p
+{-# INLINE stateless #-}
+
+ffLayer
+    :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t)
+    => Gen (PrimState m)
+    -> m (Network t i o)
+ffLayer g = stateless <$> FF.ffLayer g
+{-# INLINE ffLayer #-}
+
+genNet
+    :: forall k o i m (t :: [k] -> Type). (SingI o, SingI i, PrimMonad m, Tensor t)
+    => [(Integer, (Activation k, Maybe (Activation k)))]
+    -> Activation k
+    -> Maybe (Activation k)
+    -> Gen (PrimState m)
+    -> m (Network t i o)
+genNet xs0 f fS g = go sing xs0
+  where
+    go  :: forall (j :: k). ()
+        => Sing j
+        -> [(Integer, (Activation k, Maybe (Activation k)))]
+        -> m (Network t j o)
+    go sj = (\\ sj) $ \case
+      []        -> fmap (*~ getAct f) $ case fS of
+        Just fS' -> fullyConnected fS' g
+        Nothing  -> ffLayer g
+      (x,(f', fS')):xs -> withNatKind x $ \sl -> (\\ sl) $ do
+        n <- go sl xs
+        l <- case fS' of
+          Nothing   -> ffLayer g
+          Just fS'' -> fullyConnected fS'' g
+        return $ l *~ getAct f' ~*~ n
+    {-# INLINE go #-}
+{-# INLINE genNet #-}
+
 
 (~*~)
     :: forall k (t :: [k] -> Type) a b c. ()
@@ -237,11 +322,11 @@ trainNetwork
      , SingI i
      , SingI o
      )
-    => TOp '[ '[o], '[o] ] '[ ('[] :: [k]) ]
-    -> ElemT t
-    -> ElemT t
-    -> Vec n (t '[i])
-    -> Vec n (t '[o])
+    => TOp '[ '[o], '[o] ] '[ ('[] :: [k]) ]    -- ^ loss function (input, target)
+    -> ElemT t          -- ^ train rate for initial state
+    -> ElemT t          -- ^ train rate for network parameters
+    -> Vec n (t '[i])   -- ^ inputs
+    -> Vec n (t '[o])   -- ^ targets
     -> Network t i o
     -> Network t i o
 trainNetwork loss rS rP xs ys = \case
@@ -267,9 +352,9 @@ networkGradient
      , SingI i
      , SingI o
      )
-    => TOp '[ '[o], '[o] ] '[ ('[] :: [k]) ]
-    -> Vec n (t '[i])
-    -> Vec n (t '[o])
+    => TOp '[ '[o], '[o] ] '[ ('[] :: [k]) ]    -- ^ loss function (output, target)
+    -> Vec n (t '[i])       -- ^ inputs
+    -> Vec n (t '[o])       -- ^ targets
     -> Network t i o
     -> (forall ss ps. (SingI ss, SingI ps) => Vec n (t '[i]) -> Prod t ss -> Prod t ps -> r)
     -> r
