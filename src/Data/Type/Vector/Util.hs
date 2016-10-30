@@ -231,3 +231,11 @@ reverse' v0 = go Z_ ØV (known \\ v0) v0
         y :* ys -> go (S_ m) (y :* xs) o ys
             \\ succAssoc m o
 {-# INLINE reverse' #-}
+
+unzip'
+    :: Vec n (a, b)
+    -> (Vec n a, Vec n b)
+unzip' = \case
+    ØV              -> (ØV, ØV)
+    I (x,y) :* xsys -> let (xs, ys) = unzip' xsys
+                       in  (I x :* xs, I y :* ys)

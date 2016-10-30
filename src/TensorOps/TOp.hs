@@ -324,6 +324,25 @@ dot :: SingI m
 dot = inner LZ LZ
 {-# INLINE dot #-}
 
+matVec
+    :: (SingI m, SingI n)
+    => TOp '[ '[m,n], '[n] ] '[ '[m] ]
+matVec = inner (LS LZ) LZ
+{-# INLINE matVec #-}
+
+vecMat
+    :: (SingI m, SingI n)
+    => TOp '[ '[m], '[m,n] ] '[ '[n] ]
+vecMat = inner LZ (LS LZ)
+{-# INLINE vecMat #-}
+
+matMat
+    :: (SingI m, SingI n, SingI o)
+    => TOp '[ '[m,n], '[n,o] ] '[ '[m,o] ]
+matMat = inner (LS LZ) (LS LZ)
+{-# INLINE matMat #-}
+
+
 swap :: TOp '[ms,ns] '[ns,ms]
 swap = TOp (\case x :< y :< Ø -> y :< x :< Ø)
            (\_ -> \case

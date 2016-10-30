@@ -195,9 +195,8 @@ ffLayer g = (\w b -> buildNet ffLayer' (w :< b :< Ø))
   where
     ffLayer'
         :: TOp '[ '[i], '[o,i], '[o]] '[ '[o] ]
-    ffLayer' = TO.swap
-           >>> TO.inner (LS LZ) LZ
-           *>> TO.add
+    ffLayer' = firstOp (TO.swap >>> TO.matVec)
+           >>> TO.add
     {-# INLINE ffLayer' #-}
 {-# INLINE ffLayer #-}
 

@@ -25,6 +25,7 @@ module TensorOps.Learn.NeuralNet.Recurrent
   , (~*)
   , nmap
   , trainNetwork
+  , trainNetwork'
   , networkGradient
   ) where
 
@@ -111,13 +112,10 @@ fullyConnected a g = (\s w w' b -> buildNet @'[ '[o] ] @'[ '[o,o], '[o,i], '[o] 
   where
     fc  :: TOp '[ '[i], '[o], [o,o], '[o,i], '[o]] '[ '[o], '[o] ]
     fc = secondOp @'[ '[i] ] (
-           firstOp @'[ '[o,i], '[o] ] (TO.swap >>> TO.inner (LS LZ) LZ)
+           firstOp @'[ '[o,i], '[o] ] (TO.swap >>> TO.matVec)
        >>> firstOp @'[ '[o] ]         TO.swap
          )
-     >>> firstOp @'[ '[o], '[o] ] (
-           TO.swap
-       >>> TO.inner (LS LZ) LZ
-         )
+     >>> firstOp @'[ '[o], '[o] ] (TO.swap >>> TO.matVec)
      >>> TO.add3
      >>> TO.duplicate
      >>> secondOp @'[ '[o] ] (getAct a)
@@ -315,7 +313,7 @@ netGrad loss xs ys sS sP o s p =
     (grI, grSP) = splitProd @(ss ++ ps) lI grad
 {-# INLINE netGrad #-}
 
-trainNetwork
+trainNetwork'
     :: forall k n (t :: [k] -> Type) (i :: k) (o :: k).
      ( Tensor t
      , RealFloat (ElemT t)
@@ -329,7 +327,7 @@ trainNetwork
     -> Vec n (t '[o])   -- ^ targets
     -> Network t i o
     -> Network t i o
-trainNetwork loss rS rP xs ys = \case
+trainNetwork' loss rS rP xs ys = \case
     N sS sP o s p ->
       let (gS, gP) = snd $ netGrad loss xs ys sS sP o s p
           s' = map1 (f rS) $ zipProd3 (singProd sS) s gS
@@ -344,6 +342,23 @@ trainNetwork loss rS rP xs ys = \case
       TT.zip (\p2 g2 -> p2 - r * g2) p1 g1 \\ s1
     {-# INLINE f #-}
 {-# INLINE trainNetwork #-}
+
+trainNetwork
+    :: forall k (t :: [k] -> Type) (i :: k) (o :: k).
+     ( Tensor t
+     , RealFloat (ElemT t)
+     , SingI i
+     , SingI o
+     )
+    => TOp '[ '[o], '[o] ] '[ '[] ]     -- ^ loss function (input, target)
+    -> ElemT t          -- ^ train rate for initial state
+    -> ElemT t          -- ^ train rate for network parameters
+    -> [(t '[i], t '[o])]   -- ^ inputs and targets
+    -> Network t i o
+    -> Network t i o
+trainNetwork loss rS rP xsys n = withV xsys $ \v ->
+    let (xs, ys) = TCV.unzip' v
+    in  trainNetwork' loss rS rP xs ys n
 
 networkGradient
     :: forall k n (t :: [k] -> Type) (i :: k) (o :: k) r.
