@@ -261,7 +261,7 @@ netGrad
      , SingI i
      , SingI o
      )
-    => TOp '[ '[o], '[o] ] '[ ('[] :: [k]) ]
+    => TOp '[ '[o], '[o] ] '[ '[] ]
     -> Vec n (t '[i])
     -> Vec n (t '[o])
     -> Sing ss
@@ -322,7 +322,7 @@ trainNetwork
      , SingI i
      , SingI o
      )
-    => TOp '[ '[o], '[o] ] '[ ('[] :: [k]) ]    -- ^ loss function (input, target)
+    => TOp '[ '[o], '[o] ] '[ '[] ]     -- ^ loss function (input, target)
     -> ElemT t          -- ^ train rate for initial state
     -> ElemT t          -- ^ train rate for network parameters
     -> Vec n (t '[i])   -- ^ inputs
@@ -352,7 +352,7 @@ networkGradient
      , SingI i
      , SingI o
      )
-    => TOp '[ '[o], '[o] ] '[ ('[] :: [k]) ]    -- ^ loss function (output, target)
+    => TOp '[ '[o], '[o] ] '[ '[] ]     -- ^ loss function (output, target)
     -> Vec n (t '[i])       -- ^ inputs
     -> Vec n (t '[o])       -- ^ targets
     -> Network t i o
@@ -410,9 +410,9 @@ rollup
     :: forall k (ss :: [[k]]) (ps :: [[k]]) (o :: k) (n :: N). ()
     => Length ss
     -> Length ps
-    -> TOp '[ '[o], '[o] ] '[ ('[] :: [k]) ]
+    -> TOp '[ '[o], '[o] ] '[ '[] ]
     -> Nat n
-    -> TOp (Replicate n '[o] ++ Replicate n '[o]) '[ ('[] :: [k]) ]
+    -> TOp (Replicate n '[o] ++ Replicate n '[o]) '[ '[] ]
 rollup lS lP loss = \case
     Z_                     -> TO.konst (US UØ) 0
     S_ Z_                  -> loss

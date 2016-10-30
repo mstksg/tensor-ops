@@ -18,16 +18,12 @@ import           Control.Arrow                         ((&&&))
 import           Control.DeepSeq
 import           Control.Exception
 import           Control.Monad
-import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.State.Strict
-import           Control.Monad.Trans.Writer.Strict
 import           Data.Bifunctor
 import           Data.Either.Validation
 import           Data.Finite
 import           Data.Foldable
 import           Data.IDX
 import           Data.Kind
-import           Data.Maybe
 import           Data.Monoid
 import           Data.Profunctor
 import           Data.Proxy
@@ -38,7 +34,6 @@ import           Data.Type.Vector
 import           GHC.Generics                          (Generic)
 import           GHC.TypeLits
 import           Options.Applicative hiding            (ParserResult(..))
-import           Statistics.Distribution.Uniform
 import           System.Directory
 import           System.FilePath
 import           System.Random.MWC
@@ -70,7 +65,6 @@ data Opts = O { oRate    :: Double
               , oLayers  :: [Integer]
               , oBatch   :: Integer
               , oDataDir :: FilePath
-              , oInduce  :: Maybe (Finite 10)
               }
     deriving (Show, Eq, Generic)
 
@@ -95,22 +89,6 @@ opts = O <$> option auto
               <> help "Directory to store/cache MNIST data files"
               <> value "data/mnist" <> showDefaultWith id
                )
-         <*> optional (
-               option readFin
-                 ( long "induce" <> short 'i' <> metavar "DIGIT"
-                <> help ("Every batch, attempt to induce an image "
-                      ++ "of the given digit with the trained network"
-                        )
-                 )
-             )
-  where
-    readFin :: forall n. KnownNat n => ReadM (Finite n)
-    readFin = do
-        i <- auto
-        case packFinite i of
-          Nothing -> readerError $
-            printf "Number %d out of range (%d)" i (natVal (Proxy @n) - 1)
-          Just x  -> return x
 
 main :: IO ()
 main = do
@@ -126,7 +104,7 @@ main = do
     mnistDat <- loadData oDataDir
     putStrLn "Loaded data."
 
-    learn (Proxy @(BTensorV HMatD)) mnistDat oRate oLayers oBatch oInduce
+    learn (Proxy @(BTensorV HMatD)) mnistDat oRate oLayers oBatch
 
 loadData
     :: FilePath
@@ -200,9 +178,8 @@ learn
     -> Double
     -> [Integer]
     -> Integer
-    -> Maybe (Finite 10)
     -> IO ()
-learn _ dat rate layers (fromIntegral->batch) ind =
+learn _ dat rate layers (fromIntegral->batch) =
       withSystemRandom $ \g -> do
     dat' <- either (ioError . userError . unlines) return
           . validationToEither
@@ -218,16 +195,11 @@ learn _ dat rate layers (fromIntegral->batch) ind =
 
     net0 :: Network t 784 10
             <- genNet (layers `zip` repeat (actMap logistic)) actSoftmax g
-    x0 <- genRand (uniformDistr 0 1) g
 
     printf "rate: %f | batch: %d | layers: %s\n" rate batch (show layers)
-    forM_ ind $ \i ->
-      printf "inducing: %d\n" (getFinite i)
 
-    trainEpochs tXY ((map . second) snd vXY) g net0 x0
+    trainEpochs tXY ((map . second) snd vXY) g net0
   where
-    ind' :: Maybe (t '[10])
-    ind' = TT.oneHot 1 0 <$> ind
     processDat'
         :: (Int, VU.Vector Int)
         -> Validation [String] (t '[784], (t '[10], Finite 10))
@@ -237,30 +209,27 @@ learn _ dat rate layers (fromIntegral->batch) ind =
         -> [(t '[784], Finite 10)]
         -> GenIO
         -> Network t 784 10
-        -> t '[784]
         -> IO ()
     trainEpochs (V.fromList->tr) vd g = trainEpoch 1
       where
         trainEpoch
             :: Integer
             -> Network t 784 10
-            -> t '[784]
             -> IO ()
-        trainEpoch e nt0 xi0 = do
+        trainEpoch e nt0 = do
             printf "[Epoch %d]\n" e
             queue <- evaluate . force =<< uniformShuffle tr g
 
-            (nt1, xi1) <- trainBatch 1 queue nt0 xi0
-            trainEpoch (succ e) nt1 xi1
+            nt1 <- trainBatch 1 queue nt0
+            trainEpoch (succ e) nt1
           where
             trainBatch
                 :: Integer
                 -> V.Vector (t '[784], (t '[10], Finite 10))
                 -> Network t 784 10
-                -> t '[784]
-                -> IO (Network t 784 10, t '[784])
-            trainBatch b (V.splitAt batch->(xs,xss)) nt xi
-                | V.null xs = return (nt, xi)
+                -> IO (Network t 784 10)
+            trainBatch b (V.splitAt batch->(xs,xss)) nt
+                | V.null xs = return nt
                 | otherwise = do
               printf "Batch %d ...\n" b
               (nt', t) <- time . return $ trainAll nt ((fmap . second) fst xs)
@@ -269,12 +238,7 @@ learn _ dat rate layers (fromIntegral->batch) ind =
                   vscore = F.fold (validate nt') vd
               printf "Training:   %.2f%% error\n" ((1 - tscore) * 100)
               printf "Validation: %.2f%% error\n" ((1 - vscore) * 100)
-              xi' <- fmap (fromMaybe xi) . forM ind' $ \i -> do
-                  putStrLn (renderOut xi)
-                  let xi' = induceNum nt' i 0.001 10000 xi
-                  putStrLn (renderOut xi')
-                  return xi'
-              trainBatch (succ b) xss nt' xi'
+              trainBatch (succ b) xss nt'
         validate
             :: Network t 784 10
             -> F.Fold (t '[784], Finite 10) Double
@@ -294,19 +258,6 @@ learn _ dat rate layers (fromIntegral->batch) ind =
         trainNetwork crossEntropy rate' i o nt
     rate' :: ElemT t
     rate' = realToFrac rate
-    induceNum
-        :: Network t 784 10
-        -> t '[10]
-        -> ElemT t
-        -> Int
-        -> t '[784]
-        -> t '[784]
-    induceNum n t r = go
-      where
-        go i x
-          | i == 0    = x
-          | otherwise = let x' = induceNetwork crossEntropy r t n x
-                        in  x' `deepseq` go (i - 1) x'
 
 time
     :: NFData a
@@ -317,28 +268,3 @@ time x = do
     y  <- evaluate . force =<< x
     t2 <- getCurrentTime
     return (y, t2 `diffUTCTime` t1)
-
-renderOut
-    :: forall t. (Tensor t, Real (ElemT t))
-    => t '[784]
-    -> String
-renderOut = unlines
-          . ($ [])
-          . appEndo
-          . execWriter
-          . execStateT (replicateM 28 go)
-          . TT.toList
-  where
-    go :: StateT [ElemT t] (Writer (Endo [String])) ()
-    go = do
-        x <- state $ splitAt 28
-        lift . tell . Endo . (++) . (:[]) $
-            map (render . realToFrac)
-          . concatMap (\y -> [y,y])
-          $ x
-    render :: Double -> Char
-    render r | r <= 0.2  = ' '
-             | r <= 0.4  = '.'
-             | r <= 0.8  = '-'
-             | r <= 1.9  = '='
-             | otherwise = '#'
