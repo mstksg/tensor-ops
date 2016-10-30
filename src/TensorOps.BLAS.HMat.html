@@ -35,7 +35,7 @@
 </span><a name="line-35"></a><span class="hs-keyword">type</span><span> </span><a name="HMatD"><a href="TensorOps.BLAS.HMat.html#HMatD"><span class="hs-identifier">HMatD</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="TensorOps.BLAS.HMat.html#HMat"><span class="hs-identifier hs-type">HMat</span></a><span> </span><span class="hs-identifier hs-type">Double</span><span>
 </span><a name="line-36"></a><span>
 </span><a name="line-37"></a><span class="hs-keyword">data</span><span> </span><a name="HMat"><a href="TensorOps.BLAS.HMat.html#HMat"><span class="hs-identifier">HMat</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.BLAS.html#BShape"><span class="hs-identifier hs-type">BShape</span></a><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-38"></a><span>    </span><a name="HMV"><a href="TensorOps.BLAS.HMat.html#HMV"><span class="hs-identifier">HMV</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">{</span><span> </span><a name="unHMV"><a href="TensorOps.BLAS.HMat.html#unHMV"><span class="hs-identifier">unHMV</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Vector</span><span> </span><a href="#local-1627676812"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.BLAS.HMat.html#HMat"><span class="hs-identifier hs-type">HMat</span></a><span> </span><a href="#local-1627676812"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-special">(</span><span class="hs-char">'BV n)
+</span><a name="line-38"></a><span>    </span><a name="HMV"><a href="TensorOps.BLAS.HMat.html#HMV"><span class="hs-identifier">HMV</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">{</span><span> </span><a name="unHMV"><a href="TensorOps.BLAS.HMat.html#unHMV"><span class="hs-identifier">unHMV</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Vector</span><span> </span><a href="#local-1627636784"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.BLAS.HMat.html#HMat"><span class="hs-identifier hs-type">HMat</span></a><span> </span><a href="#local-1627636784"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-special">(</span><span class="hs-char">'BV n)
     HMM :: { unHMM :: !(Matrix a) } -&gt; HMat a ('BM n m)
 
 instance (VS.Storable a, Show a, Element a) =&gt; Show (HMat a s) where
@@ -106,34 +106,31 @@ instance (Container Vector a, Numeric a) =&gt; BLAS (HMat a) where
     -- TODO: rewrite rules
     -- write in parallel?
     liftB
-        :: forall n m s. ()
+        :: forall n s. ()
         =&gt; Sing s
-        -&gt; Vec m (Vec n a -&gt; a)
+        -&gt; (Vec n a -&gt; a)
         -&gt; Vec n (HMat a s)
-        -&gt; Vec m (HMat a s)
-    liftB s fs xs = fmap go fs
-      where
-        go :: (Vec n a -&gt; a) -&gt; HMat a s
-        go f = case xs of
-          &#216;V -&gt; case s of
-            SBV sN    -&gt; HMV $ konst (f &#216;V) ( fromIntegral (fromSing sN) )
-            SBM sN sM -&gt; HMM $ konst (f &#216;V) ( fromIntegral (fromSing sN)
-                                            , fromIntegral (fromSing sM)
-                                            )
-          I x :* &#216;V -&gt; case x of
-            HMV x' -&gt; HMV (cmap (f . (:* &#216;V) . I) x')
-            HMM x' -&gt; HMM (cmap (f . (:* &#216;V) . I) x')
-          I x :* I y :* &#216;V -&gt; case x of
-            HMV x' -&gt; case y of
-              HMV y' -&gt; HMV $ VS.zipWith (curryV2' f) x' y'
-            HMM x' -&gt; case y of
-              HMM y' -&gt; HMM $ liftMatrix2 (VS.zipWith (curryV2' f)) x' y'
-          I x :* I y :* I z :* &#216;V -&gt; case x of
-            HMV x' -&gt; case y of
-              HMV y' -&gt; case z of
-                HMV z' -&gt; HMV $ VS.zipWith3 (curryV3' f) x' y' z'
-            _ -&gt; liftB' s f xs
+        -&gt; HMat a s
+    liftB s f = \case
+        &#216;V -&gt; case s of
+          SBV sN    -&gt; HMV $ konst (f &#216;V) ( fromIntegral (fromSing sN) )
+          SBM sN sM -&gt; HMM $ konst (f &#216;V) ( fromIntegral (fromSing sN)
+                                          , fromIntegral (fromSing sM)
+                                          )
+        I x :* &#216;V -&gt; case x of
+          HMV x' -&gt; HMV (cmap (f . (:* &#216;V) . I) x')
+          HMM x' -&gt; HMM (cmap (f . (:* &#216;V) . I) x')
+        I x :* I y :* &#216;V -&gt; case x of
+          HMV x' -&gt; case y of
+            HMV y' -&gt; HMV $ VS.zipWith (curryV2' f) x' y'
+          HMM x' -&gt; case y of
+            HMM y' -&gt; HMM $ liftMatrix2 (VS.zipWith (curryV2' f)) x' y'
+        xs@(I x :* I y :* I z :* &#216;V) -&gt; case x of
+          HMV x' -&gt; case y of
+            HMV y' -&gt; case z of
+              HMV z' -&gt; HMV $ VS.zipWith3 (curryV3' f) x' y' z'
           _ -&gt; liftB' s f xs
+        xs@(_ :* _ :* _ :* _ :* _) -&gt; liftB' s f xs
 
     axpy &#945; (HMV x) my
         = HMV

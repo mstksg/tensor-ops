@@ -26,24 +26,28 @@
 </span><a name="line-26"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span>        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">P</span><span>
 </span><a name="line-27"></a><span>
 </span><a name="line-28"></a><span class="hs-identifier">append'</span><span>
-</span><a name="line-29"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><a href="#local-1627554417"><span class="hs-identifier hs-type">ns</span></a><span>
-</span><a name="line-30"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><a href="#local-1627554418"><span class="hs-identifier hs-type">ms</span></a><span>
-</span><a name="line-31"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><span class="hs-special">(</span><a href="#local-1627554417"><span class="hs-identifier hs-type">ns</span></a><span> </span><span class="hs-operator">++</span><span> </span><a href="#local-1627554418"><span class="hs-identifier hs-type">ms</span></a><span class="hs-special">)</span><span>
+</span><a name="line-29"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><a href="#local-1627555845"><span class="hs-identifier hs-type">ns</span></a><span>
+</span><a name="line-30"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><a href="#local-1627555846"><span class="hs-identifier hs-type">ms</span></a><span>
+</span><a name="line-31"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><span class="hs-special">(</span><a href="#local-1627555845"><span class="hs-identifier hs-type">ns</span></a><span> </span><span class="hs-operator">++</span><span> </span><a href="#local-1627555846"><span class="hs-identifier hs-type">ms</span></a><span class="hs-special">)</span><span>
 </span><a name="line-32"></a><a name="append%27"><a href="Data.Type.Length.Util.html#append%27"><span class="hs-identifier">append'</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-keyword">case</span><span>
 </span><a name="line-33"></a><span>    </span><span class="hs-identifier hs-var">LZ</span><span>   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">id</span><span>
-</span><a name="line-34"></a><span>    </span><span class="hs-identifier hs-var">LS</span><span> </span><a name="local-1627554419"><a href="#local-1627554419"><span class="hs-identifier">l</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">LS</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Data.Type.Length.Util.html#append%27"><span class="hs-identifier hs-var">append'</span></a><span> </span><a href="#local-1627554419"><span class="hs-identifier hs-var">l</span></a><span>
-</span><a name="line-35"></a><span>
-</span><a name="line-36"></a><span class="hs-identifier">cons</span><span>
-</span><a name="line-37"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Proxy</span><span> </span><a href="#local-1627554415"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-38"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><span class="hs-keyword">as</span><span>
-</span><a name="line-39"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><span class="hs-special">(</span><a href="#local-1627554415"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-char">': as)
+</span><a name="line-34"></a><span>    </span><span class="hs-identifier hs-var">LS</span><span> </span><a name="local-1627555847"><a href="#local-1627555847"><span class="hs-identifier">l</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">LS</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Data.Type.Length.Util.html#append%27"><span class="hs-identifier hs-var">append'</span></a><span> </span><a href="#local-1627555847"><span class="hs-identifier hs-var">l</span></a><span>
+</span><a name="line-35"></a><span class="hs-pragma">{-# INLINE append' #-}</span><span>
+</span><a name="line-36"></a><span class="hs-keyword">infixr</span><span> </span><span class="hs-number">5</span><span> </span><span class="hs-special">`</span><span class="hs-identifier">append'</span><span class="hs-special">`</span><span>
+</span><a name="line-37"></a><span>
+</span><a name="line-38"></a><span class="hs-identifier">cons</span><span>
+</span><a name="line-39"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Proxy</span><span> </span><a href="#local-1627555843"><span class="hs-identifier hs-type">a</span></a><span>
+</span><a name="line-40"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><span class="hs-keyword">as</span><span>
+</span><a name="line-41"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><span class="hs-special">(</span><a href="#local-1627555843"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-char">': as)
 cons _ = LS
+{-# INLINE cons #-}
 
 tail'
     :: Length (n ': ns)
     -&gt; Length ns
 tail' = \case
     LS l -&gt; l
+{-# INLINE tail' #-}
 
 -- TODO: could PROBABLY just be unsafeCoerce?
 reverse'
@@ -87,14 +91,18 @@ snocLengthHelp lB sB = \case
   where
     p :: forall c cs. Length (c ': cs) -&gt; Proxy c
     p _ = Proxy
+    {-# INLINE p #-}
     l :: forall c cs. Length (c ': cs) -&gt; Length '[c]
     l _ = LS LZ
+    {-# INLINE l #-}
+{-# INLINE snocLengthHelp #-}
 
 -- | could this be unsafeCoerce?
 snocLength
     :: Length as
     -&gt; SnocLength as
 snocLength l = snocLengthHelp LZ SnocZ l
+{-# INLINE snocLength #-}
 
 -- | could just be unsafeCoerce lol
 snocLengthLength
@@ -103,6 +111,7 @@ snocLengthLength
 snocLengthLength = \case
     SnocZ     -&gt; LZ
     SnocS l s -&gt; snocLengthLength l &gt;: s
+{-# INLINE snocLengthLength #-}
 
 snocLengthReverse
     :: SnocLength as
@@ -112,6 +121,7 @@ snocLengthReverse = \case
     SnocS (s :: SnocLength bs) (p :: Proxy b) -&gt;
       LS (snocLengthReverse s)
         \\ snocReverse (snocLengthLength s) p
+{-# INLINE snocLengthReverse #-}
 
 -- | A @'MaxLength' n as@ is a witness that the list @as@ has a length of
 -- at most @n@.
@@ -149,6 +159,8 @@ splitting = \case
     x :&lt; xs -&gt; case splitting n xs of
       Fewer m xs'    -&gt; Fewer (MLS m) (x :&lt; xs')
       Split e xs' ys -&gt; Split (ELS e) (x :&lt; xs') ys
+{-# INLINE splitting #-}
+
 
 maxLength
     :: Nat n
@@ -164,6 +176,7 @@ maxLength = \case
       Proved m    -&gt; Proved (MLS m)
       Disproved r -&gt; Disproved $ \case
         MLS m -&gt; r m
+{-# INLINE maxLength #-}
 
 exactLength
     :: Nat n
@@ -179,6 +192,7 @@ exactLength = \case
       Proved e    -&gt; Proved (ELS e)
       Disproved r -&gt; Disproved $ \case
         ELS e -&gt; r e
+{-# INLINE exactLength #-}
 
 fromMaxLength
     :: MaxLength n as
@@ -186,6 +200,7 @@ fromMaxLength
 fromMaxLength = \case
     MLZ   -&gt; LZ
     MLS m -&gt; LS (fromMaxLength m)
+{-# INLINE fromMaxLength #-}
 
 fromExactLength
     :: ExactLength n as
@@ -193,6 +208,7 @@ fromExactLength
 fromExactLength = \case
     ELZ   -&gt; LZ
     ELS m -&gt; LS (fromExactLength m)
+{-# INLINE fromExactLength #-}
 
 weakenExactLength
     :: ExactLength n as
@@ -200,6 +216,7 @@ weakenExactLength
 weakenExactLength = \case
   ELZ   -&gt; MLZ
   ELS e -&gt; MLS (weakenExactLength e)
+{-# INLINE weakenExactLength #-}
 
 weakenMaxLength
     :: (n :&lt;=: m)
@@ -211,6 +228,7 @@ weakenMaxLength = \case
     LTES l -&gt; \case
       MLZ   -&gt; MLZ
       MLS s -&gt; MLS (weakenMaxLength l s)
+{-# INLINE weakenMaxLength #-}
 
 data SplittingEnd :: N -&gt; ([k] -&gt; Type) -&gt; [k] -&gt; Type where
     FewerEnd
@@ -237,6 +255,7 @@ splittingEnd n xs = case splitting n xs of
           Left  e  -&gt; SplitEnd e  (y :&lt; &#216; ) zs
           Right m' -&gt; FewerEnd m' (y :&lt; zs)
         SplitEnd e ys' zs -&gt; SplitEnd e (y :&lt; ys') zs
+{-# INLINE splittingEnd #-}
 
 consMaxLength
     :: Nat n
@@ -250,6 +269,7 @@ consMaxLength = \case
       MLS m -&gt; case consMaxLength n m of
         Left e   -&gt; Left  (ELS e)
         Right m' -&gt; Right (MLS m')
+{-# INLINE consMaxLength #-}
 
 commuteProd
     :: Length as
@@ -263,6 +283,7 @@ commuteProd = \case
       x :&lt; xs -&gt; \ys -&gt;
         case commuteProd lA lC xs ys of
           (xs', ys') -&gt; (x :&lt; xs', ys')
+{-# INLINE commuteProd #-}
 
 lengthProd
     :: Length as
@@ -270,4 +291,5 @@ lengthProd
 lengthProd = \case
     LZ   -&gt; &#216;
     LS l -&gt; Proxy :&lt; lengthProd l
+{-# INLINE lengthProd #-}
 </span></pre></body></html>

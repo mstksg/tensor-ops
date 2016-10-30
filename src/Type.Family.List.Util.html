@@ -1,26 +1,31 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds           #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE GADTs               #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase          #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE PolyKinds           #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications    #-}</span><span>
-</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE TypeInType          #-}</span><span>
-</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators       #-}</span><span>
-</span><a name="line-9"></a><span>
-</span><a name="line-10"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-11"></a><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Proxy</span><span>
-</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Equality</span><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>
-</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
-</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Unsafe</span><span class="hs-operator">.</span><span class="hs-identifier">Coerce</span><span>
-</span><a name="line-18"></a><span>
-</span><a name="line-19"></a><span class="hs-identifier">reverseSnoc</span><span>
-</span><a name="line-20"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-1627552331"><a href="#local-1627552331"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-keyword">as</span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-21"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><span class="hs-keyword">as</span><span>
-</span><a name="line-22"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Proxy</span><span> </span><a href="#local-1627552331"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-23"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Reverse</span><span> </span><span class="hs-special">(</span><a href="#local-1627552331"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-char">': as) :~: (Reverse as &gt;: a))
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE AllowAmbiguousTypes  #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DataKinds            #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE GADTs                #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase           #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE PolyKinds            #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables  #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications     #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies         #-}</span><span>
+</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE TypeInType           #-}</span><span>
+</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators        #-}</span><span>
+</span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><a name="line-12"></a><span>
+</span><a name="line-13"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-14"></a><span>
+</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Proxy</span><span>
+</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Equality</span><span>
+</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>
+</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
+</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
+</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Unsafe</span><span class="hs-operator">.</span><span class="hs-identifier">Coerce</span><span>
+</span><a name="line-23"></a><span>
+</span><a name="line-24"></a><span class="hs-identifier">reverseSnoc</span><span>
+</span><a name="line-25"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-1627553312"><a href="#local-1627553312"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-keyword">as</span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a name="line-26"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">Length</span><span> </span><span class="hs-keyword">as</span><span>
+</span><a name="line-27"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Proxy</span><span> </span><a href="#local-1627553312"><span class="hs-identifier hs-type">a</span></a><span>
+</span><a name="line-28"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Reverse</span><span> </span><span class="hs-special">(</span><a href="#local-1627553312"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-char">': as) :~: (Reverse as &gt;: a))
 reverseSnoc = \case
     LZ   -&gt; \_ -&gt; Refl
     LS l -&gt; \_ -&gt; Refl \\ reverseSnoc l (Proxy @(Head as))
@@ -77,4 +82,34 @@ appendSnoc = \case
 --     -&gt; ((n ': ns) :~: ('[n] ++ ns))
 -- appendCons _ _ = Refl
 
+type family Cycle (n :: N) (as :: [k]) :: [k] where
+    Cycle 'Z     xs = '[]
+    Cycle ('S n) xs = xs ++ Cycle n xs
+
+type family Replicate (n :: N) (a :: k) :: [k] where
+    Replicate 'Z     x = '[]
+    Replicate ('S n) x = x ': Replicate n x
+
+-- TODO: implement and not be lazy
+snocReplicate
+    :: Nat n
+    -&gt; (Replicate ('S n) x :~: Replicate n x &gt;: x)
+snocReplicate _ = unsafeCoerce Refl
+
+assocReplicate
+    :: Nat n
+    -&gt; ((x ': Replicate n x) :~: (Replicate n x &gt;: x))
+assocReplicate _ = unsafeCoerce Refl
+
+replicateLength
+    :: forall x n. ()
+    =&gt; Nat n
+    -&gt; Length (Replicate n x)
+replicateLength = \case
+    Z_   -&gt; LZ
+    S_ n -&gt; LS (replicateLength @x n)
+
+reverseReplicate
+    :: (Replicate n xs :~: Reverse (Replicate n x))
+reverseReplicate = unsafeCoerce Refl
 </span></pre></body></html>
