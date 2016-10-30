@@ -116,14 +116,14 @@ import           TensorOps.Types
 import qualified TensorOps.TOp as TO
 
 ffLayer'
-    :: TOp '[ '[i], '[o,i], '[o]] '[ '[o] ]
+    :: TOp '[ '[i], '[o,i], '[o] ] '[ '[o] ]
 ffLayer' = firstOp (TO.swap >>> TO.matVec)
        >>> TO.add
 ~~~
 
 Where `TO.swap >>> TO.matVec` turns `'[ '[i], '[o,i] ]` into `'[o]` by swapping
-and doing a matrix-vector multiplication, and `TO.add :: TOp '[ ns, ns ] '[ns]`
-adds the result with the bias vector.
+and doing a matrix-vector multiplication, and
+`TO.add :: TOp '[ '[o], '[o] ] '[ '[o] ]` adds the result with the bias vector.
 
 This is mostly done for now for simplicity in implementation, to avoid having
 to worry about representing abstract functions and indexing schemes and stuff
