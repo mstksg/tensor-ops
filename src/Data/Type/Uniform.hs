@@ -3,7 +3,9 @@
 {-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeInType            #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
@@ -15,6 +17,8 @@ import           Data.Kind
 import           Data.Type.Length
 import           Type.Class.Known
 import           Type.Class.Witness
+import           Data.Type.Nat
+import           Type.Family.List.Util
 import           Type.Family.Constraint
 import           Type.Family.List
 
@@ -54,4 +58,12 @@ appendUniform
 appendUniform = \case
     UØ   -> id
     US u -> US . appendUniform u
+
+replicateUniform
+    :: forall x n. ()
+    => Nat n
+    -> Uniform x (Replicate n x)
+replicateUniform = \case
+    Z_   -> UØ
+    S_ n -> US (replicateUniform @x n)
 

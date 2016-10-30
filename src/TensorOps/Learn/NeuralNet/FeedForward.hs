@@ -105,7 +105,7 @@ trainNetwork
     -> Network t i o
 trainNetwork loss r x y = \case
     N s o p ->
-      let p' = map1 (\(s1 :&: o1 :&: g1) -> (\\ s1) $ TT.zip stepFunc o1 g1)
+      let p' = map1 (\(s1 :&: o1 :&: g1) -> TT.zip stepFunc o1 g1 \\ s1)
              $ zipProd3 (singProd s) p (tail' $ netGrad loss x y s o p)
       in  N s o p'
   where

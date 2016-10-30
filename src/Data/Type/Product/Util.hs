@@ -21,6 +21,7 @@ import           Data.Type.Conjunction
 import           Data.Type.Equality
 import           Data.Type.Index
 import           Data.Type.Length
+import           Data.Type.Nat
 import           Data.Type.Product     as TCP hiding (reverse')
 import           Data.Type.Uniform
 import           Data.Type.Vector
@@ -28,6 +29,7 @@ import           Prelude hiding                      (replicate)
 import           Type.Class.Higher.Util
 import           Type.Class.Known
 import           Type.Family.List
+import           Type.Family.List.Util
 import           Type.Family.Nat
 
 instance Every NFData (f <$> as) => NFData (Prod f as) where
@@ -365,3 +367,39 @@ mapUniform = \case
     US u -> \f -> \case
       x :< xs -> f x :< mapUniform u f xs
 {-# INLINE mapUniform #-}
+
+pgen
+    :: forall f as. ()
+    => Length as
+    -> (forall a. Index as a -> f a)
+    -> Prod f as
+pgen = \case
+    LZ   -> \_ -> Ø
+    LS l -> \f -> f IZ :< pgen l (f . IS)
+
+pgen_
+    :: forall f as. Known Length as
+    => (forall a. Index as a -> f a)
+    -> Prod f as
+pgen_ = pgen known
+
+vecToProd'
+    :: forall a b f g n. ()
+    => (f b -> g a)
+    -> VecT n f b
+    -> Prod g (Replicate n a)
+vecToProd' f = \case
+    ØV -> Ø
+
+prodToVec'
+    :: forall a b f g n. ()
+    => (f a -> g b)
+    -> Nat n
+    -> Prod f (Replicate n a)
+    -> VecT n g b
+prodToVec' f = \case
+    Z_    -> \case
+      Ø       -> ØV
+    S_ n' -> \case
+      x :< xs -> f x :* prodToVec' f n' xs
+
