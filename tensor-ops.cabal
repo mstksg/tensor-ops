@@ -51,6 +51,7 @@ library
                      , finite-typelits
                      , foldl
                      , hmatrix >= 0.18
+                     , mtl
                      , mwc-random
                      , primitive
                      , reflection

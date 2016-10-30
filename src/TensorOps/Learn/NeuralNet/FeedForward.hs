@@ -11,7 +11,20 @@
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module TensorOps.Learn.NeuralNet.FeedForward where
+module TensorOps.Learn.NeuralNet.FeedForward
+  ( Network(..)
+  , buildNet
+  , runNetwork
+  , trainNetwork
+  , induceNetwork
+  , nmap
+  , (~*)
+  , (*~)
+  , netParams
+  , networkGradient
+  , genNet
+  , ffLayer
+  ) where
 
 import           Control.Category hiding        (id, (.))
 import           Control.DeepSeq
@@ -38,19 +51,26 @@ import           Type.Family.List
 import           Type.Family.List.Util
 
 data Network :: ([k] -> Type) -> k -> k -> Type where
-    N :: { _nsOs    :: !(Sing os)
-         , _nOp     :: !(TOp ('[i] ': os) '[ '[o] ])
-         , _nParams :: !(Prod t os)
+    N :: { _nsPs    :: !(Sing ps)
+         , _nOp     :: !(TOp ('[i] ': ps) '[ '[o] ])
+         , _nParams :: !(Prod t ps)
          } -> Network t i o
 
 instance NFData1 t => NFData (Network t i o) where
     rnf = \case
-      N _ _ p -> p `deepseq1` ()
+      N _ o p -> o `seq` p `deepseq1` ()
     {-# INLINE rnf #-}
+
+buildNet
+    :: SingI ps
+    => TOp ('[i] ': ps) '[ '[o] ]
+    -> Prod t ps
+    -> Network t i o
+buildNet = N sing
 
 netParams
     :: Network t i o
-    -> (forall os. SingI os => Prod t os -> r)
+    -> (forall ps. SingI ps => Prod t ps -> r)
     -> r
 netParams n f = case n of
     N o _ p -> f p \\ o
@@ -59,9 +79,9 @@ netParams n f = case n of
     :: Network t a b
     -> Network t b c
     -> Network t a c
-N sOs1 o1 p1 ~*~ N sOs2 o2 p2 =
-    N (sOs1 %:++ sOs2) (o1 *>> o2) (p1 `TCP.append'` p2)
-        \\ singLength sOs1
+N sPs1 o1 p1 ~*~ N sPs2 o2 p2 =
+    N (sPs1 %:++ sPs2) (o1 *>> o2) (p1 `TCP.append'` p2)
+        \\ singLength sPs1
 infixr 4 ~*~
 {-# INLINE (~*~) #-}
 
@@ -136,32 +156,32 @@ networkGradient
     -> t '[i]
     -> t '[o]
     -> Network t i o
-    -> (forall os. SingI os => Prod t os -> r)
+    -> (forall ps. SingI ps => Prod t ps -> r)
     -> r
 networkGradient loss x y = \case
     N s o p -> \f -> f (tail' $ netGrad loss x y s o p) \\ s
 {-# INLINE networkGradient #-}
 
 netGrad
-    :: forall i o os t. (Tensor t, RealFloat (ElemT t))
+    :: forall i o ps t. (Tensor t, RealFloat (ElemT t))
     => TOp '[ '[o], '[o] ] '[ '[] ]
     -> t '[i]
     -> t '[o]
-    -> Sing os
-    -> TOp ('[i] ': os) '[ '[o] ]
-    -> Prod t os
-    -> Prod t ('[i] ': os)
+    -> Sing ps
+    -> TOp ('[i] ': ps) '[ '[o] ]
+    -> Prod t ps
+    -> Prod t ('[i] ': ps)
 netGrad loss x y s o p = (\\ appendSnoc lO (Proxy @'[o])) $
                          (\\ lO                         ) $
                          takeProd @'[ '[o] ] (LS lO)
                        $ gradTOp o' inp
   where
-    lO  :: Length os
+    lO  :: Length ps
     lO = singLength s
-    o'  :: ((os ++ '[ '[o] ]) ~ (os >: '[o]), Known Length os)
-        => TOp ('[i] ': os >: '[o]) '[ '[]]
+    o'  :: ((ps ++ '[ '[o] ]) ~ (ps >: '[o]), Known Length ps)
+        => TOp ('[i] ': ps >: '[o]) '[ '[]]
     o' = o *>> loss
-    inp  :: Prod t ('[i] ': os >: '[o])
+    inp  :: Prod t ('[i] ': ps >: '[o])
     inp = x :< p >: y
 {-# INLINE netGrad #-}
 

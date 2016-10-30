@@ -4,32 +4,47 @@
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE KindSignatures      #-}
 {-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE TypeInType          #-}
 {-# LANGUAGE TypeOperators       #-}
 
-module TensorOps.Learn.NeuralNet.Recurrent where
+module TensorOps.Learn.NeuralNet.Recurrent
+  ( Network
+  , buildNet
+  , netParams
+  , runNetwork
+  , runNetworkSt
+  , (~*~)
+  , (*~)
+  , (~*)
+  , nmap
+  , trainNetwork
+  , networkGradient
+  ) where
 
-import           Control.Category hiding        ((.), id)
+import           Control.Category hiding ((.), id)
+import           Control.DeepSeq
+import           Control.Monad.State
 import           Data.Kind
 import           Data.Singletons
-import           Data.Singletons.Prelude hiding ((%:++))
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
-import           Data.Type.Length               as TCL
-import           Data.Type.Length.Util          as TCL
+import           Data.Type.Length        as TCL
+import           Data.Type.Length.Util   as TCL
 import           Data.Type.Nat
-import           Data.Type.Product              as TCP
-import           Data.Type.Product.Util         as TCP
+import           Data.Type.Product       as TCP
+import           Data.Type.Product.Util  as TCP
 import           Data.Type.Sing
 import           Data.Type.Uniform
-import           Data.Type.Vector               as TCV
-import           Data.Type.Vector.Util          as TCV
-import           TensorOps.TOp                  as TO
-import           TensorOps.Tensor               as TT
+import           Data.Type.Vector        as TCV
+import           Data.Type.Vector.Util   as TCV
+import           TensorOps.TOp           as TO
+import           TensorOps.Tensor        as TT
 import           TensorOps.Types
 import           Type.Class.Higher
+import           Type.Class.Higher.Util
 import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.List
@@ -44,6 +59,26 @@ data Network :: ([k] -> Type) -> k -> k -> Type where
          , _nState  :: !(Prod t ss)
          , _nParams :: !(Prod t ps)
          } -> Network t i o
+
+instance NFData1 t => NFData (Network t i o) where
+    rnf = \case
+      N _ _ o p s -> o `seq` p `deepseq1` s `deepseq1` ()
+    {-# INLINE rnf #-}
+
+netParams
+    :: Network t i o
+    -> (forall ss ps. (SingI ss, SingI ps) => Prod t ss -> Prod t ps -> r)
+    -> r
+netParams = \case
+    N sS sP _ s p -> \f -> f s p \\ sS \\ sP
+
+buildNet
+    :: (SingI ss, SingI ps)
+    => TOp ('[i] ': ss ++ ps) ('[o] ': ss)
+    -> Prod t ss
+    -> Prod t ps
+    -> Network t i o
+buildNet = N sing sing
 
 (~*~)
     :: forall k (t :: [k] -> Type) a b c. ()
@@ -93,57 +128,46 @@ data Network :: ([k] -> Type) -> k -> k -> Type where
             (s2 `TCP.append'` s1)
             (p1 `TCP.append'` p2)
 infixr 4 ~*~
+{-# INLINE (~*~) #-}
 
 runNetwork
     :: (RealFloat (ElemT t), Tensor t)
-    => t '[i]
-    -> Network t i o
+    => Network t i o
+    -> t '[i]
     -> (t '[o], Network t i o)
-runNetwork x (N sS sO o s p) =
+runNetwork (N sS sO o s p) x =
         (\case y :< s' -> (y, N sS sO o s' p))
       . runTOp o
       $ x :< (s `TCP.append'` p)
+{-# INLINE runNetwork #-}
 
-trainNetwork1
-    :: forall t i o. (Tensor t, RealFloat (ElemT t))
-    => TOp '[ '[o], '[o] ] '[ '[] ]
-    -> ElemT t
-    -> ElemT t
-    -> t '[i]
-    -> t '[o]
-    -> Network t i o
-    -> Network t i o
-trainNetwork1 loss rP rS x y = \case
-    N (sS :: Sing ss)
-      (sO :: Sing ps)
-      (o  :: TOp ('[i] ': ss ++ ps) ('[o] ': ss))
-      (s  :: Prod t ss)
-      (p  :: Prod t ps) -> (\\ sS) $
-                           (\\ sS %:++ sOnly SNil) $
-      let o' :: TOp ('[o] ': '[i] ': ss ++ ps) '[ '[] ]
-          o' = secondOp @'[ '[o] ] o
-           >>> firstOp loss
-           >>> TO.swap' (LS LZ) (singLength sS)
-           >>> TO.drop (singLength sS)
-          inp :: Prod t ('[o] ': '[i] ': ss ++ ps)
-          inp = y :< x :< s `TCP.append'` p
-          grad :: Prod t (ss ++ ps)
-          grad = dropProd (LS (LS LZ))
-               $ gradTOp o' inp
-          gS :: Prod t ss
-          gP :: Prod t ps
-          (gS, gP) = splitProd (singLength sS) grad
-          s' :: Prod t ss
-          s' = map1 (\(s1 :&: o1 :&: g1) -> TT.zip (stepFunc rS) o1 g1 \\ s1)
-             $ zipProd3 (singProd sS) s gS
-          p' :: Prod t ps
-          p' = map1 (\(s1 :&: o1 :&: g1) -> TT.zip (stepFunc rP) o1 g1 \\ s1)
-             $ zipProd3 (singProd sO) p gP
-      in  N sS sO o s' p'
-  where
-    stepFunc :: ElemT t -> ElemT t -> ElemT t -> ElemT t
-    stepFunc r o' g' = o' - r * g'
-    {-# INLINE stepFunc #-}
+runNetworkSt
+    :: (RealFloat (ElemT t), Tensor t, MonadState (Network t i o) m)
+    => t '[i]
+    -> m (t '[o])
+runNetworkSt x = state $ flip runNetwork x
+
+(~*) :: TOp '[ '[a] ] '[ '[b] ]
+     -> Network t b c
+     -> Network t a c
+f ~* N sS sO o s p = N sS sO (f *>> o) s p
+infixr 4 ~*
+{-# INLINE (~*) #-}
+
+(*~) :: Network t a b
+     -> TOp '[ '[b] ] '[ '[c] ]
+     -> Network t a c
+N sS sO o s p *~ f = N sS sO (o >>> firstOp f) s p
+infixl 5 *~
+{-# INLINE (*~) #-}
+
+nmap
+     :: SingI o
+     => (forall a. RealFloat a => a -> a)
+     -> Network t i o
+     -> Network t i o
+nmap f n = n *~ TO.map f
+{-# INLINE nmap #-}
 
 netGrad
     :: forall k n (t :: [k] -> Type) (i :: k) (o :: k) ss ps.
@@ -236,6 +260,24 @@ trainNetwork loss rS rP xs ys = \case
     {-# INLINE f #-}
 {-# INLINE trainNetwork #-}
 
+networkGradient
+    :: forall k n (t :: [k] -> Type) (i :: k) (o :: k) r.
+     ( Tensor t
+     , RealFloat (ElemT t)
+     , SingI i
+     , SingI o
+     )
+    => TOp '[ '[o], '[o] ] '[ ('[] :: [k]) ]
+    -> Vec n (t '[i])
+    -> Vec n (t '[o])
+    -> Network t i o
+    -> (forall ss ps. (SingI ss, SingI ps) => Vec n (t '[i]) -> Prod t ss -> Prod t ps -> r)
+    -> r
+networkGradient loss xs ys = \case
+    N sS sP o s p -> \f -> case netGrad loss xs ys sS sP o s p of
+      (gI, (gS, gP)) -> f gI gS gP \\ sS \\ sP
+{-# INLINE networkGradient #-}
+
 
 unroll
     :: forall ss ps i o n. (SingI (ss ++ ps), SingI i)
@@ -276,6 +318,7 @@ unroll sS sP o = \case
     lS = singLength sS
     lP :: Length ps
     lP = singLength sP
+{-# INLINE unroll #-}
 
 
 rollup
@@ -307,3 +350,4 @@ rollup lS lP loss = \case
                   rollup lS lP loss m
                 )
             >>> TO.add
+{-# INLINE rollup #-}

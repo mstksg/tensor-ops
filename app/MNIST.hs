@@ -34,7 +34,6 @@ import           Data.Proxy
 import           Data.String
 import           Data.Time.Clock
 import           Data.Type.Combinator
-import           Data.Type.Product                     as TCP
 import           Data.Type.Vector
 import           GHC.Generics                          (Generic)
 import           GHC.TypeLits
