@@ -24,6 +24,7 @@ library
                        TensorOps.Backend.BTensor
                        TensorOps.Backend.NTensor
                        TensorOps.Learn.NeuralNet
+                       TensorOps.Learn.NeuralNet.AutoEncoder
                        TensorOps.Learn.NeuralNet.FeedForward
                        TensorOps.Learn.NeuralNet.Recurrent
                        TensorOps.NatKind
@@ -106,7 +107,6 @@ executable tensor-ops-mnist
                      , tensor-ops
                      , text
                      , time
-                     -- , transformers
                      , type-combinators
                      , vector
                      , zlib

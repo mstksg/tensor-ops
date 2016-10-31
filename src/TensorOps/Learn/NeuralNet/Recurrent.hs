@@ -123,6 +123,11 @@ fullyConnected a g = (\s w w' b -> buildNet @'[ '[o] ] @'[ '[o,o], '[o,i], '[o] 
     {-# INLINE fc #-}
 {-# INLINE fullyConnected #-}
 
+-- | Convert a neural network from "TensorOps.Learn.NeuralNet.FeedForward"
+-- to a stateless 'Network'.
+--
+-- Can be thought a functor from the category of stateless neural networks
+-- to the category of stateful (recurrent) ones.
 stateless
     :: FF.Network t i o
     -> Network t i o

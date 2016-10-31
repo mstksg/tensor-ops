@@ -20,6 +20,7 @@ module TensorOps.Learn.NeuralNet.FeedForward
   , nmap
   , (~*)
   , (*~)
+  , liftNet
   , netParams
   , networkGradient
   , genNet
@@ -104,6 +105,11 @@ infixr 4 ~*
 N sO o p *~ f = N sO (o >>> f) p
 infixl 5 *~
 {-# INLINE (*~) #-}
+
+liftNet
+     :: TOp '[ '[i] ] '[ '[o] ]
+     -> Network t i o
+liftNet o = buildNet o Ø
 
 nmap
      :: SingI o
