@@ -104,10 +104,12 @@ executable tensor-ops-mnist
                      , optparse-applicative
                      , profunctors
                      , singletons
+                     , statistics
                      , tensor-ops
                      , text
                      , time
                      , type-combinators
+                     , typelits-witnesses
                      , vector
                      , zlib
   default-language:    Haskell2010

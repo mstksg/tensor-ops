@@ -1,18 +1,20 @@
-{-# LANGUAGE ApplicativeDo       #-}
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE DeriveGeneric       #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE GADTs               #-}
-{-# LANGUAGE KindSignatures      #-}
-{-# LANGUAGE LambdaCase          #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE PolyKinds           #-}
-{-# LANGUAGE RecordWildCards     #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections       #-}
-{-# LANGUAGE TypeApplications    #-}
-{-# LANGUAGE TypeOperators       #-}
-{-# LANGUAGE ViewPatterns        #-}
+{-# LANGUAGE ApplicativeDo          #-}
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE DeriveGeneric          #-}
+{-# LANGUAGE FlexibleContexts       #-}
+{-# LANGUAGE GADTs                  #-}
+{-# LANGUAGE KindSignatures         #-}
+{-# LANGUAGE LambdaCase             #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE PolyKinds              #-}
+{-# LANGUAGE RecordWildCards        #-}
+{-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE TupleSections          #-}
+{-# LANGUAGE TypeApplications       #-}
+{-# LANGUAGE TypeFamilies           #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
+{-# LANGUAGE TypeOperators          #-}
+{-# LANGUAGE ViewPatterns           #-}
 
 import           Control.Arrow                         ((&&&))
 import           Control.DeepSeq
@@ -27,13 +29,19 @@ import           Data.Kind
 import           Data.Monoid
 import           Data.Profunctor
 import           Data.Proxy
+import           Data.Singletons
+import           Data.Singletons.Prelude               (Sing(..))
+import           Data.Singletons.TypeLits
 import           Data.String
 import           Data.Time.Clock
 import           Data.Type.Combinator
+import           Data.Type.Equality
 import           Data.Type.Vector
 import           GHC.Generics                          (Generic)
-import           GHC.TypeLits
+import           GHC.TypeLits                          as TL
+import           GHC.TypeLits.Compare
 import           Options.Applicative hiding            (ParserResult(..))
+import           Statistics.Distribution.Uniform
 import           System.Directory
 import           System.FilePath
 import           System.Random.MWC
@@ -65,6 +73,7 @@ data Opts = O { oRate    :: Double
               , oLayers  :: [Integer]
               , oBatch   :: Integer
               , oDataDir :: FilePath
+              , oWhite   :: Bool
               }
     deriving (Show, Eq, Generic)
 
@@ -89,6 +98,10 @@ opts = O <$> option auto
               <> help "Directory to store/cache MNIST data files"
               <> value "data/mnist" <> showDefaultWith id
                )
+         <*> switch
+               ( long "white" <> short 'w'
+              <> help "Train with an eleventh \"white noise\" class to train network on negative results"
+               )
 
 main :: IO ()
 main = do
@@ -104,7 +117,10 @@ main = do
     mnistDat <- loadData oDataDir
     putStrLn "Loaded data."
 
-    learn (Proxy @(BTensorV HMatD)) mnistDat oRate oLayers oBatch
+    withSomeSing oWhite $ \(w :: Sing (w :: Bool)) ->
+      withKnownNat (nOut w) $ do
+        LE Refl <- return (Proxy %<=? Proxy :: 1 :<=? NOut w)
+        learn w (Proxy @(BTensorV HMatD)) mnistDat oRate oLayers oBatch
 
 loadData
     :: FilePath
@@ -165,21 +181,36 @@ processDat (l,d) = (,) <$> x <*> y
     l' :: Integer
     l' = natVal (Proxy @l)
 
+type family NOut (w :: Bool) = (n :: Nat) | n -> w where
+    NOut 'False = 10
+    NOut 'True  = 11
+
+nOut
+    :: Sing w
+    -> Sing (NOut w)
+nOut = \case
+    SFalse -> SNat @10
+    STrue  -> SNat @11
+
 learn
-    :: forall (t :: [Nat] -> Type).
+    :: forall (t :: [Nat] -> Type) (w :: Bool) (o :: Nat).
      ( Tensor t
      , RealFloat (ElemT t)
      , NFData1 t
      , NFData (t '[784])
-     , NFData (t '[10])
+     , NFData (t '[o])
+     , o ~ NOut w
+     , 1 TL.<= o
+     , KnownNat o
      )
-    => Proxy t
+    => Sing w
+    -> Proxy t
     -> Vec N2 [(Int, VU.Vector Int)]
     -> Double
     -> [Integer]
     -> Integer
     -> IO ()
-learn _ dat rate layers (fromIntegral->batch) =
+learn w _ dat rate layers (fromIntegral->batch) =
       withSystemRandom $ \g -> do
     dat' <- either (ioError . userError . unlines) return
           . validationToEither
@@ -189,71 +220,93 @@ learn _ dat rate layers (fromIntegral->batch) =
     dat'' <- evaluate $ force dat'
     putStrLn "Data processed."
 
-    let tXY, vXY :: [(t '[784], (t '[10], Finite 10))]
+    let tXY, vXY :: [(t '[784], (t '[o], Finite o))]
         (tXY, vXY) = case dat'' of
                        I t :* I v :* ØV -> (t,v)
 
-    net0 :: Network t 784 10
+    net0 :: Network t 784 o
             <- genNet (layers `zip` repeat (actMap logistic)) actSoftmax g
 
     printf "rate: %f | batch: %d | layers: %s\n" rate batch (show layers)
+    when (fromSing w) $
+      putStrLn "white noise class enabled"
 
     trainEpochs tXY ((map . second) snd vXY) g net0
   where
     processDat'
         :: (Int, VU.Vector Int)
-        -> Validation [String] (t '[784], (t '[10], Finite 10))
+        -> Validation [String] (t '[784], (t '[o], Finite o))
     processDat' = eitherToValidation . first (:[]) . processDat
+    noiseClass :: t '[11]
+    noiseClass = TT.oneHot 1 0 (finite 10)
+    noiseFin   :: Finite 11
+    noiseFin   = finite 10
     trainEpochs
-        :: [(t '[784], (t '[10], Finite 10))]
-        -> [(t '[784], Finite 10)]
+        :: [(t '[784], (t '[o], Finite o))]
+        -> [(t '[784], Finite o)]
         -> GenIO
-        -> Network t 784 10
+        -> Network t 784 o
         -> IO ()
     trainEpochs (V.fromList->tr) vd g = trainEpoch 1
       where
         trainEpoch
             :: Integer
-            -> Network t 784 10
+            -> Network t 784 o
             -> IO ()
         trainEpoch e nt0 = do
             printf "[Epoch %d]\n" e
-            queue <- evaluate . force =<< uniformShuffle tr g
+            tr' <- case w of
+                SFalse -> return tr
+                STrue  -> do
+                  extr <- V.replicateM (V.length tr `div` 10) $
+                            genRand (uniformDistr 0 1) g
+                  return $ tr <> fmap (, (noiseClass, noiseFin)) extr
+
+            queue <- evaluate . force =<< uniformShuffle tr' g
+
+            printf "Training on %d samples in batches of %d ...\n" (V.length tr') batch
 
             nt1 <- trainBatch 1 queue nt0
             trainEpoch (succ e) nt1
           where
             trainBatch
                 :: Integer
-                -> V.Vector (t '[784], (t '[10], Finite 10))
-                -> Network t 784 10
-                -> IO (Network t 784 10)
+                -> V.Vector (t '[784], (t '[o], Finite o))
+                -> Network t 784 o
+                -> IO (Network t 784 o)
             trainBatch b (V.splitAt batch->(xs,xss)) nt
                 | V.null xs = return nt
                 | otherwise = do
               printf "Batch %d ...\n" b
               (nt', t) <- time . return $ trainAll nt ((fmap . second) fst xs)
-              printf "Trained on %d / %d samples in %s\n" (V.length xs) (length tr) (show t)
+              printf "Trained on %d samples in %s\n" (V.length xs) (show t)
+              vd' :: [(t '[784], Finite o)] <- case w of
+                  SFalse ->
+                    return vd
+                  STrue  -> do
+                    extr <- replicateM (fromInteger b `div` 10) $
+                                genRand (uniformDistr 0 1) g
+                    return $ vd <> fmap (, noiseFin) extr
               let tscore = F.fold (validate nt') ((fmap . second) snd xs)
-                  vscore = F.fold (validate nt') vd
+                  vscore = F.fold (validate nt') vd'
               printf "Training:   %.2f%% error\n" ((1 - tscore) * 100)
               printf "Validation: %.2f%% error\n" ((1 - vscore) * 100)
               trainBatch (succ b) xss nt'
         validate
-            :: Network t 784 10
-            -> F.Fold (t '[784], Finite 10) Double
+            :: Network t 784 o
+            -> F.Fold (t '[784], Finite o) Double
         validate n = (\s l -> fromIntegral s / fromIntegral l)
                  <$> lmap (uncurry f) F.sum
                  <*> F.length
           where
-            f :: t '[784] -> Finite 10 -> Int
+            f :: t '[784] -> Finite o -> Int
             f x r | TT.argMax (runNetwork n x) == r = 1
                   | otherwise                       = 0
     trainAll
         :: Foldable f
-        => Network t 784 10
-        -> f (t '[784], t '[10])
-        -> Network t 784 10
+        => Network t 784 o
+        -> f (t '[784], t '[o])
+        -> Network t 784 o
     trainAll = foldl' $ \nt (i,o) -> nt `deepseq`
         trainNetwork crossEntropy rate' i o nt
     rate' :: ElemT t
