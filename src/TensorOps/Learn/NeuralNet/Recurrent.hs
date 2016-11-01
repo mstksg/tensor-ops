@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
@@ -347,8 +348,8 @@ trainNetwork' loss rS rP xs ys = \case
         => ElemT t
         -> (Sing :&: t :&: t) ns
         -> t ns
-    f r (s1 :&: p1 :&: g1) =
-      TT.zip (\p2 g2 -> p2 - r * g2) p1 g1 \\ s1
+    f r !(s1 :&: p1 :&: g1) =
+      TT.zip (\(!p2) (!g2) -> p2 - r * g2) p1 g1 \\ s1
     {-# INLINE f #-}
 {-# INLINE trainNetwork #-}
 
