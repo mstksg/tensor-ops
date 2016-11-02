@@ -316,7 +316,7 @@ learn w _ dat rate layers (fromIntegral->batch) ind =
                   SFalse ->
                     return vd
                   STrue  -> do
-                    extr <- replicateM (fromInteger b `div` 10) $
+                    extr <- replicateM 1000 $
                                 genRand (uniformDistr 0 1) g
                     return $ vd <> fmap (, noiseFin) extr
               let tscore = F.fold (validate nt') ((fmap . second) snd xs)
