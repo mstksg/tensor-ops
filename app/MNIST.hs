@@ -20,6 +20,9 @@ import           Control.Arrow                         ((&&&))
 import           Control.DeepSeq
 import           Control.Exception
 import           Control.Monad
+import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.State.Strict
+import           Control.Monad.Trans.Writer.Strict
 import           Data.Bifunctor
 import           Data.Either.Validation
 import           Data.Finite
@@ -56,10 +59,12 @@ import           Type.Family.Nat
 import qualified Codec.Compression.GZip                as GZ
 import qualified Control.Foldl                         as F
 import qualified Data.ByteString.Lazy                  as BS
+import qualified Data.Map.Strict                       as M
 import qualified Data.Vector                           as V
 import qualified Data.Vector.Unboxed                   as VU
 import qualified Network.HTTP.Simple                   as HTTP
 import qualified TensorOps.Tensor                      as TT
+import qualified Text.PrettyPrint.Boxes                as B
 
 mnistBase :: String
 mnistBase = "http://yann.lecun.com/exdb/mnist"
@@ -74,6 +79,7 @@ data Opts = O { oRate    :: Double
               , oBatch   :: Integer
               , oDataDir :: FilePath
               , oWhite   :: Bool
+              , oInduce  :: Maybe (Finite 10)
               }
     deriving (Show, Eq, Generic)
 
@@ -81,12 +87,12 @@ opts :: Parser Opts
 opts = O <$> option auto
                ( long "rate" <> short 'r' <> metavar "STEP"
               <> help "Neural network learning rate"
-              <> value 0.01 <> showDefault
+              <> value 0.02 <> showDefault
                )
          <*> option auto
                ( long "layers" <> short 'l' <> metavar "LIST"
               <> help "List of hidden layer sizes"
-              <> value [300,150] <> showDefault
+              <> value [300,100] <> showDefault
                )
          <*> option auto
                ( long "batch" <> short 'b' <> metavar "AMOUNT"
@@ -102,6 +108,22 @@ opts = O <$> option auto
                ( long "white" <> short 'w'
               <> help "Train with an eleventh \"white noise\" class to train network on negative results"
                )
+         <*> optional (
+               option readFin
+                 ( long "induce" <> short 'i' <> metavar "DIGIT"
+                <> help ("Every batch, attempt to induce an image "
+                      ++ "of the given digit with the trained network"
+                        )
+                 )
+               )
+  where
+    readFin :: forall n. KnownNat n => ReadM (Finite n)
+    readFin = do
+        i <- auto
+        case packFinite i of
+          Nothing -> readerError $
+            printf "Number %d out of range (%d)" i (natVal (Proxy @n) - 1)
+          Just x  -> return x
 
 main :: IO ()
 main = do
@@ -118,9 +140,13 @@ main = do
     putStrLn "Loaded data."
 
     withSomeSing oWhite $ \(w :: Sing (w :: Bool)) ->
-      withKnownNat (nOut w) $ do
-        LE Refl <- return (Proxy %<=? Proxy :: 1 :<=? NOut w)
-        learn w (Proxy @(BTensorV HMatD)) mnistDat oRate oLayers oBatch
+      withKnownNat (nOut w) $
+        case Proxy %<=? Proxy :: 1 :<=? NOut w of
+          LE Refl -> case Proxy %<=? Proxy :: 10 :<=? NOut w of
+            LE Refl ->
+              learn w (Proxy @(BTensorV HMatD)) mnistDat oRate oLayers oBatch oInduce
+            NLE _ -> error "impossible"
+          NLE _ -> error "impossible"
 
 loadData
     :: FilePath
@@ -200,7 +226,8 @@ learn
      , NFData (t '[784])
      , NFData (t '[o])
      , o ~ NOut w
-     , 1 TL.<= o
+     , 10 TL.<= o
+     , 1  TL.<= o
      , KnownNat o
      )
     => Sing w
@@ -209,8 +236,9 @@ learn
     -> Double
     -> [Integer]
     -> Integer
+    -> Maybe (Finite 10)
     -> IO ()
-learn w _ dat rate layers (fromIntegral->batch) =
+learn w _ dat rate layers (fromIntegral->batch) ind =
       withSystemRandom $ \g -> do
     dat' <- either (ioError . userError . unlines) return
           . validationToEither
@@ -230,6 +258,8 @@ learn w _ dat rate layers (fromIntegral->batch) =
     printf "rate: %f | batch: %d | layers: %s\n" rate batch (show layers)
     when (fromSing w) $
       putStrLn "white noise class enabled"
+    forM_ ind $ \i ->
+      printf "inducing: %d\n" (getFinite i)
 
     trainEpochs tXY ((map . second) snd vXY) g net0
   where
@@ -241,6 +271,8 @@ learn w _ dat rate layers (fromIntegral->batch) =
     noiseClass = TT.oneHot 1 0 (finite 10)
     noiseFin   :: Finite 11
     noiseFin   = finite 10
+    ind' :: Maybe (t '[o])
+    ind' = TT.oneHot 1 0 . weakenN <$> ind
     trainEpochs
         :: [(t '[784], (t '[o], Finite o))]
         -> [(t '[784], Finite o)]
@@ -288,9 +320,30 @@ learn w _ dat rate layers (fromIntegral->batch) =
                                 genRand (uniformDistr 0 1) g
                     return $ vd <> fmap (, noiseFin) extr
               let tscore = F.fold (validate nt') ((fmap . second) snd xs)
-                  vscore = F.fold (validate nt') vd'
+                  vconf  = F.fold (confusion nt') vd'
+                  confmat = ( B.vcat B.left
+                                  [ B.text (printf "[%d]" (getFinite i))
+                                  | i <- range :: [Finite o]
+                                  ] B.<+>
+                            )
+                          . B.hsep 1 B.top
+                          . map (\(_,r) -> B.vcat B.right
+                                         . map (\(_, c) -> B.text (show c))
+                                         $ M.toList r
+                                )
+                          $ M.toList vconf
+                  vscore :: Double
+                  vscore = (/ fromIntegral (length vd')) . sum
+                         . map (\(i, as) -> fromIntegral $ as M.! i)
+                         $ M.toList vconf
               printf "Training:   %.2f%% error\n" ((1 - tscore) * 100)
               printf "Validation: %.2f%% error\n" ((1 - vscore) * 100)
+              B.printBox confmat
+              forM_ ind' $ \i -> do
+                x0 <- genRand (uniformDistr 0 0.05) g
+                let x1 = induceNum nt' i 1 5000 x0
+                putStrLn (renderOut x1)
+
               trainBatch (succ b) xss nt'
         validate
             :: Network t 784 o
@@ -302,6 +355,18 @@ learn w _ dat rate layers (fromIntegral->batch) =
             f :: t '[784] -> Finite o -> Int
             f x r | TT.argMax (runNetwork n x) == r = 1
                   | otherwise                       = 0
+        confusion
+            :: Network t 784 o
+            -> F.Fold (t '[784], Finite o) (M.Map (Finite o) (M.Map (Finite o) Integer))
+        confusion n = F.Fold (\m (x, r) ->
+                                let y = TT.argMax (runNetwork n x)
+                                in  M.insertWith (M.unionWith (+)) r (M.singleton y 1) m
+                             )
+                             (M.fromList [ (i, M.fromList [ (j, 0) | j <- range ] )
+                                         | i <- range
+                                         ]
+                               )
+                             id
     trainAll
         :: Foldable f
         => Network t 784 o
@@ -311,6 +376,19 @@ learn w _ dat rate layers (fromIntegral->batch) =
         trainNetwork crossEntropy rate' i o nt
     rate' :: ElemT t
     rate' = realToFrac rate
+    induceNum
+        :: Network t 784 o
+        -> t '[o]
+        -> ElemT t
+        -> Int
+        -> t '[784]
+        -> t '[784]
+    induceNum n t r = go
+      where
+        go i x
+          | i == 0    = x
+          | otherwise = let x' = induceNetwork crossEntropy r t n x
+                        in  x' `deepseq` go (i - 1) x'
 
 time
     :: NFData a
@@ -321,3 +399,34 @@ time x = do
     y  <- evaluate . force =<< x
     t2 <- getCurrentTime
     return (y, t2 `diffUTCTime` t1)
+
+renderOut
+    :: forall t. (Tensor t, Real (ElemT t))
+    => t '[784]
+    -> String
+renderOut = unlines
+          . ($ [])
+          . appEndo
+          . execWriter
+          . execStateT (replicateM 28 go)
+          . TT.toList
+  where
+    go :: StateT [ElemT t] (Writer (Endo [String])) ()
+    go = do
+        x <- state $ splitAt 28
+        lift . tell . Endo . (++) . (:[]) $
+            map (render . realToFrac)
+          . concatMap (\y -> [y,y])
+          $ x
+    render :: Double -> Char
+    render r | r <= 0.2  = ' '
+             | r <= 0.4  = '.'
+             | r <= 0.8  = '-'
+             | r <= 1.9  = '='
+             | otherwise = '#'
+
+range
+    :: forall n. KnownNat n
+    => [Finite n]
+range = finite <$> [0 .. natVal (Proxy @n) - 1]
+

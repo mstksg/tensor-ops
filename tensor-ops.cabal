@@ -92,6 +92,8 @@ executable tensor-ops-mnist
                        -- -ddump-to-file
   build-depends:       base
                      , bytestring
+                     , boxes
+                     , containers
                      , deepseq
                      , directory
                      , either
@@ -108,6 +110,7 @@ executable tensor-ops-mnist
                      , tensor-ops
                      , text
                      , time
+                     , transformers
                      , type-combinators
                      , typelits-witnesses
                      , vector
