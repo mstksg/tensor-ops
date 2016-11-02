@@ -74,12 +74,13 @@ mnistFiles = ("train-images-idx3-ubyte" :+ "train-labels-idx1-ubyte" :+ ØV)
           :* ("t10k-images-idx3-ubyte"  :+ "t10k-labels-idx1-ubyte"  :+ ØV)
           :* ØV
 
-data Opts = O { oRate    :: Double
-              , oLayers  :: [Integer]
-              , oBatch   :: Integer
-              , oDataDir :: FilePath
-              , oWhite   :: Bool
-              , oInduce  :: Maybe (Finite 10)
+data Opts = O { oRate        :: Double
+              , oLayers      :: [Integer]
+              , oBatch       :: Integer
+              , oDataDir     :: FilePath
+              , oNoConfusion :: Bool
+              , oWhite       :: Bool
+              , oInduce      :: Maybe (Finite 10)
               }
     deriving (Show, Eq, Generic)
 
@@ -103,6 +104,10 @@ opts = O <$> option auto
                ( long "data" <> short 'd' <> metavar "PATH"
               <> help "Directory to store/cache MNIST data files"
               <> value "data/mnist" <> showDefaultWith id
+               )
+         <*> switch
+               ( long "noconfusion" <> short 'c'
+              <> help "Disable confusion matrix validation and only display % error every batch"
                )
          <*> switch
                ( long "white" <> short 'w'
@@ -144,7 +149,8 @@ main = do
         case Proxy %<=? Proxy :: 1 :<=? NOut w of
           LE Refl -> case Proxy %<=? Proxy :: 10 :<=? NOut w of
             LE Refl ->
-              learn w (Proxy @(BTensorV HMatD)) mnistDat oRate oLayers oBatch oInduce
+              learn w (Proxy @(BTensorV HMatD)) mnistDat
+                oRate oLayers oBatch oInduce oNoConfusion
             NLE _ -> error "impossible"
           NLE _ -> error "impossible"
 
@@ -237,8 +243,9 @@ learn
     -> [Integer]
     -> Integer
     -> Maybe (Finite 10)
+    -> Bool
     -> IO ()
-learn w _ dat rate layers (fromIntegral->batch) ind =
+learn w _ dat rate layers (fromIntegral->batch) ind nc =
       withSystemRandom $ \g -> do
     dat' <- either (ioError . userError . unlines) return
           . validationToEither
@@ -316,7 +323,7 @@ learn w _ dat rate layers (fromIntegral->batch) ind =
                   SFalse ->
                     return vd
                   STrue  -> do
-                    extr <- replicateM 1000 $
+                    extr <- replicateM (length vd `div` 10) $
                                 genRand (uniformDistr 0 1) g
                     return $ vd <> fmap (, noiseFin) extr
               let tscore = F.fold (validate nt') ((fmap . second) snd xs)
@@ -333,9 +340,11 @@ learn w _ dat rate layers (fromIntegral->batch) ind =
                                 )
                           $ M.toList vconf
                   vscore :: Double
-                  vscore = (/ fromIntegral (length vd')) . sum
-                         . map (\(i, as) -> fromIntegral $ as M.! i)
-                         $ M.toList vconf
+                  vscore
+                    | nc        = F.fold (validate nt') vd'
+                    | otherwise = (/ fromIntegral (length vd')) . sum
+                                . map (\(i, as) -> fromIntegral $ as M.! i)
+                                $ M.toList vconf
               printf "Training:   %.2f%% error\n" ((1 - tscore) * 100)
               printf "Validation: %.2f%% error\n" ((1 - vscore) * 100)
               B.printBox confmat
