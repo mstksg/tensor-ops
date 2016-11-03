@@ -10,7 +10,12 @@
 {-# LANGUAGE TypeInType          #-}
 {-# LANGUAGE TypeOperators       #-}
 
-module TensorOps.Learn.NeuralNet.AutoEncoder where
+module TensorOps.Learn.NeuralNet.AutoEncoder
+  ( Encoder(..)
+  , encode, decode
+  , encoderNet, encodeDecode, testEncoder
+  , trainEncoder
+  ) where
 
 import           Control.Category
 import           Data.Kind
@@ -21,7 +26,6 @@ import           Data.Type.Product                     as TCP
 import           Data.Type.Product.Util                as TCP
 import           Data.Type.Sing
 import           Prelude hiding                        ((.), id)
-import           TensorOps.Learn.NeuralNet
 import           TensorOps.Learn.NeuralNet.FeedForward
 import           TensorOps.Types
 import           Type.Class.Higher
@@ -56,17 +60,29 @@ encodeDecode
     => Encoder t i o
     -> t '[i]
     -> t '[i]
-encodeDecode = \case
-    E e d -> runNetwork (e >>> d)
+encodeDecode e = runNetwork (encoderNet e)
 
 testEncoder
-    :: forall t i o. (RealFloat (ElemT t), Tensor t)
+    :: forall t i o. (RealFloat (ElemT t), Tensor t, SingI i)
     => TOp '[ '[i], '[i] ] '[ '[] ]
     -> Encoder t i o
     -> t '[i]
-    -> t '[]
-testEncoder loss e x = TCP.head' $
-    runTOp loss (encodeDecode e x :< x :< Ø)
+    -> ElemT t
+testEncoder loss e = case encoderNet e of
+    N _ o p -> TT.unScalar
+             . TCP.head'
+             . runTOp ( firstOp TO.duplicate
+                    >>> secondOp @'[ '[i] ] o
+                    >>> TO.swap
+                    >>> loss
+                      )
+             . (:< p)
+
+encoderNet
+    :: Encoder t i o
+    -> Network t i i
+encoderNet (E e d) = e >>> d
+{-# INLINE encoderNet #-}
 
 trainEncoder
     :: forall t i o. (Tensor t, RealFloat (ElemT t), SingI i)

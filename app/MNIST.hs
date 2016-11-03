@@ -29,6 +29,7 @@ import           Data.Finite
 import           Data.Foldable
 import           Data.IDX
 import           Data.Kind
+import           Data.List
 import           Data.Monoid
 import           Data.Profunctor
 import           Data.Proxy
@@ -44,6 +45,7 @@ import           GHC.Generics                          (Generic)
 import           GHC.TypeLits                          as TL
 import           GHC.TypeLits.Compare
 import           Options.Applicative hiding            (ParserResult(..))
+import           Statistics.Distribution
 import           Statistics.Distribution.Uniform
 import           System.Directory
 import           System.FilePath
@@ -297,8 +299,10 @@ learn w _ dat rate layers (fromIntegral->batch) ind nc =
             tr' <- case w of
                 SFalse -> return tr
                 STrue  -> do
-                  extr <- V.replicateM (V.length tr `div` 10) $
-                            genRand (uniformDistr 0 1) g
+                  extr <- V.replicateM (V.length tr `div` 10) $ do
+                            v <- genRand (uniformDistr 0 1) g
+                            α <- realToFrac <$> genContVar (uniformDistr 0 1) g
+                            return $ scaleT α v
                   return $ tr <> fmap (, (noiseClass, noiseFin)) extr
 
             queue <- evaluate . force =<< uniformShuffle tr' g
@@ -323,8 +327,10 @@ learn w _ dat rate layers (fromIntegral->batch) ind nc =
                   SFalse ->
                     return vd
                   STrue  -> do
-                    extr <- replicateM (length vd `div` 10) $
-                                genRand (uniformDistr 0 1) g
+                    extr <- replicateM (length vd `div` 10) $ do
+                              v <- genRand (uniformDistr 0 1) g
+                              α <- realToFrac <$> genContVar (uniformDistr 0 1) g
+                              return $ scaleT α v
                     return $ vd <> fmap (, noiseFin) extr
               let tscore = F.fold (validate nt') ((fmap . second) snd xs)
                   vconf  = F.fold (confusion nt') vd'
@@ -351,7 +357,12 @@ learn w _ dat rate layers (fromIntegral->batch) ind nc =
               forM_ ind' $ \i -> do
                 x0 <- genRand (uniformDistr 0 0.05) g
                 let x1 = induceNum nt' i 1 5000 x0
+                    y1 = intercalate "/"
+                       . map (printf "%.2f" . realToFrac @_ @Double)
+                       . TT.toList
+                       $ runNetwork nt' x1
                 putStrLn (renderOut x1)
+                putStrLn y1
 
               trainBatch (succ b) xss nt'
         validate
@@ -369,7 +380,7 @@ learn w _ dat rate layers (fromIntegral->batch) ind nc =
             -> F.Fold (t '[784], Finite o) (M.Map (Finite o) (M.Map (Finite o) Integer))
         confusion n = F.Fold (\m (x, r) ->
                                 let y = TT.argMax (runNetwork n x)
-                                in  M.insertWith (M.unionWith (+)) r (M.singleton y 1) m
+                                in  M.insertWith (M.unionWith (+)) y (M.singleton r 1) m
                              )
                              (M.fromList [ (i, M.fromList [ (j, 0) | j <- range ] )
                                          | i <- range
@@ -413,7 +424,7 @@ renderOut
     :: forall t. (Tensor t, Real (ElemT t))
     => t '[784]
     -> String
-renderOut = unlines
+renderOut = intercalate "\n"
           . ($ [])
           . appEndo
           . execWriter
