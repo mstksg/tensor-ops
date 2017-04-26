@@ -3,6 +3,13 @@ tensor-ops
 
 [![Build Status](https://travis-ci.org/mstksg/tensor-ops.svg?branch=master)](https://travis-ci.org/mstksg/tensor-ops)
 
+> Note: this project was a bit of a wild ride into how generic I could make
+> tensor operations, and was an ill-fated integration of automatic
+> differentiation and tensor operations.  See [backprop-learn][] for a more
+> reasonable take, with much more simple type-level programming.
+
+[backprop-learn]: https://github.com/mstksg/backprop-learn/tree/master/src/Numeric
+
 *tensor-ops* is a library for specifying type-safe tensor manipulations that
 can be automatically differentiated using reverse-mode AD for automatic
 gradient descent.
