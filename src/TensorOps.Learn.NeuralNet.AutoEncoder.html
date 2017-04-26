@@ -1,0 +1,144 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns        #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DataKinds           #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE FlexibleContexts    #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE GADTs               #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE KindSignatures      #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase          #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE PolyKinds           #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications    #-}</span><span>
+</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE TypeInType          #-}</span><span>
+</span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators       #-}</span><span>
+</span><a name="line-12"></a><span>
+</span><a name="line-13"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Learn</span><span class="hs-operator">.</span><span class="hs-identifier">NeuralNet</span><span class="hs-operator">.</span><span class="hs-identifier">AutoEncoder</span><span>
+</span><a name="line-14"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="TensorOps.Learn.NeuralNet.AutoEncoder.html#Encoder"><span class="hs-identifier hs-type">Encoder</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-15"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.AutoEncoder.html#encode"><span class="hs-identifier hs-var">encode</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.AutoEncoder.html#decode"><span class="hs-identifier hs-var">decode</span></a><span>
+</span><a name="line-16"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.AutoEncoder.html#encoderNet"><span class="hs-identifier hs-var">encoderNet</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.AutoEncoder.html#encodeDecode"><span class="hs-identifier hs-var">encodeDecode</span></a><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.AutoEncoder.html#testEncoder"><span class="hs-identifier hs-var">testEncoder</span></a><span>
+</span><a name="line-17"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="TensorOps.Learn.NeuralNet.AutoEncoder.html#trainEncoder"><span class="hs-identifier hs-var">trainEncoder</span></a><span>
+</span><a name="line-18"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-19"></a><span>
+</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Category</span><span>
+</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
+</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
+</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Conjunction</span><span>
+</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>
+</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span>                     </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCP</span><span>
+</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Product.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>                </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCP</span><span>
+</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Sing.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Sing</span></a><span>
+</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Prelude</span><span> </span><span class="hs-keyword">hiding</span><span>                        </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-var">.</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">id</span><span class="hs-special">)</span><span>
+</span><a name="line-29"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Learn.NeuralNet.FeedForward.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Learn</span><span class="hs-operator">.</span><span class="hs-identifier">NeuralNet</span><span class="hs-operator">.</span><span class="hs-identifier">FeedForward</span></a><span>
+</span><a name="line-30"></a><span class="hs-keyword">import</span><span>           </span><a href="TensorOps.Types.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span></a><span>
+</span><a name="line-31"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span>
+</span><a name="line-32"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
+</span><a name="line-33"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
+</span><a name="line-34"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="TensorOps.TOp.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">TOp</span></a><span>                         </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TO</span><span>
+</span><a name="line-35"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="TensorOps.Tensor.html"><span class="hs-identifier">TensorOps</span><span class="hs-operator">.</span><span class="hs-identifier">Tensor</span></a><span>                      </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TT</span><span>
+</span><a name="line-36"></a><span>
+</span><a name="line-37"></a><span class="hs-keyword">data</span><span> </span><a name="Encoder"><a href="TensorOps.Learn.NeuralNet.AutoEncoder.html#Encoder"><span class="hs-identifier">Encoder</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><a href="#local-1627973872"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627973872"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627973872"><span class="hs-identifier hs-type">k</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-38"></a><span>    </span><a name="E"><a href="TensorOps.Learn.NeuralNet.AutoEncoder.html#E"><span class="hs-identifier">E</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">{</span><span> </span><a name="eEncoder"><a href="TensorOps.Learn.NeuralNet.AutoEncoder.html#eEncoder"><span class="hs-identifier">eEncoder</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><a href="TensorOps.Learn.NeuralNet.FeedForward.html#Network"><span class="hs-identifier hs-type">Network</span></a><span> </span><a href="#local-1627973873"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627973874"><span class="hs-identifier hs-type">i</span></a><span> </span><a href="#local-1627973875"><span class="hs-identifier hs-type">o</span></a><span class="hs-special">)</span><span>
+</span><a name="line-39"></a><span>         </span><span class="hs-special">,</span><span> </span><a name="eDecoder"><a href="TensorOps.Learn.NeuralNet.AutoEncoder.html#eDecoder"><span class="hs-identifier">eDecoder</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><a href="TensorOps.Learn.NeuralNet.FeedForward.html#Network"><span class="hs-identifier hs-type">Network</span></a><span> </span><a href="#local-1627973873"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627973875"><span class="hs-identifier hs-type">o</span></a><span> </span><a href="#local-1627973874"><span class="hs-identifier hs-type">i</span></a><span class="hs-special">)</span><span>
+</span><a name="line-40"></a><span>         </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Learn.NeuralNet.AutoEncoder.html#Encoder"><span class="hs-identifier hs-type">Encoder</span></a><span> </span><a href="#local-1627973873"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627973874"><span class="hs-identifier hs-type">i</span></a><span> </span><a href="#local-1627973875"><span class="hs-identifier hs-type">o</span></a><span>
+</span><a name="line-41"></a><span>
+</span><a name="line-42"></a><span class="hs-identifier">encode</span><span>
+</span><a name="line-43"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">RealFloat</span><span> </span><span class="hs-special">(</span><a href="TensorOps.Types.html#ElemT"><span class="hs-identifier hs-type">ElemT</span></a><span> </span><a href="#local-1627973897"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="TensorOps.Types.html#Tensor"><span class="hs-identifier hs-type">Tensor</span></a><span> </span><a href="#local-1627973897"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span>
+</span><a name="line-44"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><a href="TensorOps.Learn.NeuralNet.AutoEncoder.html#Encoder"><span class="hs-identifier hs-type">Encoder</span></a><span> </span><a href="#local-1627973897"><span class="hs-identifier hs-type">t</span></a><span> </span><a href="#local-1627973898"><span class="hs-identifier hs-type">i</span></a><span> </span><a href="#local-1627973899"><span class="hs-identifier hs-type">o</span></a><span>
+</span><a name="line-45"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-1627973897"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-char">'[i]
+    -&gt; t '[o]
+encode e = runNetwork (eEncoder e)
+{-# INLINE encode #-}
+
+decode
+    :: (RealFloat (ElemT t), Tensor t)
+    =&gt; Encoder t i o
+    -&gt; t '[o]
+    -&gt; t '[i]
+decode e = runNetwork (eDecoder e)
+{-# INLINE decode #-}
+
+encodeDecode
+    :: (RealFloat (ElemT t), Tensor t)
+    =&gt; Encoder t i o
+    -&gt; t '[i]
+    -&gt; t '[i]
+encodeDecode e = runNetwork (encoderNet e)
+
+testEncoder
+    :: forall t i o. (RealFloat (ElemT t), Tensor t, SingI i)
+    =&gt; TOp '[ '[i], '[i] ] '[ '[] ]
+    -&gt; Encoder t i o
+    -&gt; t '[i]
+    -&gt; ElemT t
+testEncoder loss e = case encoderNet e of
+    N _ o p -&gt; TT.unScalar
+             . TCP.head'
+             . runTOp ( firstOp TO.duplicate
+                    &gt;&gt;&gt; secondOp @'[ '[i] ] o
+                    &gt;&gt;&gt; TO.swap
+                    &gt;&gt;&gt; loss
+                      )
+             . (:&lt; p)
+
+encoderNet
+    :: Encoder t i o
+    -&gt; Network t i i
+encoderNet (E e d) = e &gt;&gt;&gt; d
+{-# INLINE encoderNet #-}
+
+trainEncoder
+    :: forall t i o. (Tensor t, RealFloat (ElemT t), SingI i)
+    =&gt; TOp '[ '[i], '[i] ] '[ '[] ]
+    -&gt; ElemT t
+    -&gt; t '[i]
+    -&gt; Encoder t i o
+    -&gt; Encoder t i o
+trainEncoder loss r x = \case
+    E e d -&gt; case e of
+      N sE oE pE -&gt; case d of
+        N sD oD pD -&gt;
+          let (grE, grD) = encGrad loss x sE oE pE oD pD
+              pE' = map1 stepFunc $ zipProd3 (singProd sE) pE grE
+              pD' = map1 stepFunc $ zipProd3 (singProd sD) pD grD
+          in  E (N sE oE pE') (N sD oD pD')
+  where
+    stepFunc
+        :: forall ns. ()
+        =&gt; (Sing :&amp;: t :&amp;: t) ns
+        -&gt; t ns
+    stepFunc !(s :&amp;: p :&amp;: g) =
+      TT.zip (\(!p') (!g') -&gt; p' - r * g') p g \\ s
+    {-# INLINE stepFunc #-}
+{-# INLINE trainEncoder #-}
+
+encGrad
+    :: forall k (t :: [k] -&gt; Type) (i :: k) (o :: k) (psE :: [[k]]) (psD :: [[k]]).
+     ( Tensor t
+     , RealFloat (ElemT t)
+     , SingI i
+     )
+    =&gt; TOp '[ '[i], '[i] ] '[ '[] ]
+    -&gt; t '[i]
+    -&gt; Sing psE
+    -&gt; TOp ( '[i] ': psE ) '[ '[o] ]
+    -&gt; Prod t psE
+    -&gt; TOp ( '[o] ': psD ) '[ '[i] ]
+    -&gt; Prod t psD
+    -&gt; (Prod t psE, Prod t psD)
+encGrad loss x sE oE pE oD pD = splitProd @psD @t @psE lE gr
+  where
+    lE :: Length psE
+    lE = singLength sE
+    o :: TOp ('[i] ': psE ++ psD) '[ '[] ]
+    o = (\\ lE) $
+          firstOp @(psE ++ psD) TO.duplicate
+      &gt;&gt;&gt; secondOp @'[ '[i] ] (
+            firstOp @psD oE &gt;&gt;&gt; oD
+          )
+      &gt;&gt;&gt; TO.swap
+      &gt;&gt;&gt; loss
+    x' :: Prod t ('[i] ': psE ++ psD)
+    x' = x :&lt; pE `TCP.append'` pD
+    gr :: Prod t (psE ++ psD)
+    gr = TCP.tail' $ gradTOp o x'
+{-# INLINE encGrad #-}
+
+</span></pre></body></html>

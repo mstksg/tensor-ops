@@ -75,9 +75,9 @@ instance TensorOps.NatKind.NatKind Type.Family.Nat.N
 instance TensorOps.NatKind.NatKind GHC.Types.Nat
 
 module TensorOps.BLAS
-data BShape a_aTnX
-BV :: !a_aTnX -> BShape a_aTnX
-BM :: !a_aTnX -> !a_aTnX -> BShape a_aTnX
+data BShape a_aTya
+BV :: !a_aTya -> BShape a_aTya
+BM :: !a_aTya -> !a_aTya -> BShape a_aTya
 bShapeDims :: BShape a -> [a]
 data BShapeP :: (k -> Type) -> BShape k -> Type
 [PBV] :: {unPBV :: !(f a)} -> BShapeP f (BV a)
@@ -110,7 +110,7 @@ getDiagB :: BLAS b => b (BM n n) -> b (BV n)
 sumB :: BLAS b => b s -> ElemB b
 
 -- | The singleton kind-indexed data family.
-type SBShape = (Sing :: BShape a_aTnX -> Type)
+type SBShape = (Sing :: BShape a_aTya -> Type)
 elemsB :: (Applicative f, BLAS b) => (ElemB b -> f (ElemB b)) -> b s -> f (b s)
 zipB :: BLAS b => Sing s -> (ElemB b -> ElemB b -> ElemB b) -> b s -> b s -> b s
 bgen :: forall k (b :: BShape k -> Type) (s :: BShape k). BLAS b => Sing s -> (BShapeP (IndexN k) s -> ElemB b) -> b s
@@ -124,8 +124,8 @@ instance Data.Singletons.Prelude.Eq.PEq 'Data.Proxy.Proxy
 instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.BVSym0
 instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.BMSym1
 instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.BMSym0
-instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.Compare_1627603961Sym1
-instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.Compare_1627603961Sym0
+instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.Compare_1627604594Sym1
+instance Data.Singletons.SuppressUnusedWarnings.SuppressUnusedWarnings TensorOps.BLAS.Compare_1627604594Sym0
 instance Data.Singletons.Prelude.Ord.POrd 'Data.Proxy.Proxy
 instance Data.Singletons.SingKind a0 => Data.Singletons.SingKind (TensorOps.BLAS.BShape a0)
 instance Data.Singletons.Prelude.Eq.SEq a0 => Data.Singletons.Prelude.Eq.SEq (TensorOps.BLAS.BShape a0)
@@ -330,6 +330,9 @@ duplicate :: SingI n => TOp '[n] '[n, n]
 inner :: forall ms ns o. (SingI (o : ns), SingI (ms >: o), SingI (ms ++ ns)) => Length ms -> Length ns -> TOp '[ms >: o, o : ns] '[ms ++ ns]
 outer :: (SingI ms, SingI ns, SingI (ms ++ ns)) => Length ms -> Length ns -> TOp '[ms, ns] '[ms ++ ns]
 dot :: SingI m => TOp '['[m], '[m]] '['[]]
+matVec :: (SingI m, SingI n) => TOp '['[m, n], '[n]] '['[m]]
+vecMat :: (SingI m, SingI n) => TOp '['[m], '[m, n]] '['[n]]
+matMat :: (SingI m, SingI n, SingI o) => TOp '['[m, n], '[n, o]] '['[m, o]]
 swap :: TOp '[ms, ns] '[ns, ms]
 swap' :: forall ns ms. Length ns -> Length ms -> TOp (ns ++ ms) (ms ++ ns)
 drop :: forall ms ns. SingI (ns ++ ms) => Length ns -> TOp (ns ++ ms) ms
@@ -363,11 +366,23 @@ nmap :: SingI o => (forall a. RealFloat a => a -> a) -> Network t i o -> Network
 infixr 4 ~*
 (*~) :: Network t a b -> TOp '['[b]] '['[c]] -> Network t a c
 infixl 5 *~
+liftNet :: TOp '['[i]] '['[o]] -> Network t i o
 netParams :: Network t i o -> (forall ps. SingI ps => Prod t ps -> r) -> r
 networkGradient :: forall i o t r. (Tensor t, RealFloat (ElemT t)) => TOp '['[o], '[o]] '['[]] -> t '[i] -> t '[o] -> Network t i o -> (forall ps. SingI ps => Prod t ps -> r) -> r
 genNet :: forall k o i m (t :: [k] -> Type). (SingI o, SingI i, PrimMonad m, Tensor t) => [(Integer, Activation k)] -> Activation k -> Gen (PrimState m) -> m (Network t i o)
 ffLayer :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t) => Gen (PrimState m) -> m (Network t i o)
 instance forall k (t :: [k] -> *) (i :: k) (o :: k). Type.Class.Higher.Util.NFData1 t => Control.DeepSeq.NFData (TensorOps.Learn.NeuralNet.FeedForward.Network t i o)
+instance forall k (t :: [k] -> GHC.Types.Type). Control.Category.Category (TensorOps.Learn.NeuralNet.FeedForward.Network t)
+
+module TensorOps.Learn.NeuralNet.AutoEncoder
+data Encoder :: ([k] -> Type) -> k -> k -> Type
+[E] :: {eEncoder :: !(Network t i o), eDecoder :: !(Network t o i)} -> Encoder t i o
+encode :: (RealFloat (ElemT t), Tensor t) => Encoder t i o -> t '[i] -> t '[o]
+decode :: (RealFloat (ElemT t), Tensor t) => Encoder t i o -> t '[o] -> t '[i]
+encoderNet :: Encoder t i o -> Network t i i
+encodeDecode :: (RealFloat (ElemT t), Tensor t) => Encoder t i o -> t '[i] -> t '[i]
+testEncoder :: forall t i o. (RealFloat (ElemT t), Tensor t, SingI i) => TOp '['[i], '[i]] '['[]] -> Encoder t i o -> t '[i] -> ElemT t
+trainEncoder :: forall t i o. (Tensor t, RealFloat (ElemT t), SingI i) => TOp '['[i], '[i]] '['[]] -> ElemT t -> t '[i] -> Encoder t i o -> Encoder t i o
 
 module TensorOps.Learn.NeuralNet.Recurrent
 data Network :: ([k] -> Type) -> k -> k -> Type
@@ -378,6 +393,13 @@ runNetworkSt :: (RealFloat (ElemT t), Tensor t, MonadState (Network t i o) m) =>
 genNet :: forall k o i m (t :: [k] -> Type). (SingI o, SingI i, PrimMonad m, Tensor t) => [(Integer, (Activation k, Maybe (Activation k)))] -> Activation k -> Maybe (Activation k) -> Gen (PrimState m) -> m (Network t i o)
 fullyConnected :: forall k (i :: k) (o :: k) (m :: Type -> Type) (t :: [k] -> Type). (SingI i, SingI o, PrimMonad m, Tensor t) => Activation k -> Gen (PrimState m) -> m (Network t i o)
 ffLayer :: forall i o m t. (SingI i, SingI o, PrimMonad m, Tensor t) => Gen (PrimState m) -> m (Network t i o)
+
+-- | Convert a neural network from
+--   <a>TensorOps.Learn.NeuralNet.FeedForward</a> to a stateless
+--   <a>Network</a>.
+--   
+--   Can be thought a functor from the category of stateless neural
+--   networks to the category of stateful (recurrent) ones.
 stateless :: Network t i o -> Network t i o
 (~*~) :: forall k (t :: [k] -> Type) a b c. Network t a b -> Network t b c -> Network t a c
 infixr 4 ~*~
@@ -386,6 +408,8 @@ infixl 5 *~
 (~*) :: TOp '['[a]] '['[b]] -> Network t b c -> Network t a c
 infixr 4 ~*
 nmap :: SingI o => (forall a. RealFloat a => a -> a) -> Network t i o -> Network t i o
-trainNetwork :: forall k n (t :: [k] -> Type) (i :: k) (o :: k). (Tensor t, RealFloat (ElemT t), SingI i, SingI o) => TOp '['[o], '[o]] '[('[] :: [k])] -> ElemT t -> ElemT t -> Vec n (t '[i]) -> Vec n (t '[o]) -> Network t i o -> Network t i o
-networkGradient :: forall k n (t :: [k] -> Type) (i :: k) (o :: k) r. (Tensor t, RealFloat (ElemT t), SingI i, SingI o) => TOp '['[o], '[o]] '[('[] :: [k])] -> Vec n (t '[i]) -> Vec n (t '[o]) -> Network t i o -> (forall ss ps. (SingI ss, SingI ps) => Vec n (t '[i]) -> Prod t ss -> Prod t ps -> r) -> r
+trainNetwork :: forall k (t :: [k] -> Type) (i :: k) (o :: k). (Tensor t, RealFloat (ElemT t), SingI i, SingI o) => TOp '['[o], '[o]] '['[]] -> ElemT t -> ElemT t -> [(t '[i], t '[o])] -> Network t i o -> Network t i o
+trainNetwork' :: forall k n (t :: [k] -> Type) (i :: k) (o :: k). (Tensor t, RealFloat (ElemT t), SingI i, SingI o) => TOp '['[o], '[o]] '['[]] -> ElemT t -> ElemT t -> Vec n (t '[i]) -> Vec n (t '[o]) -> Network t i o -> Network t i o
+networkGradient :: forall k n (t :: [k] -> Type) (i :: k) (o :: k) r. (Tensor t, RealFloat (ElemT t), SingI i, SingI o) => TOp '['[o], '[o]] '['[]] -> Vec n (t '[i]) -> Vec n (t '[o]) -> Network t i o -> (forall ss ps. (SingI ss, SingI ps) => Vec n (t '[i]) -> Prod t ss -> Prod t ps -> r) -> r
 instance forall k (t :: [k] -> *) (i :: k) (o :: k). Type.Class.Higher.Util.NFData1 t => Control.DeepSeq.NFData (TensorOps.Learn.NeuralNet.Recurrent.Network t i o)
+instance forall k (t :: [k] -> GHC.Types.Type). Control.Category.Category (TensorOps.Learn.NeuralNet.Recurrent.Network t)

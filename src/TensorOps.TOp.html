@@ -40,10 +40,10 @@
 </span><a name="line-40"></a><span class="hs-comment">-- | Lift any `R^N -&gt; R^M` function over every element in a n-tensor list,</span><span>
 </span><a name="line-41"></a><span class="hs-comment">-- producing a m-tensor list.</span><span>
 </span><a name="line-42"></a><span class="hs-identifier">liftOp</span><span>
-</span><a name="line-43"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">SingI</span><span> </span><a href="#local-1627871793"><span class="hs-identifier hs-type">o</span></a><span>
-</span><a name="line-44"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Data.Type.Uniform.html#Uniform"><span class="hs-identifier hs-type">Uniform</span></a><span> </span><a href="#local-1627871793"><span class="hs-identifier hs-type">o</span></a><span> </span><a href="#local-1627871794"><span class="hs-identifier hs-type">ns</span></a><span>
-</span><a name="line-45"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Types.html#VFunc"><span class="hs-identifier hs-type">VFunc</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Len</span><span> </span><a href="#local-1627871794"><span class="hs-identifier hs-type">ns</span></a><span class="hs-special">)</span><span>
-</span><a name="line-46"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Types.html#TOp"><span class="hs-identifier hs-type">TOp</span></a><span> </span><a href="#local-1627871794"><span class="hs-identifier hs-type">ns</span></a><span> </span><span class="hs-char">'[o]
+</span><a name="line-43"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">SingI</span><span> </span><a href="#local-1627872512"><span class="hs-identifier hs-type">o</span></a><span>
+</span><a name="line-44"></a><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Data.Type.Uniform.html#Uniform"><span class="hs-identifier hs-type">Uniform</span></a><span> </span><a href="#local-1627872512"><span class="hs-identifier hs-type">o</span></a><span> </span><a href="#local-1627872513"><span class="hs-identifier hs-type">ns</span></a><span>
+</span><a name="line-45"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Types.html#VFunc"><span class="hs-identifier hs-type">VFunc</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Len</span><span> </span><a href="#local-1627872513"><span class="hs-identifier hs-type">ns</span></a><span class="hs-special">)</span><span>
+</span><a name="line-46"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="TensorOps.Types.html#TOp"><span class="hs-identifier hs-type">TOp</span></a><span> </span><a href="#local-1627872513"><span class="hs-identifier hs-type">ns</span></a><span> </span><span class="hs-char">'[o]
 liftOp = \case
     U&#216; -&gt; \f -&gt;
       TOp (\_   -&gt; only . TT.konst $ vfFunc f &#216;V)
@@ -323,6 +323,25 @@ dot :: SingI m
     =&gt; TOp '[ '[m], '[m] ] '[ '[] ]
 dot = inner LZ LZ
 {-# INLINE dot #-}
+
+matVec
+    :: (SingI m, SingI n)
+    =&gt; TOp '[ '[m,n], '[n] ] '[ '[m] ]
+matVec = inner (LS LZ) LZ
+{-# INLINE matVec #-}
+
+vecMat
+    :: (SingI m, SingI n)
+    =&gt; TOp '[ '[m], '[m,n] ] '[ '[n] ]
+vecMat = inner LZ (LS LZ)
+{-# INLINE vecMat #-}
+
+matMat
+    :: (SingI m, SingI n, SingI o)
+    =&gt; TOp '[ '[m,n], '[n,o] ] '[ '[m,o] ]
+matMat = inner (LS LZ) (LS LZ)
+{-# INLINE matMat #-}
+
 
 swap :: TOp '[ms,ns] '[ns,ms]
 swap = TOp (\case x :&lt; y :&lt; &#216; -&gt; y :&lt; x :&lt; &#216;)
